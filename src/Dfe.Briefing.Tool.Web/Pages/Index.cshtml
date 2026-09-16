@@ -1,0 +1,62 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Generate a briefing";
+    var urnInvalid = ViewData.ModelState["Input.SchoolUrnOrTrustTrn"]?.Errors.Count > 0;
+    var nameInvalid = ViewData.ModelState["Input.SchoolOrTrustName"]?.Errors.Count > 0;
+}
+
+<partial name="_ValidationSummary" />
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="govuk-error-summary" data-module="govuk-error-summary" aria-labelledby="briefing-error-title" role="alert" tabindex="-1">
+        <h2 class="govuk-error-summary__title" id="briefing-error-title">There is a problem</h2>
+        <div class="govuk-error-summary__body">
+            <ul class="govuk-list govuk-error-summary__list">
+                <li>@Model.ErrorMessage</li>
+            </ul>
+        </div>
+    </div>
+}
+
+<h1 class="govuk-heading-xl">Generate a briefing</h1> 
+<govuk-details>
+    <govuk-details-summary>
+        <span class="govuk-details__summary-text">Instructions</span>
+    </govuk-details-summary>
+    <govuk-details-text>
+        <p class="govuk-body">
+            This tool uses AI to give an overview of the data Regions Group holds about a school or trust, including:
+            <ul>
+                <li>pupil numbers</li>
+                <li>trust make up</li>
+                <li>performance details</li>
+            </ul>
+        </p>
+        <p class="govuk-body">You must enter either a school's six digit URN or a trust's seven digit TRN, then its name. </p>
+        <p class="govuk-body">Click 'Search' when you're done.</p>
+    </govuk-details-text>
+</govuk-details>
+<form method="post" novalidate>
+    <div class="govuk-form-group @(urnInvalid == true ? "govuk-form-group--error" : "")">
+        <label asp-for="Input.SchoolUrnOrTrustTrn" class="govuk-label">School URN or trust TRN</label>
+        <span asp-validation-for="Input.SchoolUrnOrTrustTrn" class="govuk-error-message"></span>
+        <input asp-for="Input.SchoolUrnOrTrustTrn" class="govuk-input" />
+    </div>
+
+    <div class="govuk-form-group @(nameInvalid == true ? "govuk-form-group--error" : "")">
+        <label asp-for="Input.SchoolOrTrustName" class="govuk-label">School or trust name</label>
+        <span asp-validation-for="Input.SchoolOrTrustName" class="govuk-error-message"></span>
+        <input asp-for="Input.SchoolOrTrustName" class="govuk-input" />
+    </div>
+
+    <button type="submit" class="govuk-button" data-module="govuk-button">Search</button>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(Model.BriefingOutput))
+{
+    <div class="briefing-output">
+        @Html.Raw(Model.BriefingOutput)
+    </div>
+}

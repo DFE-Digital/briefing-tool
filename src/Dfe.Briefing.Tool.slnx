@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/Dfe.Briefing.Tool.Application.Tests/Dfe.Briefing.Tool.Application.Tests.csproj" />
+    <Project Path="tests/Dfe.Ai.Agents.Tests/Dfe.Ai.Agents.Tests.csproj" />
+  </Folder>
+  <Project Path="Dfe.Ai.Agents/Dfe.Ai.Agents.csproj" />
+  <Project Path="Dfe.Briefing.Tool.Application/Dfe.Briefing.Tool.Application.csproj" Id="908556e9-a87b-4534-b54f-722d597f5134" />
+  <Project Path="Dfe.Briefing.Tool.Domain/Dfe.Briefing.Tool.Domain.csproj" Id="d41b7b3e-744e-49e6-a2ba-bea377740fd1" />
+  <Project Path="Dfe.Briefing.Tool.Infrastructure/Dfe.Briefing.Tool.Infrastructure.csproj" />
+  <Project Path="Dfe.Briefing.Tool.Web/Dfe.Briefing.Tool.Web.csproj" />
+</Solution>

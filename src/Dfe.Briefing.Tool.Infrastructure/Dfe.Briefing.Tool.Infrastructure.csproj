@@ -14,7 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dfe.Ai.Agents\Dfe.Ai.Agents.csproj" />
     <ProjectReference Include="..\Dfe.Briefing.Tool.Application\Dfe.Briefing.Tool.Application.csproj" />
     <ProjectReference Include="..\Dfe.Briefing.Tool.Domain\Dfe.Briefing.Tool.Domain.csproj" />
   </ItemGroup>

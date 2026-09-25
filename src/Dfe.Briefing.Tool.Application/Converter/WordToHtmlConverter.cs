@@ -3,6 +3,9 @@ using Clippit.Word;
 
 namespace Dfe.Briefing.Tool.Application.Converter;
 
+/// <summary>
+/// Convert Word documents (DOCX) to HTML and then to Markdown format.
+/// </summary>
 public static class WordToHtmlConverter
 {
     /// <summary>

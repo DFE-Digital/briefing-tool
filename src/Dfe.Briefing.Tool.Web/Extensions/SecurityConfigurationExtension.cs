@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Dfe.Briefing.Tool.Web.Extensions;
 
@@ -35,7 +37,9 @@ public static class SecurityConfigurationExtension
 
     private static IApplicationBuilder AddSecurityHeaders(this IApplicationBuilder app)
     {
-        app.UseSecurityHeaders(static options =>
+        var isDevelopment = app.ApplicationServices.GetRequiredService<IHostEnvironment>().IsDevelopment();
+
+        app.UseSecurityHeaders(options =>
         {
             options.AddFrameOptionsDeny()
                 .AddXssProtectionDisabled()
@@ -46,6 +50,17 @@ public static class SecurityConfigurationExtension
                     builder.AddDefaultSrc().Self();
                     builder.AddStyleSrc().Self().WithNonce();
                     builder.AddScriptSrc().Self().WithNonce();
+
+                    var connectSrc = builder.AddConnectSrc().Self();
+                    if (isDevelopment)
+                    {
+                        // dotnet watch's browser-refresh script (and Visual Studio's own live-reload
+                        // equivalent) opens a websocket back to the dev server for hot reload
+                        // notifications - CSP has no "same-origin websocket" shorthand, so this has
+                        // to be spelled out explicitly, and only for Development; never allow
+                        // arbitrary ws/wss origins once this is actually deployed.
+                        connectSrc.From("ws://localhost:*").From("wss://localhost:*");
+                    }
                 })
                 .AddPermissionsPolicy(builder =>
                 {

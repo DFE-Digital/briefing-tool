@@ -63,17 +63,38 @@
   }
 }
 
-// A slim, left-aligned bar above the header showing who's signed in, per the requirement that
-// this sit at the top-left of the page rather than the header's usual top-right account slot.
-.app-signed-in-bar {
+// Live step-by-step status shown while a briefing streams in - see initBriefingProgress in
+// index.js. Styled as a quiet, bordered log rather than a GOV.UK panel, so it doesn't compete
+// with the actual briefing content once it appears below.
+.app-briefing-status {
+  margin-top: govuk-spacing(4);
+  margin-bottom: govuk-spacing(6);
+  padding: govuk-spacing(3) govuk-spacing(4);
+  border-left: 4px solid govuk-colour("blue");
   background-color: govuk-colour("light-grey");
-  border-bottom: 1px solid govuk-colour("mid-grey");
 }
 
-.app-signed-in-bar__text {
-  display: block;
-  margin: 0;
-  padding: govuk-spacing(1) 0;
-  text-align: left;
-  color: govuk-colour("black");
+.app-briefing-status__list {
+  margin-bottom: 0;
+
+  // Always exactly one item - each "progress" event replaces it rather than appending, so there's
+  // no "earlier step" to grey out against a "current step" to highlight.
+  li {
+    @include govuk-font(16);
+    color: govuk-colour("black");
+    font-weight: bold;
+  }
+}
+
+// Shows who's signed in on the right of the dark header bar, alongside the DfE logo.
+// .govuk-header__content is GOV.UK Frontend's own float-based slot for this (paired with
+// .govuk-header__logo's float:left under the same clearfixed .govuk-header__container), so this
+// only needs to right-align text within it rather than reaching for position: absolute.
+.app-header__signed-in {
+  text-align: right;
+}
+
+.app-header__signed-in-text {
+  @include govuk-font(16);
+  color: govuk-colour("white");
 }

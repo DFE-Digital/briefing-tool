@@ -1,5 +1,6 @@
-﻿@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
-@addTagHelper BriefingTool.Taghelpers.ExternalLinkTagHelper, BriefingTool
+﻿@using Dfe.Briefing.Tool.Web.Models
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+
 @* GOV.UK Footer (rebrand) *@
 <footer class="govuk-footer" role="contentinfo">
     <div class="govuk-width-container">
@@ -56,8 +57,8 @@
                         </a>
                     </li>
                     <li class="govuk-footer__inline-list-item">
-            <a class="govuk-footer__link"
-               data-test="cookie-preferences" asp-route-returnUrl="@Context.Request.Path">
+                        <a class="govuk-footer__link" asp-page="@Links.Public.CookiePreferences.Page"
+                           asp-route-returnUrl="@Context.Request.Path">
                             Cookies
                         </a>
                     </li>

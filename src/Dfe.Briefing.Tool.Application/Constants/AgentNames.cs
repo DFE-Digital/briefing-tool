@@ -8,4 +8,5 @@ internal static class AgentNames
     public const string RecastConcerns = "recast-concerns-agent";
     public const string Trust = "trust-agent";
     public const string Synthesis = "briefing-synthesis-agent";
+    public const string WebSearch = "web-search-agent";
 }

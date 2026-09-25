@@ -13,9 +13,11 @@ namespace Dfe.Briefing.Tool.Application.Providers
                 new(AgentNames.Ofsted, SystemPromptType.Ofsted,
                     EvidenceCategory.Ofsted, "{{SchoolOrTrustName}} {{SchoolUrnOrTrustTrn}} Ofsted inspection"),
                 new(AgentNames.RiseConcerns, SystemPromptType.RiseConcerns,
-                    EvidenceCategory.RiseConcerns, "{{SchoolOrTrustName}} {{SchoolUrnOrTrustTrn}} RISE concerns"),
+                    EvidenceCategory.RiseConcerns, "{{SchoolOrTrustName}} {{SchoolUrnOrTrustTrn}} RISE concerns",
+                    IsManagedAgent: false),
                 new(AgentNames.RecastConcerns, SystemPromptType.RecastConcerns,
-                    EvidenceCategory.RecastConcerns, "{{SchoolOrTrustName}} {{SchoolUrnOrTrustTrn}} RECAST concerns"),
+                    EvidenceCategory.RecastConcerns, "{{SchoolOrTrustName}} {{SchoolUrnOrTrustTrn}} RECAST concerns",
+                    IsManagedAgent: false),
                 new(AgentNames.Trust, SystemPromptType.Trust,
                     EvidenceCategory.Trust, "{{SchoolOrTrustName}} {{SchoolUrnOrTrustTrn}}'s Trust data")
             ]; 

@@ -1,18 +1,17 @@
-﻿@if (User?.Identity?.IsAuthenticated ?? false)
-{
-    <div class="app-signed-in-bar">
-        <div class="govuk-width-container">
-            <span class="govuk-body-s app-signed-in-bar__text">Signed in as <strong>@User.Identity.Name</strong></span>
-        </div>
-    </div>
-}
-<header class="govuk-header" data-module="govuk-header">
+﻿<header class="govuk-header" data-module="govuk-header">
     <div class="govuk-header__container govuk-width-container">
         <div class="govuk-header__logo">
             <a href="/" class="govuk-header__link govuk-header__link--homepage">
                 <img src="/assets/images/department-for-education_white.png" alt="Department for Education" class="govuk-header__logotype">
             </a>
         </div>
+
+        @if (User?.Identity?.IsAuthenticated ?? false)
+        {
+            <div class="govuk-header__content app-header__signed-in">
+                <span class="app-header__signed-in-text">Signed in as <strong>@User.Identity.Name</strong></span>
+            </div>
+        }
     </div>
 </header>
 <section aria-label="Service information" class="govuk-service-navigation"
@@ -23,7 +22,7 @@
                 <a href="/" class="govuk-service-navigation__link">
                     Main
                 </a>
-            </span>
+            </span> 
             <nav aria-label="Menu" class="govuk-service-navigation__wrapper" id="header-navigation">
                 <button type="button" class="govuk-service-navigation__toggle govuk-js-service-navigation-toggle" aria-controls="navigation" hidden>
                     Menu

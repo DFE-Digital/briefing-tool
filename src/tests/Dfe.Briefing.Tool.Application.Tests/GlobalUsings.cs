@@ -1,2 +1,2 @@
-global using AgentDefinition = Dfe.Ai.Agents.Models.AgentDefinition;
-global using IAgentDefinitionProvider = Dfe.Ai.Agents.Agents.Interfaces.IAgentDefinitionProvider;
+global using AgentDefinition = GovUK.Dfe.CoreLibs.AiAgents.ValueObjects.AgentDefinition;
+global using IAgentDefinitionProvider = GovUK.Dfe.CoreLibs.AiAgents.Agents.Interfaces.IAgentDefinitionProvider;

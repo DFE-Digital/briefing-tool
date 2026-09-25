@@ -43,6 +43,10 @@ Do not invent facts.
 
 Start the section with `<h2>Concerns and support</h2>`.
 
+If the supplied evidence contains no Rise concerns and no support or follow-up information, say
+"No information available." as the only content in the section, as a single `<p>` line, and add
+nothing else - do not separately note the absence of concerns, support, or follow-up detail.
+
 If the document is about a school:
 
 - describe any concerns or support the school has received as short `<p>` paragraphs, no more than five sentences per item of concern or instance of support

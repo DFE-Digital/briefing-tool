@@ -8,6 +8,7 @@ public static class SystemPromptType
     public const string RecastConcerns = "RecastConcerns";
     public const string Trust = "Trust";
     public const string Ofsted = "Ofsted";
+    public const string WebSearch = "WebSearch";
 }
 
 public static class UserPromptType

@@ -1,5 +1,6 @@
 using Dfe.Briefing.Tool.Application.Constants;
 using Dfe.Briefing.Tool.Application.Orchestrators.Interfaces;
+using Dfe.Briefing.Tool.Application.Providers;
 using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
 using GovUK.Dfe.CoreLibs.AiAgents.Agents.Interfaces;
@@ -12,13 +13,9 @@ using System.Net;
 
 namespace Dfe.Briefing.Tool.Application.Orchestrators;
 
-public class BriefingOrchestrator(IAgentDefinitionProvider definitionProvider, IContextRetriever contextRetriever,
-    IPromptProvider promptProvider, IPromptTemplateBuilder promptBuilder, IAgentRuntime agentRuntime,
-    ISpecialistAgentRunner specialistAgentRunner) : IBriefingOrchestrator
+public class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> definitions, IContextRetriever contextRetriever,
+    IPromptTemplateBuilder promptBuilder, IAgentService agentService) : IBriefingOrchestrator
 {
-    private static readonly AgentDefinition WebSearchAgentDefinition =
-        new(AgentNames.WebSearch, SystemPromptType.WebSearch, IsManagedAgent: false);
-
     private static bool IsTrust(string schoolUrnOrTrustTrn) => schoolUrnOrTrustTrn.StartsWith("TR");
 
     public async Task<AIResult> GetBriefing(BriefingParameters parameters, IProgress<string>? progress = null, CancellationToken cancellationToken = default)
@@ -27,43 +24,35 @@ public class BriefingOrchestrator(IAgentDefinitionProvider definitionProvider, I
         ArgumentException.ThrowIfNullOrWhiteSpace(parameters.SchoolUrnOrTrustTrn);
         ArgumentException.ThrowIfNullOrWhiteSpace(parameters.SchoolOrTrustName);
 
-        var definitions = definitionProvider.GetAgentsDefinitions();
-        AgentDefinition establihsmentOrTrustAgent;
-        if (IsTrust(parameters.SchoolUrnOrTrustTrn))
-        {
-            establihsmentOrTrustAgent = definitions.Single(x => x.SystemPromptType == SystemPromptType.Trust);
-        }
-        else
-        {
-            establihsmentOrTrustAgent = definitions.Single(x => x.SystemPromptType == SystemPromptType.Establishment);
-        }
+        var establihsmentOrTrustAgent = IsTrust(parameters.SchoolUrnOrTrustTrn)
+            ? definitions.Single(x => x.SystemPromptType == SystemPromptType.Trust)
+            : definitions.Single(x => x.SystemPromptType == SystemPromptType.Establishment);
 
         var specialistAgents = GetSpecialistAgents(definitions, establihsmentOrTrustAgent.Name);
 
         progress?.Report($"Looking up records for {parameters.SchoolOrTrustName}...");
         var establihsmentOrTrustEvidence = await ResolveEvidenceAsync(establihsmentOrTrustAgent, parameters, cancellationToken);
         if (!establihsmentOrTrustEvidence.HasEvidence)
-        {
             return BuildNoEvidenceResult(establihsmentOrTrustAgent, parameters);
-        }
 
-        var context = new AgentContext(); 
+        var context = new AgentContext();
 
         progress?.Report($"Calling {establihsmentOrTrustAgent.Name.ToDisplayName()} agent...");
-        var establishmentOrTrustResults = await specialistAgentRunner.RunParallelAsync(
+        var establishmentOrTrustResults = await agentService.RunParallelAsync(
             [establihsmentOrTrustAgent],
-            (_, _) => Task.FromResult(BuildEvidence(parameters.SchoolOrTrustName, establihsmentOrTrustEvidence.Text)),
-            context, shouldSuppress: _ => false, cancellationToken: cancellationToken);
+            resolvePrompt: (_, _) => Task.FromResult(BuildSubjectInstruction(parameters)),
+            context, shouldSuppress: _ => false, cancellationToken: cancellationToken,
+            resolveEvidence: (_, _) => Task.FromResult<string?>(establihsmentOrTrustEvidence.Text));
         progress?.Report($"Received {establihsmentOrTrustAgent.Name.ToDisplayName()} information.");
 
         foreach (var definition in specialistAgents)
-        {
             progress?.Report($"Calling {definition.Name.ToDisplayName()} agent...");
-        }
 
-        var specialistAgentResults = await specialistAgentRunner.RunParallelAsync(
-            specialistAgents, (definition, ct) => ResolveEvidencePromptAsync(definition, parameters, ct),
-            context, cancellationToken: cancellationToken);
+        var specialistAgentResults = await agentService.RunParallelAsync(
+            specialistAgents,
+            resolvePrompt: (_, _) => Task.FromResult(BuildSubjectInstruction(parameters)),
+            context, cancellationToken: cancellationToken,
+            resolveEvidence: (definition, ct) => ResolveEvidenceTextAsync(definition, parameters, ct));
         progress?.Report("Received findings from all specialist agents.");
 
         var knownResults = establishmentOrTrustResults.Concat(specialistAgentResults).ToList();
@@ -72,40 +61,42 @@ public class BriefingOrchestrator(IAgentDefinitionProvider definitionProvider, I
         if (parameters.AllowWebSearch)
         {
             progress?.Report("Searching the web for additional information...");
-            var webSearchResults = await specialistAgentRunner.RunParallelAsync(
-                [WebSearchAgentDefinition], (_, _) => Task.FromResult(BuildWebSearchPrompt(parameters, knownResults)),
-                context, cancellationToken: cancellationToken);
+            var webSearchAgent = definitions.Single(x => x.Name == AgentNames.WebSearch);
+            var webSearchResults = await agentService.RunParallelAsync(
+                [webSearchAgent],
+                resolvePrompt: (_, _) => Task.FromResult(BuildWebSearchInstruction(parameters)),
+                context, cancellationToken: cancellationToken,
+                resolveEvidence: (_, _) => Task.FromResult<string?>(CompileContext(knownResults)));
             specialistResults = [.. knownResults, .. webSearchResults];
             progress?.Report("Received web search findings.");
         }
 
         progress?.Report("Compiling the briefing...");
-        var synthesisResult = await RunSynthesisAsync(parameters, specialistResults, cancellationToken);
+        var synthesisAgent = definitions.Single(x => x.Name == AgentNames.Synthesis);
+        var synthesisResult = await RunSynthesisAsync(synthesisAgent, parameters, specialistResults, cancellationToken);
         var totalTokens = specialistResults.Sum(x => x.TotalTokens) + synthesisResult.TotalTokens;
 
         return new AIResult(synthesisResult.Output, totalTokens);
     }
-    private static string BuildEvidence(string subjectName, string evidence)
-        => $"Academy: {subjectName}{Environment.NewLine}{Environment.NewLine}Evidence:{Environment.NewLine}{evidence}";
 
-    private static string BuildWebSearchPrompt(BriefingParameters parameters, IReadOnlyCollection<AgentResult> alreadyKnownResults)
+    private static string BuildSubjectInstruction(BriefingParameters parameters)
+        => $"Analyse the available evidence about \"{parameters.SchoolOrTrustName}\" (URN/TRN: {parameters.SchoolUrnOrTrustTrn}) and report your findings.";
+
+    private static string BuildWebSearchInstruction(BriefingParameters parameters)
     {
         var subject = $"\"{parameters.SchoolOrTrustName}\" (URN/TRN: {parameters.SchoolUrnOrTrustTrn})";
         return $"""
-            We already have the following information about {subject} from internal records:
-
-            {CompileContext(alreadyKnownResults)}
-
-            Search the web for current, genuinely new, publicly available information about this subject that is not already covered above. Do not repeat or re-confirm anything already listed.
+            We already have the internal-record findings supplied as evidence below about {subject}.
+            Search the web for current, genuinely new, publicly available information about this subject that is not already covered by those findings. Do not repeat or re-confirm anything already listed.
             """;
     }
 
-    private async Task<string> ResolveEvidencePromptAsync(AgentDefinition definition, BriefingParameters parameters, CancellationToken cancellationToken)
+    private async Task<string?> ResolveEvidenceTextAsync(AgentDefinition definition, BriefingParameters parameters, CancellationToken cancellationToken)
     {
         var evidence = await ResolveEvidenceAsync(definition, parameters, cancellationToken);
-        return BuildEvidence(parameters.SchoolOrTrustName, evidence.Text);
+        return evidence.Text;
     }
-     
+
     private static string CompileContext(IReadOnlyCollection<AgentResult> results)
         => string.Join(Environment.NewLine + Environment.NewLine, results.Select(
             result =>
@@ -119,16 +110,13 @@ public class BriefingOrchestrator(IAgentDefinitionProvider definitionProvider, I
 
     private async Task<ContextResult> ResolveEvidenceAsync(AgentDefinition definition, BriefingParameters parameters, CancellationToken cancellationToken)
     {
-        var evidenceCategory = definition.EvidenceCategory
-            ?? throw new InvalidOperationException(string.Format(ErrorMessages.NoEvidenceCategoryConfigured, definition.Name));
-        var searchQueryTemplate = definition.SearchQueryTemplate
-            ?? throw new InvalidOperationException(string.Format(ErrorMessages.NoSearchQueryConfigured, definition.Name));
+        var (evidenceCategory, searchQueryTemplate) = AgentEvidenceQueries.For(definition.Name);
 
         var searchQuery = searchQueryTemplate
             .Replace("{{SchoolOrTrustName}}", parameters.SchoolOrTrustName, StringComparison.Ordinal)
             .Replace("{{SchoolUrnOrTrustTrn}}", parameters.SchoolUrnOrTrustTrn, StringComparison.Ordinal);
 
-        return await contextRetriever.GetContextAsync(evidenceCategory, searchQuery, 10, cancellationToken);
+        return await contextRetriever.GetContextAsync(evidenceCategory, searchQuery, size: 10, cancellationToken: cancellationToken);
     }
 
     private static AIResult BuildNoEvidenceResult(AgentDefinition establihsmentOrTrustAgent, BriefingParameters parameters)
@@ -141,7 +129,7 @@ public class BriefingOrchestrator(IAgentDefinitionProvider definitionProvider, I
         return new AIResult($"<h1>{name}</h1><p>{message}</p>", TotalTokens: 0);
     }
 
-    private async Task<AgentResult> RunSynthesisAsync(BriefingParameters parameters,
+    private async Task<AgentResult> RunSynthesisAsync(AgentDefinition synthesisAgent, BriefingParameters parameters,
         IReadOnlyCollection<AgentResult> specialistResults, CancellationToken cancellationToken)
     {
         var prompt = promptBuilder.Build(UserPromptType.Synthesis, new Dictionary<string, string>
@@ -152,15 +140,10 @@ public class BriefingOrchestrator(IAgentDefinitionProvider definitionProvider, I
             ["IncludedSections"] = string.Join(", ", specialistResults.Select(result => result.AgentName.ToDisplayName()))
         });
 
-        var spec = new AgentSpec
-        {
-            Name = AgentNames.Synthesis,
-            Instructions = promptProvider.GetSystemPrompt(SystemPromptType.Synthesis),
-        };
-
-        return await agentRuntime.RunEphemeralAsync(spec, prompt, cancellationToken);
+        return await agentService.RunAsync(synthesisAgent, prompt, cancellationToken: cancellationToken);
     }
 
     private static List<AgentDefinition> GetSpecialistAgents(IReadOnlyCollection<AgentDefinition> definitions, string mandatoryAgentName)
-        => [.. definitions.Where(definition => definition.Name != mandatoryAgentName)];
+        => [.. definitions.Where(definition => definition.Name != mandatoryAgentName
+            && definition.Name != AgentNames.WebSearch && definition.Name != AgentNames.Synthesis)];
 }

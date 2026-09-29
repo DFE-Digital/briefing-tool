@@ -140,7 +140,7 @@ function initBriefingProgress() {
       source.addEventListener('progress', function (e) {
          var item = document.createElement('li');
          item.textContent = e.data;
-         statusList.replaceChildren(item);
+         statusList.appendChild(item);
       });
 
       source.addEventListener('complete', function (e) {

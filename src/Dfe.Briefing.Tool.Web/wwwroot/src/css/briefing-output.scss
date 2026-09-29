@@ -77,10 +77,14 @@
 .app-briefing-status__list {
   margin-bottom: 0;
 
-  // Always exactly one item - each "progress" event replaces it rather than appending, so there's
-  // no "earlier step" to grey out against a "current step" to highlight.
+  // Each "progress" event appends a new item, building a running history. Grey out completed
+  // steps and highlight the last one, which is always the current step.
   li {
     @include govuk-font(16);
+    color: govuk-colour("mid-grey");
+  }
+
+  li:last-child {
     color: govuk-colour("black");
     font-weight: bold;
   }

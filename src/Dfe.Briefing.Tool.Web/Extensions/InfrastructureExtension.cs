@@ -10,7 +10,7 @@ public static class InfrastructureExtension
     public static WebApplicationBuilder AddInfrastructure(this WebApplicationBuilder builder)
     {
         builder.Services.AddGovUkFrontend();
-        builder.Services.AddApplication(builder.Configuration);
+        builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
         builder.AddSecurityServices(); 
         builder.Services.AddHttpContextAccessor();

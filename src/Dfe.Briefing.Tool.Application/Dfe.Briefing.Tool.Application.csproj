@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- OpenAI's Responses API types (e.g. ResponseTool, used to build the web search agent's
+         tool definition) are marked experimental (OPENAI001) pending the SDK's own stabilization. -->
+    <NoWarn>$(NoWarn);OPENAI001</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Clippit" Version="3.9.0" />
+    <PackageReference Include="GovUK.Dfe.CoreLibs.AiAgents" Version="0.0.1-prerelease.282" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />
+    <PackageReference Include="ReverseMarkdown" Version="6.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dfe.Briefing.Tool.Domain\Dfe.Briefing.Tool.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

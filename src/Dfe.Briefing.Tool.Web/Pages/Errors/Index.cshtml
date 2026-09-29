@@ -1,0 +1,29 @@
+﻿@page
+@model Dfe.Briefing.Tool.Web.Pages.Errors.IndexModel
+@inject Microsoft.Extensions.Configuration.IConfiguration _configuration
+@{
+  ViewData["Title"] = !string.IsNullOrEmpty(Model.ErrorMessage) ? Model.ErrorMessage : "Error";
+}
+
+<div class="govuk-grid-column-two-thirds govuk-!-padding-0">
+  <h1 class="govuk-heading-l" id="error-heading">@Model.ErrorMessage</h1>
+  @if (Model.IsPageNotFound)
+    {
+        <p class="govuk-body">
+            If you typed the web address, check it is correct.
+        </p>
+        <p class="govuk-body">
+            If you pasted the web address, check you copied the entire address.
+        </p> 
+    }
+    else
+    {
+        <p class="govuk-body">
+            A fault has stopped us from doing what you asked. It might work next time if you try again.
+        </p> 
+    }
+    <p class="govuk-body">
+        If this problem continues, contact the system administrator at
+        <a href="mailto:@_configuration["SupportEmail"]?subject=Briefing%20tool:%20support%20query" class="govuk-link">@_configuration["SupportEmail"]</a>.
+    </p>
+</div>

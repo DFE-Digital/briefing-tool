@@ -1,0 +1,100 @@
+// The synthesis agent returns plain semantic HTML (h1-h4, p, ul/ol/li, a, br) with no GOV.UK
+// classes attached, and govuk-frontend deliberately doesn't style bare tags - so without this,
+// the generated briefing would render as unstyled browser-default text. This maps the agents'
+// fixed output tags onto the equivalent GOV.UK Design System type scale instead of rewriting the
+// HTML itself, which would be more fragile than a scoped stylesheet.
+.briefing-output {
+  h1 {
+    @include govuk-font(36, $weight: bold);
+    @include govuk-responsive-margin(6, "bottom");
+    color: govuk-colour("black");
+  }
+
+  h2 {
+    @include govuk-font(24, $weight: bold);
+    @include govuk-responsive-margin(4, "bottom");
+    @include govuk-responsive-margin(6, "top");
+    color: govuk-colour("black");
+  }
+
+  h3 {
+    @include govuk-font(19, $weight: bold);
+    @include govuk-responsive-margin(3, "bottom");
+    @include govuk-responsive-margin(4, "top");
+    color: govuk-colour("black");
+  }
+
+  h4 {
+    @include govuk-font(16, $weight: bold);
+    @include govuk-responsive-margin(2, "bottom");
+    @include govuk-responsive-margin(3, "top");
+    color: govuk-colour("black");
+  }
+
+  p {
+    @include govuk-font(19);
+    @include govuk-responsive-margin(4, "bottom");
+    color: govuk-colour("black");
+  }
+
+  ul, ol {
+    @include govuk-font(19);
+    @include govuk-responsive-margin(4, "bottom");
+    color: govuk-colour("black");
+  }
+
+  ul {
+    padding-left: govuk-spacing(5);
+    list-style-type: disc;
+  }
+
+  ol {
+    padding-left: govuk-spacing(5);
+    list-style-type: decimal;
+  }
+
+  li {
+    margin-bottom: govuk-spacing(1);
+  }
+
+  a {
+    @include govuk-link-common;
+    @include govuk-link-style-default;
+  }
+}
+
+// Live step-by-step status shown while a briefing streams in - see initBriefingProgress in
+// index.js. Styled as a quiet, bordered log rather than a GOV.UK panel, so it doesn't compete
+// with the actual briefing content once it appears below.
+.app-briefing-status {
+  margin-top: govuk-spacing(4);
+  margin-bottom: govuk-spacing(6);
+  padding: govuk-spacing(3) govuk-spacing(4);
+  border-left: 4px solid govuk-colour("blue");
+  background-color: govuk-colour("light-grey");
+}
+
+.app-briefing-status__list {
+  margin-bottom: 0;
+
+  // Always exactly one item - each "progress" event replaces it rather than appending, so there's
+  // no "earlier step" to grey out against a "current step" to highlight.
+  li {
+    @include govuk-font(16);
+    color: govuk-colour("black");
+    font-weight: bold;
+  }
+}
+
+// Shows who's signed in on the right of the dark header bar, alongside the DfE logo.
+// .govuk-header__content is GOV.UK Frontend's own float-based slot for this (paired with
+// .govuk-header__logo's float:left under the same clearfixed .govuk-header__container), so this
+// only needs to right-align text within it rather than reaching for position: absolute.
+.app-header__signed-in {
+  text-align: right;
+}
+
+.app-header__signed-in-text {
+  @include govuk-font(16);
+  color: govuk-colour("white");
+}

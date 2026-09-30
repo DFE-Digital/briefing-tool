@@ -11,7 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="Clippit" Version="3.9.1" />
-    <PackageReference Include="GovUK.Dfe.CoreLibs.AiAgents" Version="0.0.1-prerelease.418" />
+    <PackageReference Include="GovUK.Dfe.CoreLibs.AiAgents" Version="0.0.1-prerelease.459" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.12" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />

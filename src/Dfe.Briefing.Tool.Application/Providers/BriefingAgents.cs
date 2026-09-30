@@ -6,15 +6,17 @@ namespace Dfe.Briefing.Tool.Application.Providers;
 
 public static class BriefingAgents
 {
+    // RequireCitations defaults to true and checks for [Evidence n] markers, but every prompt here
+    // cites sources as <a href="..."> links instead - opted out to avoid fighting that format.
     public static readonly AgentDefinition[] All =
     [
-        new(AgentNames.Establishment, SystemPromptType.Establishment) { Validate = ValidateHtmlOutput },
-        new(AgentNames.Ofsted, SystemPromptType.Ofsted) { Validate = ValidateHtmlOutput },
-        new(AgentNames.Trust, SystemPromptType.Trust) { Validate = ValidateHtmlOutput },
-        new(AgentNames.RiseConcerns, SystemPromptType.RiseConcerns) { Validate = ValidateHtmlOutput },
-        new(AgentNames.RecastConcerns, SystemPromptType.RecastConcerns) { Validate = ValidateHtmlOutput },
-        new(AgentNames.WebSearch, SystemPromptType.WebSearch, IsManagedAgent: false) { Validate = ValidateHtmlOutput },
-        new(AgentNames.Synthesis, SystemPromptType.Synthesis) { Validate = ValidateHtmlOutput }
+        new(AgentNames.Establishment, SystemPromptKey.Establishment) { Validate = ValidateHtmlOutput, RequireCitations = false },
+        new(AgentNames.Ofsted, SystemPromptKey.Ofsted) { Validate = ValidateHtmlOutput, RequireCitations = false },
+        new(AgentNames.Trust, SystemPromptKey.Trust) { Validate = ValidateHtmlOutput, RequireCitations = false },
+        new(AgentNames.RiseConcerns, SystemPromptKey.RiseConcerns) { Validate = ValidateHtmlOutput, RequireCitations = false },
+        new(AgentNames.RecastConcerns, SystemPromptKey.RecastConcerns) { Validate = ValidateHtmlOutput, RequireCitations = false },
+        new(AgentNames.WebSearch, SystemPromptKey.WebSearch, IsManagedAgent: false) { Validate = ValidateHtmlOutput, RequireCitations = false },
+        new(AgentNames.Synthesis, SystemPromptKey.Synthesis) { Validate = ValidateHtmlOutput, RequireCitations = false }
     ];
 
     // Every agent's prompt requires valid HTML output; catches a model response that broke that rule.

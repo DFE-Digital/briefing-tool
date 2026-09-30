@@ -21,12 +21,12 @@ public sealed class BriefingOrchestratorTests
     private const string WebSearchName = AgentNames.WebSearch;
     private const string SynthesisName = AgentNames.Synthesis;
 
-    private static readonly AgentDefinition Establishment = new(EstablishmentName, SystemPromptType.Establishment);
-    private static readonly AgentDefinition Ofsted = new(OfstedName, SystemPromptType.Ofsted);
-    private static readonly AgentDefinition Trust = new(TrustName, SystemPromptType.Trust);
-    private static readonly AgentDefinition RiseConcerns = new(RiseConcernsName, SystemPromptType.RiseConcerns, IsManagedAgent: false);
-    private static readonly AgentDefinition WebSearch = new(WebSearchName, SystemPromptType.WebSearch, IsManagedAgent: false);
-    private static readonly AgentDefinition Synthesis = new(SynthesisName, SystemPromptType.Synthesis, IsManagedAgent: false);
+    private static readonly AgentDefinition Establishment = new(EstablishmentName, SystemPromptKey.Establishment);
+    private static readonly AgentDefinition Ofsted = new(OfstedName, SystemPromptKey.Ofsted);
+    private static readonly AgentDefinition Trust = new(TrustName, SystemPromptKey.Trust);
+    private static readonly AgentDefinition RiseConcerns = new(RiseConcernsName, SystemPromptKey.RiseConcerns, IsManagedAgent: false);
+    private static readonly AgentDefinition WebSearch = new(WebSearchName, SystemPromptKey.WebSearch, IsManagedAgent: false);
+    private static readonly AgentDefinition Synthesis = new(SynthesisName, SystemPromptKey.Synthesis, IsManagedAgent: false);
 
     private readonly CancellationToken cancellationToken = TestContext.Current.CancellationToken;
     private readonly IContextRetriever _contextRetriever = Substitute.For<IContextRetriever>();

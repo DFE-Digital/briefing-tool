@@ -188,6 +188,7 @@
          ambiguous (CS0433). Excluding Azure.Identity's compile assets here resolves it to the
          Azure.Core copy at compile time while leaving the runtime assembly untouched. -->
     <PackageReference Include="Azure.Identity" Version="1.21.0" ExcludeAssets="compile" />
+    <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.6.0" />
     <PackageReference Include="GovUk.Frontend.AspNetCore" Version="5.0.0" />
     <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
     <PackageReference Include="Microsoft.Identity.Web" Version="4.15.0" />

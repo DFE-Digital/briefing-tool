@@ -1,6 +1,6 @@
 namespace Dfe.Briefing.Tool.Domain.Constants;
 
-public static class SystemPromptType
+public static class SystemPromptKey
 {
     public const string Synthesis = "Synthesis";
     public const string Establishment = "Establishment";

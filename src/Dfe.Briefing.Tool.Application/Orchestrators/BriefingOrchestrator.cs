@@ -25,8 +25,8 @@ public class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> definitio
         ArgumentException.ThrowIfNullOrWhiteSpace(parameters.SchoolOrTrustName);
 
         var establihsmentOrTrustAgent = IsTrust(parameters.SchoolUrnOrTrustTrn)
-            ? definitions.Single(x => x.SystemPromptType == SystemPromptType.Trust)
-            : definitions.Single(x => x.SystemPromptType == SystemPromptType.Establishment);
+            ? definitions.Single(x => x.SystemPromptKey == SystemPromptKey.Trust)
+            : definitions.Single(x => x.SystemPromptKey == SystemPromptKey.Establishment);
 
         var specialistAgents = GetSpecialistAgents(definitions, establihsmentOrTrustAgent.Name);
 
@@ -121,7 +121,7 @@ public class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> definitio
 
     private static AIResult BuildNoEvidenceResult(AgentDefinition establihsmentOrTrustAgent, BriefingParameters parameters)
     {
-        var message = establihsmentOrTrustAgent.SystemPromptType == SystemPromptType.Trust
+        var message = establihsmentOrTrustAgent.SystemPromptKey == SystemPromptKey.Trust
             ? ErrorMessages.NoTrustInformationFound
             : ErrorMessages.NoSchoolOrAcademyFound;
 

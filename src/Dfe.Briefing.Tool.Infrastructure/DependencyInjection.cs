@@ -1,3 +1,4 @@
+using Dfe.Briefing.Tool.Application;
 using Dfe.Briefing.Tool.Application.Constants;
 using Dfe.Briefing.Tool.Application.Providers;
 using GovUK.Dfe.CoreLibs.AiAgents;
@@ -11,6 +12,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddApplication();
         services.AddAiAgents(configuration, agents => agents
             .AddAgents(BriefingAgents.All)
             .AddTools(AgentNames.WebSearch, new WebSearchToolProvider()));

@@ -80,7 +80,7 @@ public class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> definitio
     }
 
     private static string BuildSubjectInstruction(BriefingParameters parameters)
-        => $"Analyse the available evidence about \"{parameters.SchoolOrTrustName}\" (URN/TRN: {parameters.SchoolUrnOrTrustTrn}) and report your findings.";
+        => $"Using only the evidence supplied, analyse \"{parameters.SchoolOrTrustName}\" (URN/TRN: {parameters.SchoolUrnOrTrustTrn}) and report your findings. Do not use any other knowledge.";
 
     private static string BuildWebSearchInstruction(BriefingParameters parameters)
     {

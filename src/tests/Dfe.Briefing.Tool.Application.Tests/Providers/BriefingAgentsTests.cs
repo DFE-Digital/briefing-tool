@@ -1,11 +1,14 @@
 using Dfe.Briefing.Tool.Application.Providers;
-using GovUK.Dfe.CoreLibs.AiAgents.ValueObjects;
+using GovUK.Dfe.AI.Agents.ValueObjects;
 using Xunit;
 
 namespace Dfe.Briefing.Tool.Application.Tests.Providers;
 
 public sealed class BriefingAgentsTests
 {
+    private static AgentResult Result(string agentName, string output)
+        => new() { AgentName = agentName, Output = output, TotalTokens = 10 };
+
     [Fact]
     public void All_EveryAgent_HasAValidateFunction()
         => Assert.All(BriefingAgents.All, definition => Assert.NotNull(definition.Validate));
@@ -18,7 +21,7 @@ public sealed class BriefingAgentsTests
     {
         foreach (var definition in BriefingAgents.All)
         {
-            var failure = definition.Validate!(new AgentResult(definition.Name, output!, 10));
+            var failure = definition.Validate!(Result(definition.Name, output!));
 
             Assert.Equal("Output must not be empty.", failure);
         }
@@ -29,7 +32,7 @@ public sealed class BriefingAgentsTests
     {
         foreach (var definition in BriefingAgents.All)
         {
-            var failure = definition.Validate!(new AgentResult(definition.Name, "# Heading\nSome markdown text", 10));
+            var failure = definition.Validate!(Result(definition.Name, "# Heading\nSome markdown text"));
 
             Assert.Equal("Output must be valid HTML, not Markdown or plain text.", failure);
         }
@@ -40,7 +43,7 @@ public sealed class BriefingAgentsTests
     {
         foreach (var definition in BriefingAgents.All)
         {
-            var failure = definition.Validate!(new AgentResult(definition.Name, "<h1>Test Academy</h1><p>Content</p>", 10));
+            var failure = definition.Validate!(Result(definition.Name, "<h1>Test Academy</h1><p>Content</p>"));
 
             Assert.Null(failure);
         }

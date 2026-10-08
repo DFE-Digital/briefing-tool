@@ -21,7 +21,7 @@ namespace Dfe.Briefing.Tool.Web.Models
 
     public class LinkItem
     {
-        public string Page { get; set; }
+        public string Page { get; set; } = string.Empty;
         public string BackText { get; set; } = "Back";
     }
 }

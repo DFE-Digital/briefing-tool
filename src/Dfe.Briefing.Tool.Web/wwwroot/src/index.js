@@ -81,7 +81,10 @@ function initBriefingProgress() {
       var list = validationSummary.querySelector('.govuk-error-summary__list');
       errors.forEach(function (error) {
          var item = document.createElement('li');
-         item.textContent = error.message;
+         var link = document.createElement('a');
+         link.href = '#' + error.field.id;
+         link.textContent = error.message;
+         item.appendChild(link);
          list.appendChild(item);
       });
       validationSummary.querySelector('.govuk-error-summary').focus();

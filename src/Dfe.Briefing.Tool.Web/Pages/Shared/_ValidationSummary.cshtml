@@ -6,9 +6,13 @@
             <h2 class="govuk-error-summary__title" id="error-summary-title">There is a problem</h2>
             <div class="govuk-error-summary__body">
                 <ul class="govuk-list govuk-error-summary__list">
-                    @foreach (var error in ViewData.ModelState.SelectMany(ms => ms.Value?.Errors.AsEnumerable() ?? Enumerable.Empty<ModelError>()))
+                    @foreach (var state in ViewData.ModelState)
                     {
-                        <li>@error.ErrorMessage</li>
+                        var fieldId = state.Key.Replace(".", "_", StringComparison.Ordinal);
+                        foreach (var error in state.Value?.Errors ?? Enumerable.Empty<ModelError>())
+                        {
+                            <li><a href="#@fieldId">@error.ErrorMessage</a></li>
+                        }
                     }
                 </ul>
             </div>

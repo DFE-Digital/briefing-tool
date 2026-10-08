@@ -10,8 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Clippit" Version="3.9.1" />
-    <PackageReference Include="GovUK.Dfe.CoreLibs.AiAgents" Version="0.0.1-prerelease.459" />
+    <PackageReference Include="GovUK.Dfe.AI.Agents" Version="0.0.1-prerelease.151" />
+    <PackageReference Include="GovUK.Dfe.AI.Agents.AISearch" Version="0.0.1-prerelease.109" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.12" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />
@@ -20,6 +20,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Dfe.Briefing.Tool.Domain\Dfe.Briefing.Tool.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dfe.Briefing.Tool.Application.Tests" />
   </ItemGroup>
 
 </Project>

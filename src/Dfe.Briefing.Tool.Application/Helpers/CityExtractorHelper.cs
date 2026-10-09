@@ -22,6 +22,6 @@ internal partial class CityExtractorHelper
         );
     }
 
-    [GeneratedRegex(@"<!--\s*city:\s*(.*?)\s*-->", RegexOptions.IgnoreCase, "en-GB")]
+    [GeneratedRegex(@"\{\{\s*city:\s*(.*?)\s*\}\}", RegexOptions.IgnoreCase, "en-GB")]
     private static partial Regex CityMarkerRegex();
 }

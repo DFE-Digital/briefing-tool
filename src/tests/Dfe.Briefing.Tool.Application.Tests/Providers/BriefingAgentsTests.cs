@@ -28,22 +28,22 @@ public sealed class BriefingAgentsTests
     }
 
     [Fact]
-    public void Validate_MarkdownOrPlainTextOutput_FailsForEveryAgent()
+    public void Validate_HtmlOrPlainTextOutput_FailsForEveryAgent()
     {
         foreach (var definition in BriefingAgents.All)
         {
-            var failure = definition.Validate!(Result(definition.Name, "# Heading\nSome markdown text"));
+            var failure = definition.Validate!(Result(definition.Name, "<h1>Heading</h1><p>Some HTML text</p>"));
 
-            Assert.Equal("Output must be valid HTML, not Markdown or plain text.", failure);
+            Assert.Equal("Output must be valid Markdown, starting with a heading.", failure);
         }
     }
 
     [Fact]
-    public void Validate_HtmlOutput_PassesForEveryAgent()
+    public void Validate_MarkdownOutput_PassesForEveryAgent()
     {
         foreach (var definition in BriefingAgents.All)
         {
-            var failure = definition.Validate!(Result(definition.Name, "<h1>Test Academy</h1><p>Content</p>"));
+            var failure = definition.Validate!(Result(definition.Name, "# Test Academy\n\nContent"));
 
             Assert.Null(failure);
         }

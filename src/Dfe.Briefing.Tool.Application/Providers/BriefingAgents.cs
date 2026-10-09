@@ -8,19 +8,19 @@ public static class BriefingAgents
 {
     public static readonly AgentDefinition[] All =
     [
-        new(AgentNames.Establishment, SystemPromptKey.Establishment) { Validate = ValidateHtmlOutput },
-        new(AgentNames.Ofsted, SystemPromptKey.Ofsted) { Validate = ValidateHtmlOutput },
-        new(AgentNames.Trust, SystemPromptKey.Trust) { Validate = ValidateHtmlOutput },
-        new(AgentNames.RiseConcerns, SystemPromptKey.RiseConcerns) { Validate = ValidateHtmlOutput },
-        new(AgentNames.RecastConcerns, SystemPromptKey.RecastConcerns) { Validate = ValidateHtmlOutput },
-        new(AgentNames.Synthesis, SystemPromptKey.Synthesis) { Validate = ValidateHtmlOutput }
+        new(AgentNames.Establishment, SystemPromptKey.Establishment) { Validate = ValidateMarkdownOutput },
+        new(AgentNames.Ofsted, SystemPromptKey.Ofsted) { Validate = ValidateMarkdownOutput },
+        new(AgentNames.Trust, SystemPromptKey.Trust) { Validate = ValidateMarkdownOutput },
+        new(AgentNames.RiseConcerns, SystemPromptKey.RiseConcerns) { Validate = ValidateMarkdownOutput },
+        new(AgentNames.RecastConcerns, SystemPromptKey.RecastConcerns) { Validate = ValidateMarkdownOutput },
+        new(AgentNames.Synthesis, SystemPromptKey.Synthesis) { Validate = ValidateMarkdownOutput, RequiredCitations = false }
     ];
 
-    public static string? ValidateHtmlOutput(AgentResult result)
+    public static string? ValidateMarkdownOutput(AgentResult result)
     {
         if (string.IsNullOrWhiteSpace(result.Output))
             return "Output must not be empty.";
 
-        return result.Output.TrimStart().StartsWith('<') ? null : "Output must be valid HTML, not Markdown or plain text.";
+        return result.Output.TrimStart().StartsWith('#') ? null : "Output must be valid Markdown, starting with a heading.";
     }
 }

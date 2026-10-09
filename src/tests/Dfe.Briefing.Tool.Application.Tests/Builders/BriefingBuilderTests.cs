@@ -37,11 +37,11 @@ public sealed class BriefingBuilderTests
     }
 
     [Fact]
-    public void BuildNoEvidenceResult_HtmlEncodesTheSubjectNameInTheTitle()
+    public void BuildNoEvidenceResult_StartsWithAMarkdownHeadingOfTheSubjectName()
     {
         var result = _sut.BuildNoEvidenceResult(Establishment, new BriefingParameters("123456", "Smith & Jones Academy"));
 
-        Assert.Contains("<h1>Smith &amp; Jones Academy</h1>", result.Output, StringComparison.Ordinal);
+        Assert.StartsWith("# Smith & Jones Academy", result.Output, StringComparison.Ordinal);
     }
 
     [Fact]

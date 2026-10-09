@@ -4,7 +4,6 @@ using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
 using GovUK.Dfe.AI.Agents.Extensions;
 using GovUK.Dfe.AI.Agents.ValueObjects;
-using System.Net;
 
 namespace Dfe.Briefing.Tool.Application.Builders;
 
@@ -16,8 +15,7 @@ internal class BriefingBuilder: IBriefingBuilder
             ? ErrorMessages.NoTrustInformationFound
             : ErrorMessages.NoSchoolOrAcademyFound;
 
-        var name = WebUtility.HtmlEncode(parameters.SchoolOrTrustName);
-        return new AIResult($"<h1>{name}</h1><p>{message}</p>", TotalTokens: 0);
+        return new AIResult($"# {parameters.SchoolOrTrustName}\n\n{message}", TotalTokens: 0);
     }
 
     public string CompileContext(IReadOnlyCollection<AgentResult> results)

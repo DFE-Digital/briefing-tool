@@ -22,21 +22,19 @@
     }
 </div>
 
-<h1 class="govuk-heading-xl">Generate a briefing</h1> 
+<h1 class="govuk-heading-xl">Generate a briefing</h1>
 <govuk-details>
     <govuk-details-summary>
         <span class="govuk-details__summary-text">Instructions</span>
     </govuk-details-summary>
     <govuk-details-text>
-        <p class="govuk-body">
-            This tool uses AI to give an overview of the data Regions Group holds about a school or trust, including:
-            <ul>
-                <li>pupil numbers</li>
-                <li>trust make up</li>
-                <li>performance details</li>
-            </ul>
-        </p>
-        <p class="govuk-body">You must enter either a school's six digit URN or a trust's seven digit TRN, then its name. </p>
+        <p class="govuk-body">This tool uses AI to give an overview of the data Regions Group holds about a school or trust, including:</p>
+        <ul class="govuk-list govuk-list--bullet">
+            <li>pupil numbers</li>
+            <li>trust make up</li>
+            <li>performance details</li>
+        </ul>
+        <p class="govuk-body">You must enter either a school's six digit URN or a trust's seven digit TRN, then its name.</p>
         <p class="govuk-body">Click 'Search' when you're done.</p>
     </govuk-details-text>
 </govuk-details>
@@ -45,14 +43,14 @@
         <form method="post" novalidate id="briefing-form">
             <div class="govuk-form-group @(urnInvalid == true ? "govuk-form-group--error" : "")">
                 <label asp-for="Input.SchoolUrnOrTrustTrn" class="govuk-label">School URN or trust TRN</label>
-                <span asp-validation-for="Input.SchoolUrnOrTrustTrn" class="govuk-error-message"></span>
-                <input asp-for="Input.SchoolUrnOrTrustTrn" class="govuk-input" />
+                <span asp-validation-for="Input.SchoolUrnOrTrustTrn" id="Input_SchoolUrnOrTrustTrn-error" class="govuk-error-message"></span>
+                <input asp-for="Input.SchoolUrnOrTrustTrn" class="govuk-input @(urnInvalid == true ? "govuk-input--error" : "")" aria-describedby="Input_SchoolUrnOrTrustTrn-error" />
             </div>
 
             <div class="govuk-form-group @(nameInvalid == true ? "govuk-form-group--error" : "")">
                 <label asp-for="Input.SchoolOrTrustName" class="govuk-label">School or trust name</label>
-                <span asp-validation-for="Input.SchoolOrTrustName" class="govuk-error-message"></span>
-                <input asp-for="Input.SchoolOrTrustName" class="govuk-input" />
+                <span asp-validation-for="Input.SchoolOrTrustName" id="Input_SchoolOrTrustName-error" class="govuk-error-message"></span>
+                <input asp-for="Input.SchoolOrTrustName" class="govuk-input @(nameInvalid == true ? "govuk-input--error" : "")" aria-describedby="Input_SchoolOrTrustName-error" />
             </div>
 
             <div class="govuk-form-group">
@@ -75,11 +73,16 @@
             </div>
         </form>
     </div>
- 
+
     <div class="govuk-grid-column-two-thirds">
         <div id="briefing-status" class="app-briefing-status" hidden>
-            <h2 class="govuk-heading-m">Generating briefing...</h2>
-            <ul id="briefing-status-list" class="govuk-list app-briefing-status__list" aria-live="polite" aria-atomic="true"></ul>
+            <h2 class="govuk-heading-m app-briefing-status__heading">
+                <output>
+                    <span class="app-spinner" aria-hidden="true"></span>
+                    Generating briefing...
+                </output>
+            </h2>
+            <ul id="briefing-status-list" class="govuk-list app-briefing-status__list" role="log" aria-live="polite"></ul>
         </div>
 
         <div id="briefing-output-container">

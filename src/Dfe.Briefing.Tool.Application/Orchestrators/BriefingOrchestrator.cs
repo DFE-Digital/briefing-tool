@@ -45,7 +45,7 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
             [establihsmentOrTrustAgent],
             resolvePrompt: (_, _) => Task.FromResult(briefingBuilder.BuildSubjectInstruction(parameters)),
             context, shouldSuppress: _ => false, cancellationToken: cancellationToken,
-            resolveEvidence: (_, _) => Task.FromResult<string?>(establihsmentOrTrustEvidence.Text));
+            resolveEvidence: (_, _) => Task.FromResult<AgentEvidence?>(establihsmentOrTrustEvidence));
         progress?.Report($"Received {establihsmentOrTrustAgent.Name.ToDisplayName()} information.");
 
         var (subjectResult, city) = CityExtractorHelper.ExtractCity(establishmentOrTrustResults.Single());
@@ -58,10 +58,12 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
             specialistAgents,
             resolvePrompt: (_, _) => Task.FromResult(briefingBuilder.BuildSubjectInstruction(parameters)),
             context, cancellationToken: cancellationToken,
-            resolveEvidence: (definition, ct) => ResolveEvidenceTextAsync(definition, parameters, ct));
+            resolveEvidence: (definition, ct) => ResolveAgentEvidenceAsync(definition, parameters, ct));
         progress?.Report("Received findings from all specialist agents.");
 
-        var knownResults = establishmentOrTrustResults.Concat(specialistAgentResults).ToList();
+        // The Establishment and Trust prompts both emit a city marker, and either can run as a specialist.
+        var strippedSpecialistResults = specialistAgentResults.Select(result => CityExtractorHelper.ExtractCity(result).Result);
+        var knownResults = establishmentOrTrustResults.Concat(strippedSpecialistResults).ToList();
 
         var specialistResults = knownResults;
         if (parameters.AllowWebSearch)
@@ -94,14 +96,14 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
         };
 
         return await agentRuntime.RunEphemeralAsync(spec, briefingBuilder.BuildWebSearchInstruction(parameters, city),
-            evidence: briefingBuilder.CompileContext(knownResults), validateOutput: BriefingAgents.ValidateHtmlOutput,
+            evidence: briefingBuilder.CompileContext(knownResults), validateOutput: BriefingAgents.ValidateMarkdownOutput,
             cancellationToken: cancellationToken);
     }
 
-    private async Task<string?> ResolveEvidenceTextAsync(AgentDefinition definition, BriefingParameters parameters, CancellationToken cancellationToken)
+    private async Task<AgentEvidence?> ResolveAgentEvidenceAsync(AgentDefinition definition, BriefingParameters parameters, CancellationToken cancellationToken)
     {
         var evidence = await ResolveEvidenceAsync(definition, parameters, cancellationToken);
-        return evidence.Text;
+        return evidence;
     }
     private async Task<ContextResult> ResolveEvidenceAsync(AgentDefinition definition, BriefingParameters parameters, CancellationToken cancellationToken)
     {
@@ -111,7 +113,7 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
             .Replace("{{SchoolOrTrustName}}", parameters.SchoolOrTrustName, StringComparison.Ordinal)
             .Replace("{{SchoolUrnOrTrustTrn}}", parameters.SchoolUrnOrTrustTrn, StringComparison.Ordinal);
 
-        return await contextRetriever.GetContextAsync(evidenceCategory, searchQuery, size: 10, cancellationToken: cancellationToken);
+        return await contextRetriever.GetContextAsync(evidenceCategory, searchQuery, size: 25, cancellationToken: cancellationToken);
     } 
 
     private async Task<AgentResult> RunSynthesisAsync(AgentDefinition synthesisAgent, BriefingParameters parameters,

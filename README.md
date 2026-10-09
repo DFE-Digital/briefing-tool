@@ -92,7 +92,8 @@ customMetrics
 | order by timestamp desc
 ```
 
-#### Concurrency pressure – Hourly average execution-slot wait time. Sustained increases may require adjusting MaxConcurrency or GlobalConcurrency.MaxConcurrentRuns.
+#### Concurrency pressure – Hourly average execution-slot wait time. Sustained increases may require adjusting `MaxConcurrency` or `GlobalConcurrency.MaxConcurrentRuns`
+
 - Low (0–100ms): No action
 - Moderate (100–1,000ms): Monitor
 - High (1,000–3,000ms): Investigate limits

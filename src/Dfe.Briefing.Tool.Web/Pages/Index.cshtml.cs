@@ -35,7 +35,7 @@ namespace Dfe.Briefing.Tool.Web.Pages
                 var result = await briefingOrchestrator.GetBriefing(parameters, cancellationToken: cancellationToken);
                 BriefingOutput = BriefingHtmlSanitizer.Sanitize(result.Output);
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 logger.LogError(ex, "Failed to generate briefing for {SchoolOrTrustName}", Input.SchoolOrTrustName);
                 ErrorMessage = "Sorry, something went wrong generating this briefing. Please try again.";
@@ -74,7 +74,7 @@ namespace Dfe.Briefing.Tool.Web.Pages
                 var result = await briefingTask;
                 await WriteEventAsync("complete", BriefingHtmlSanitizer.Sanitize(result.Output) ?? string.Empty, cancellationToken);
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 logger.LogError(ex, "Failed to generate briefing for {SchoolOrTrustName}", schoolOrTrustName);
                 await WriteEventAsync("error-message", "Sorry, something went wrong generating this briefing. Please try again.", cancellationToken);

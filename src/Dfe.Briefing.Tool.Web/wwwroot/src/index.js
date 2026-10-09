@@ -51,6 +51,9 @@ function initBriefingProgress() {
       form.querySelectorAll('.govuk-form-group--error').forEach(function (group) {
          group.classList.remove('govuk-form-group--error');
       });
+      form.querySelectorAll('.govuk-input--error').forEach(function (input) {
+         input.classList.remove('govuk-input--error');
+      });
    }
 
     // Validate the form fields and display any validation errors.
@@ -64,6 +67,7 @@ function initBriefingProgress() {
          if (group) {
             group.classList.add('govuk-form-group--error');
          }
+         error.field.classList.add('govuk-input--error');
          var messageSpan = form.querySelector('[data-valmsg-for="' + error.field.name + '"]');
          if (messageSpan) {
             messageSpan.textContent = error.message;
@@ -137,6 +141,7 @@ function initBriefingProgress() {
             '<h2 class="govuk-error-summary__title" id="briefing-error-title">There is a problem</h2>' +
             '<div class="govuk-error-summary__body"><ul class="govuk-list govuk-error-summary__list"><li></li></ul></div></div>';
          errorSummary.querySelector('.govuk-error-summary__list li').textContent = message;
+         errorSummary.querySelector('.govuk-error-summary').focus();
          finish();
       }
 

@@ -47,7 +47,7 @@ public sealed class BriefingOrchestratorTests
         _promptBuilder.Build(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, string>>()).Returns("synthesis-prompt");
         _promptProvider.GetSystemPrompt(SystemPromptKey.WebSearch).Returns("web-search-system-prompt");
 
-        _agentService.RunAsync(Arg.Any<AgentDefinition>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+        _agentService.RunAsync(Arg.Any<AgentDefinition>(), Arg.Any<string>(), Arg.Any<AgentEvidence?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(Result(SynthesisName, "final-briefing", 10)));
 
         return new BriefingOrchestrator(definitions ?? [Establishment, Ofsted, Trust, Synthesis], _contextRetriever, _promptBuilder,
@@ -69,7 +69,7 @@ public sealed class BriefingOrchestratorTests
                 Arg.Any<Func<AgentDefinition, CancellationToken, Task<string>>>(),
                 Arg.Any<AgentContext>(),
                 Arg.Any<Func<Exception, bool>?>(),
-                Arg.Any<Func<AgentDefinition, CancellationToken, Task<string?>>?>(),
+                Arg.Any<Func<AgentDefinition, CancellationToken, Task<AgentEvidence?>>?>(),
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<AgentResult>>(results));
 
@@ -79,7 +79,7 @@ public sealed class BriefingOrchestratorTests
                 Arg.Any<Func<AgentDefinition, CancellationToken, Task<string>>>(),
                 Arg.Any<AgentContext>(),
                 Arg.Any<Func<Exception, bool>?>(),
-                Arg.Any<Func<AgentDefinition, CancellationToken, Task<string?>>?>(),
+                Arg.Any<Func<AgentDefinition, CancellationToken, Task<AgentEvidence?>>?>(),
                 Arg.Any<CancellationToken>())
             .Returns<Task<IReadOnlyList<AgentResult>>>(_ => throw exception);
 
@@ -98,7 +98,7 @@ public sealed class BriefingOrchestratorTests
             Arg.Any<Func<AgentDefinition, CancellationToken, Task<string>>>(),
             Arg.Any<AgentContext>(),
             Arg.Any<Func<Exception, bool>?>(),
-            Arg.Any<Func<AgentDefinition, CancellationToken, Task<string?>>?>(),
+            Arg.Any<Func<AgentDefinition, CancellationToken, Task<AgentEvidence?>>?>(),
             Arg.Any<CancellationToken>());
 
     [Fact]
@@ -150,13 +150,13 @@ public sealed class BriefingOrchestratorTests
         var sut = CreateSut([Establishment, Ofsted, Trust, Synthesis]);
         SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName), Result(EstablishmentName, "establishment-output", 10));
 
-        Func<AgentDefinition, CancellationToken, Task<string?>>? capturedResolveEvidence = null;
+        Func<AgentDefinition, CancellationToken, Task<AgentEvidence?>>? capturedResolveEvidence = null;
         _agentService.RunParallelAsync(
                 Arg.Is<IReadOnlyCollection<AgentDefinition>>(d => DefinitionsAre(d, OfstedName, TrustName)),
                 Arg.Any<Func<AgentDefinition, CancellationToken, Task<string>>>(),
                 Arg.Any<AgentContext>(),
                 Arg.Any<Func<Exception, bool>?>(),
-                Arg.Do<Func<AgentDefinition, CancellationToken, Task<string?>>?>(f => capturedResolveEvidence = f),
+                Arg.Do<Func<AgentDefinition, CancellationToken, Task<AgentEvidence?>>?>(f => capturedResolveEvidence = f),
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<AgentResult>>([Result(OfstedName, "ofsted-output", 10), Result(TrustName, "trust-output", 10)]));
 
@@ -166,16 +166,16 @@ public sealed class BriefingOrchestratorTests
 
         await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.Establishment,
             Arg.Is<string>(q => q.Contains("Test Academy", StringComparison.Ordinal) && q.Contains("123456", StringComparison.Ordinal)),
-            10, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
+            25, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
 
         Assert.NotNull(capturedResolveEvidence);
         await capturedResolveEvidence!(Ofsted, cancellationToken);
         await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.Ofsted,
-            Arg.Is<string>(q => q.Contains("Ofsted inspection", StringComparison.Ordinal)), 10, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
+            Arg.Is<string>(q => q.Contains("Ofsted inspection", StringComparison.Ordinal)), 25, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
 
         await capturedResolveEvidence!(Trust, cancellationToken);
         await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.Trust,
-            Arg.Is<string>(q => q.Contains("Trust data", StringComparison.Ordinal)), 10, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
+            Arg.Is<string>(q => q.Contains("Trust data", StringComparison.Ordinal)), 25, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public sealed class BriefingOrchestratorTests
     {
         var sut = CreateSut();
         SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName),
-            Result(EstablishmentName, "<h1>Test Academy</h1><p>Some findings.</p>\n<!-- city: Coventry -->", 10));
+            Result(EstablishmentName, "# Test Academy\n\nSome findings.\n{{city: Coventry}}", 10));
         SetUpParallelResult(d => DefinitionsAre(d, OfstedName, TrustName), Result(OfstedName, "ofsted-output", 10), Result(TrustName, "trust-output", 10));
 
         var parameters = new BriefingParameters("123456", "Test Academy");
@@ -245,11 +245,30 @@ public sealed class BriefingOrchestratorTests
     }
 
     [Fact]
+    public async Task GetBriefing_StripsTheCityMarker_FromSpecialistOutputs_WhenTheSubjectIsATrust()
+    {
+        var sut = CreateSut();
+        SetUpParallelResult(d => DefinitionsAre(d, TrustName), Result(TrustName, "# Test Trust\n\nTrust findings.\n{{city: Leeds}}", 10));
+        SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName, OfstedName),
+            Result(EstablishmentName, "## About the trust\n\nEstablishment findings.\n{{city: Coventry}}", 10),
+            Result(OfstedName, "ofsted-output", 10));
+
+        var parameters = new BriefingParameters("TR12345", "Test Trust");
+
+        await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
+
+        _promptBuilder.Received(1).Build(Arg.Any<string>(),
+            Arg.Is<IReadOnlyDictionary<string, string>>(d =>
+                !d["Context"].Contains("city:", StringComparison.Ordinal) &&
+                d["Context"].Contains("Establishment findings.", StringComparison.Ordinal)));
+    }
+
+    [Fact]
     public async Task GetBriefing_PassesTheExtractedCity_ToTheWebSearchPrompt()
     {
         var sut = CreateSut();
         SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName),
-            Result(EstablishmentName, "<h1>Test Academy</h1><p>Some findings.</p>\n<!-- city: Coventry -->", 10));
+            Result(EstablishmentName, "# Test Academy\n\nSome findings.\n{{city: Coventry}}", 10));
         SetUpParallelResult(d => DefinitionsAre(d, OfstedName, TrustName), Result(OfstedName, "ofsted-output", 10), Result(TrustName, "trust-output", 10));
         SetUpWebSearchResult(Result(WebSearchName, "web search findings", 10));
 
@@ -305,7 +324,7 @@ public sealed class BriefingOrchestratorTests
         SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName), Result(EstablishmentName, "establishment-output", 100));
         SetUpParallelResult(d => DefinitionsAre(d, OfstedName, TrustName), Result(OfstedName, "ofsted-output", 50), Result(TrustName, "trust-output", 20));
         SetUpWebSearchResult(Result(WebSearchName, "web search findings", 15));
-        _agentService.RunAsync(Arg.Is<AgentDefinition>(d => d.Name == SynthesisName), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+        _agentService.RunAsync(Arg.Is<AgentDefinition>(d => d.Name == SynthesisName), Arg.Any<string>(), Arg.Any<AgentEvidence?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(Result(SynthesisName, "final-briefing", 25)));
 
         var parameters = new BriefingParameters("123456", "Test Academy", AllowWebSearch: true);

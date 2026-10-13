@@ -21,8 +21,6 @@ public static partial class CitationReferenceFormatter
         {
             var text = match.Groups["text"].Value;
             var url = match.Groups["url"].Success ? match.Groups["url"].Value : null;
-            // A link is the same source wherever its URL matches, even if quoted with different link
-            // text; a citation (no URL - the library already rendered it) is keyed by its own text.
             var key = url ?? text;
 
             if (!numberByKey.TryGetValue(key, out var number))
@@ -42,8 +40,6 @@ public static partial class CitationReferenceFormatter
         return $"{withMarkers}\n\n## References\n\n<ol>\n{string.Join('\n', items)}\n</ol>\n";
     }
 
-    // Either a Markdown link, [text](url), or a citation the library already rendered - a bracketed run
-    // of text with no "(url)" following it.
     [GeneratedRegex(@"\[(?<text>[^\[\]]+)\](?:\((?<url>[^()]+)\))?")]
     private static partial Regex SourceRegex();
 }

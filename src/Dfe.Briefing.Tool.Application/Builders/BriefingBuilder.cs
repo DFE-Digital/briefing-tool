@@ -35,6 +35,7 @@ internal class BriefingBuilder: IBriefingBuilder
         return $"""
             We already have the internal-record findings supplied as evidence below about {subject}.{locationHint}
             Search the web for current, genuinely new, publicly available information about this subject that is not already covered by those findings. Do not repeat or re-confirm anything already listed.
+            Search local news first: local newspapers and broadcasters covering the area, and the local authority's own website and news releases. Take the local authority from the findings below; if none is given, use the place named above. Then search national sources.
             """;
     }
     public string BuildSubjectInstruction(BriefingParameters parameters)

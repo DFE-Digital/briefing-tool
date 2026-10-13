@@ -74,6 +74,15 @@ public sealed class BriefingBuilderTests
     }
 
     [Fact]
+    public void BuildWebSearchInstruction_AsksForLocalAuthorityAndLocalNewsFirst()
+    {
+        var instruction = _sut.BuildWebSearchInstruction(new BriefingParameters("123456", "Test Academy"), city: "Coventry");
+
+        Assert.Contains("local authority", instruction, StringComparison.Ordinal);
+        Assert.Contains("local news", instruction, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void BuildSubjectInstruction_IncludesTheSchoolOrTrustNameAndUrnOrTrn()
     {
         var instruction = _sut.BuildSubjectInstruction(new BriefingParameters("123456", "Test Academy"));

@@ -3,7 +3,10 @@ using Dfe.Briefing.Tool.Application.Constants;
 using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
 using GovUK.Dfe.AI.Agents.Extensions;
+using GovUK.Dfe.AI.Agents.Prompts.Interfaces;
+using GovUK.Dfe.AI.Agents.Tools;
 using GovUK.Dfe.AI.Agents.ValueObjects;
+using NSubstitute;
 using Xunit;
 
 namespace Dfe.Briefing.Tool.Application.Tests.Builders;
@@ -13,7 +16,10 @@ public sealed class BriefingBuilderTests
     private static readonly AgentDefinition Establishment = new(AgentNames.Establishment, SystemPromptKey.Establishment);
     private static readonly AgentDefinition Trust = new(AgentNames.Trust, SystemPromptKey.Trust);
 
-    private readonly BriefingBuilder _sut = new();
+    private readonly IPromptProvider _promptProvider = Substitute.For<IPromptProvider>();
+    private readonly BriefingBuilder _sut;
+
+    public BriefingBuilderTests() => _sut = new BriefingBuilder(_promptProvider);
 
     private static AgentResult Result(string agentName, string output)
         => new() { AgentName = agentName, Output = output, TotalTokens = 10 };
@@ -47,12 +53,12 @@ public sealed class BriefingBuilderTests
     [Fact]
     public void CompileContext_JoinsEachResult_WithItsDisplayNameAndOutput()
     {
-        var context = _sut.CompileContext([Result(AgentNames.Establishment, "establishment-output"), Result(AgentNames.Ofsted, "ofsted-output")]);
+        var context = _sut.CompileContext([Result(AgentNames.Establishment, "establishment-output"), Result(AgentNames.Trust, "trust-output")]);
 
         Assert.Contains($"AGENT: {AgentNames.Establishment.ToDisplayName()}", context, StringComparison.Ordinal);
         Assert.Contains("establishment-output", context, StringComparison.Ordinal);
-        Assert.Contains($"AGENT: {AgentNames.Ofsted.ToDisplayName()}", context, StringComparison.Ordinal);
-        Assert.Contains("ofsted-output", context, StringComparison.Ordinal);
+        Assert.Contains($"AGENT: {AgentNames.Trust.ToDisplayName()}", context, StringComparison.Ordinal);
+        Assert.Contains("trust-output", context, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -80,6 +86,19 @@ public sealed class BriefingBuilderTests
 
         Assert.Contains("local authority", instruction, StringComparison.Ordinal);
         Assert.Contains("local news", instruction, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BuildWebSearchAgentSpec_UsesTheWebSearchSystemPrompt_AndTheGivenTools()
+    {
+        _promptProvider.GetSystemPrompt(SystemPromptKey.WebSearch).Returns("web-search-system-prompt");
+        IReadOnlyList<AgentTool> tools = [];
+
+        var spec = _sut.BuildWebSearchAgentSpec(tools);
+
+        Assert.Equal(AgentNames.WebSearch, spec.Name);
+        Assert.Equal("web-search-system-prompt", spec.Instructions);
+        Assert.Same(tools, spec.Tools);
     }
 
     [Fact]

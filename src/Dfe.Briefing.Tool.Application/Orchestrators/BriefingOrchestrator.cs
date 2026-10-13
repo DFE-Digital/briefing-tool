@@ -3,21 +3,21 @@ using Dfe.Briefing.Tool.Application.Constants;
 using Dfe.Briefing.Tool.Application.Helpers;
 using Dfe.Briefing.Tool.Application.Orchestrators.Interfaces;
 using Dfe.Briefing.Tool.Application.Providers;
+using Dfe.Briefing.Tool.Application.Providers.Interfaces;
 using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
 using GovUK.Dfe.AI.Agents.Context;
-using GovUK.Dfe.AI.Agents.Context.Interfaces;
 using GovUK.Dfe.AI.Agents.Extensions;
 using GovUK.Dfe.AI.Agents.Prompts.Interfaces;
 using GovUK.Dfe.AI.Agents.Services.Interfaces;
 using GovUK.Dfe.AI.Agents.Tools.WebSearch;
-using GovUK.Dfe.AI.Agents.ValueObjects; 
+using GovUK.Dfe.AI.Agents.ValueObjects;
 
 namespace Dfe.Briefing.Tool.Application.Orchestrators;
 
-public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> definitions, IContextRetriever contextRetriever,
+public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> definitions, IBriefingEvidenceProvider evidenceProvider,
     IPromptTemplateBuilder promptBuilder, IAgentService agentService, IAgentRuntimeService agentRuntime,
-    IPromptProvider promptProvider, IBriefingBuilder briefingBuilder) : IBriefingOrchestrator
+    IBriefingBuilder briefingBuilder) : IBriefingOrchestrator
 {
     private static bool IsTrust(string schoolUrnOrTrustTrn) => schoolUrnOrTrustTrn.StartsWith("TR");
 
@@ -34,7 +34,7 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
         var specialistAgents = GetSpecialistAgents(definitions, establihsmentOrTrustAgent.Name);
 
         progress?.Report($"Looking up records for {parameters.SchoolOrTrustName}...");
-        var establihsmentOrTrustEvidence = await ResolveEvidenceAsync(establihsmentOrTrustAgent, parameters, cancellationToken);
+        var establihsmentOrTrustEvidence = await evidenceProvider.GetEvidenceAsync(establihsmentOrTrustAgent, parameters, cancellationToken);
         if (!establihsmentOrTrustEvidence.HasEvidence)
             return briefingBuilder.BuildNoEvidenceResult(establihsmentOrTrustAgent, parameters);
 
@@ -58,7 +58,7 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
             specialistAgents,
             resolvePrompt: (_, _) => Task.FromResult(briefingBuilder.BuildSubjectInstruction(parameters)),
             context, cancellationToken: cancellationToken,
-            resolveEvidence: (definition, ct) => ResolveAgentEvidenceAsync(definition, parameters, ct));
+            resolveEvidence: async (definition, ct) => await evidenceProvider.GetEvidenceAsync(definition, parameters, ct));
         progress?.Report("Received findings from all specialist agents.");
 
         // The Establishment and Trust prompts both emit a city marker, and either can run as a specialist.
@@ -88,33 +88,12 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
         var location = city is null ? null : WebSearchLocation.ForCity(city);
         var tools = await new WebSearchToolProvider(location).GetToolsAsync(cancellationToken);
 
-        var spec = new AgentSpec
-        {
-            Name = AgentNames.WebSearch,
-            Instructions = promptProvider.GetSystemPrompt(SystemPromptKey.WebSearch),
-            Tools = tools
-        };
+        var spec = briefingBuilder.BuildWebSearchAgentSpec(tools);
 
         return await agentRuntime.RunEphemeralAsync(spec, briefingBuilder.BuildWebSearchInstruction(parameters, city),
             evidence: briefingBuilder.CompileContext(knownResults), validateOutput: BriefingAgents.ValidateMarkdownOutput,
             cancellationToken: cancellationToken);
     }
-
-    private async Task<AgentEvidence?> ResolveAgentEvidenceAsync(AgentDefinition definition, BriefingParameters parameters, CancellationToken cancellationToken)
-    {
-        var evidence = await ResolveEvidenceAsync(definition, parameters, cancellationToken);
-        return evidence;
-    }
-    private async Task<ContextResult> ResolveEvidenceAsync(AgentDefinition definition, BriefingParameters parameters, CancellationToken cancellationToken)
-    {
-        var (evidenceCategory, searchQueryTemplate) = AgentEvidenceQueries.For(definition.Name);
-
-        var searchQuery = searchQueryTemplate
-            .Replace("{{SchoolOrTrustName}}", parameters.SchoolOrTrustName, StringComparison.Ordinal)
-            .Replace("{{SchoolUrnOrTrustTrn}}", parameters.SchoolUrnOrTrustTrn, StringComparison.Ordinal);
-
-        return await contextRetriever.GetContextAsync(evidenceCategory, searchQuery, size: 25, cancellationToken: cancellationToken);
-    } 
 
     private async Task<AgentResult> RunSynthesisAsync(AgentDefinition synthesisAgent, BriefingParameters parameters,
         IReadOnlyCollection<AgentResult> specialistResults, CancellationToken cancellationToken)

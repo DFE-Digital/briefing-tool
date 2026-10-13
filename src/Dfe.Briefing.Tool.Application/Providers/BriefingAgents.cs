@@ -9,7 +9,6 @@ public static class BriefingAgents
     public static readonly AgentDefinition[] All =
     [
         new(AgentNames.Establishment, SystemPromptKey.Establishment) { Validate = ValidateMarkdownOutput },
-        new(AgentNames.Ofsted, SystemPromptKey.Ofsted) { Validate = ValidateMarkdownOutput },
         new(AgentNames.Trust, SystemPromptKey.Trust) { Validate = ValidateMarkdownOutput },
         new(AgentNames.RiseConcerns, SystemPromptKey.RiseConcerns) { Validate = ValidateMarkdownOutput },
         new(AgentNames.RecastConcerns, SystemPromptKey.RecastConcerns) { Validate = ValidateMarkdownOutput },

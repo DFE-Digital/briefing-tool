@@ -1,4 +1,5 @@
 ﻿using Dfe.Briefing.Tool.Domain.ValueObjects;
+using GovUK.Dfe.AI.Agents.Tools;
 using GovUK.Dfe.AI.Agents.ValueObjects;
 
 namespace Dfe.Briefing.Tool.Application.Builders.Interfaces;
@@ -9,4 +10,5 @@ public interface IBriefingBuilder
     string CompileContext(IReadOnlyCollection<AgentResult> results);
     string BuildWebSearchInstruction(BriefingParameters parameters, string? city);
     string BuildSubjectInstruction(BriefingParameters parameters);
+    AgentSpec BuildWebSearchAgentSpec(IReadOnlyList<AgentTool> tools);
 }

@@ -37,7 +37,7 @@ establishment index. Each record can include:
 - location and governance: address, website, local authority, associated trust, diocese link
 - capacity: school capacity, number on roll, percentage of seats occupied
 - representation: parliamentary constituency, MP name and political party
-- performance: all Ofsted inspections, latest and historic KS2 and KS4 performance, and pupil support
+- performance: all Ofsted inspections (dates, types and each criteria's judgement), latest and historic KS2 and KS4 performance, and pupil support
   needs (for example the number or percentage of pupils with an education, health and care plan, or
   receiving SEN support)
 
@@ -76,12 +76,43 @@ fact, not several separate ones:
 | [capacity] [Evidence n] | [number] ([date]) [Evidence n] | [percentage] [Evidence n] |
 ```
 
-If the evidence includes Ofsted inspection data, add only one line after the tables: the most recent
-inspection's date and overall judgement, e.g. "Last inspected 6 March 2023: requires improvement
-[Evidence n]." A separate specialist section covers the full inspection history in detail - do not
-reproduce every judgement or earlier inspections here, and do not give it a table or heading of its own.
+If the evidence includes Ofsted inspection data, add a separate `## Ofsted results` section after the
+tables in this section. Make sure every inspection belongs to the establishment asked about - reports for
+similarly named schools may appear, so check the name and URN. Report each judgement in the exact wording
+the evidence uses - never convert between grading frameworks, and never mix judgements from different
+inspections.
 
-Beyond that one-line Ofsted summary, whenever the evidence gives several other measures that share the
+If the document is about a school, show its 3 most recent inspections as one comparison table, so a
+reader can see at a glance whether each criteria is improving or declining:
+
+```markdown
+## Ofsted results
+
+| Criteria | [most recent inspection date] | [previous inspection date] | [previous inspection date] |
+| --- | --- | --- | --- |
+| [first criteria] | [judgement] [Evidence n] | [judgement] [Evidence n] | [judgement] [Evidence n] |
+| [...and so on for other assessed criteria] | | | |
+```
+
+- One column per inspection, most recent first, with its date as the column heading - only add columns for inspections the evidence gives.
+- One row per criteria assessed (for example overall effectiveness, quality of education, behaviour and attitudes, personal development, leadership and management, safeguarding, early years, sixth form).
+- If a criteria wasn't assessed at an inspection, leave that cell blank; never guess or repeat another cell's judgement.
+- If the evidence gives inspection dates but no judgements, say "No detailed judgement data is available." under the heading instead of a table.
+
+If the document is about a trust, show each academy's most recent inspection only, one row per academy,
+most recent first, writing "Not judged" where an inspection gives no overall effectiveness judgement:
+
+```markdown
+## Ofsted results
+
+| Academy | Last inspection date | Overall effectiveness |
+| --- | --- | --- |
+| [academy name] | [date] [Evidence n] | [judgement] [Evidence n] |
+```
+
+If the evidence includes no Ofsted inspection data at all, leave the `## Ofsted results` section out.
+
+Beyond Ofsted, whenever the evidence gives several other measures that share the
 same categories (for example several KS2 or KS4 measures, or several pupil support figures), each
 measured again at more than one point in time, squeezing them into one cell or sentence produces an
 unreadable run-on fact. Instead, give that group its own heading and its own table: one column per

@@ -203,9 +203,6 @@
     <None Update="Prompts\Systems\Establishment.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Prompts\Systems\Ofsted.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="Prompts\Systems\Trust.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

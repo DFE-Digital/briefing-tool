@@ -3,11 +3,13 @@ using Dfe.Briefing.Tool.Application.Constants;
 using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
 using GovUK.Dfe.AI.Agents.Extensions;
+using GovUK.Dfe.AI.Agents.Prompts.Interfaces;
+using GovUK.Dfe.AI.Agents.Tools;
 using GovUK.Dfe.AI.Agents.ValueObjects;
 
 namespace Dfe.Briefing.Tool.Application.Builders;
 
-internal class BriefingBuilder: IBriefingBuilder
+internal class BriefingBuilder(IPromptProvider promptProvider) : IBriefingBuilder
 {
     public AIResult BuildNoEvidenceResult(AgentDefinition establihsmentOrTrustAgent, BriefingParameters parameters)
     {
@@ -38,6 +40,12 @@ internal class BriefingBuilder: IBriefingBuilder
             Search local news first: local newspapers and broadcasters covering the area, and the local authority's own website and news releases. Take the local authority from the findings below; if none is given, use the place named above. Then search national sources.
             """;
     }
+    public AgentSpec BuildWebSearchAgentSpec(IReadOnlyList<AgentTool> tools) => new()
+    {
+        Name = AgentNames.WebSearch,
+        Instructions = promptProvider.GetSystemPrompt(SystemPromptKey.WebSearch),
+        Tools = tools
+    };
     public string BuildSubjectInstruction(BriefingParameters parameters)
         => $"Using only the evidence supplied, analyse \"{parameters.SchoolOrTrustName}\" (URN/TRN: {parameters.SchoolUrnOrTrustTrn}) and report your findings. Do not use any other knowledge.";
 

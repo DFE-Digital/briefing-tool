@@ -135,20 +135,25 @@ own table below.
 If the evidence lists pipeline establishments (due to join), add them as further rows in the same table,
 with "Due to join" and the expected date, if given, in the `Joining date` column.
 
-If the evidence gives Ofsted inspection outcomes for the trust's academies (for example a list of each
-academy's latest inspection), add a table under its own `### Latest Ofsted inspections` heading, one row
-per academy, most recent inspection first, using only each academy's latest inspection. Write "Not judged"
-where an inspection gives no overall effectiveness judgement. Never drop this data because another
-section covers Ofsted - report everything your evidence gives.
+If the document is about a trust and the evidence gives Ofsted inspection outcomes for its academies -
+in any form, including a trust-level list of each academy's latest inspection - add a separate
+`## Ofsted results` section after the tables in this section. If the document is about a school, leave
+Ofsted out entirely - the school's own section covers it.
 
 ```markdown
-### Latest Ofsted inspections
+## Ofsted results
 
 | Academy | Last inspection date | Overall effectiveness |
 | --- | --- | --- |
 | [academy name] | [date] [Evidence n] | [judgement] [Evidence n] |
 | [...one row for every academy in the evidence] | | |
 ```
+
+- Include every academy the evidence gives an inspection for, not only outstanding or underperforming ones, ordered by inspection date, most recent first.
+- Use only each academy's most recent inspection - never add earlier inspections as extra rows.
+- Report each judgement in the exact wording the evidence uses - never convert between grading frameworks.
+- Write "Not judged" where an inspection gives no overall effectiveness judgement (for example under the newer report card framework), rather than leaving it blank or substituting another judgement.
+- If the evidence gives no Ofsted data for any academy, leave the `## Ofsted results` section out.
 
 If the evidence gives demographic data for the trust's academies, add a table under its own
 `### Trust demographics` heading, one row per academy, using exactly these column headings. Quote each

@@ -7,7 +7,6 @@ public static class SystemPromptKey
     public const string RiseConcerns = "RiseConcerns";
     public const string RecastConcerns = "RecastConcerns";
     public const string Trust = "Trust";
-    public const string Ofsted = "Ofsted";
     public const string WebSearch = "WebSearch";
 }
 

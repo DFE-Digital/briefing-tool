@@ -1,7 +1,9 @@
 using Dfe.Briefing.Tool.Application.Builders;
 using Dfe.Briefing.Tool.Application.Builders.Interfaces;
 using Dfe.Briefing.Tool.Application.Constants;
+using Dfe.Briefing.Tool.Application.Options;
 using Dfe.Briefing.Tool.Application.Orchestrators;
+using Dfe.Briefing.Tool.Application.Providers;
 using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
 using GovUK.Dfe.AI.Agents.Context;
@@ -18,14 +20,17 @@ namespace Dfe.Briefing.Tool.Application.Tests.Orchestrators;
 public sealed class BriefingOrchestratorTests
 {
     private const string EstablishmentName = AgentNames.Establishment;
-    private const string OfstedName = AgentNames.Ofsted;
+    private const string RecastConcernsName = AgentNames.RecastConcerns;
     private const string TrustName = AgentNames.Trust;
     private const string RiseConcernsName = AgentNames.RiseConcerns;
     private const string WebSearchName = AgentNames.WebSearch;
     private const string SynthesisName = AgentNames.Synthesis;
 
+    // Deliberately not the default (3), so the tests prove the configured value is the one used.
+    private const int ConfiguredEvidencePerSearch = 7;
+
     private static readonly AgentDefinition Establishment = new(EstablishmentName, SystemPromptKey.Establishment);
-    private static readonly AgentDefinition Ofsted = new(OfstedName, SystemPromptKey.Ofsted);
+    private static readonly AgentDefinition RecastConcerns = new(RecastConcernsName, SystemPromptKey.RecastConcerns);
     private static readonly AgentDefinition Trust = new(TrustName, SystemPromptKey.Trust);
     private static readonly AgentDefinition RiseConcerns = new(RiseConcernsName, SystemPromptKey.RiseConcerns, IsManagedAgent: false);
     private static readonly AgentDefinition Synthesis = new(SynthesisName, SystemPromptKey.Synthesis, IsManagedAgent: false);
@@ -37,7 +42,9 @@ public sealed class BriefingOrchestratorTests
     private readonly IAgentRuntimeService _agentRuntime = Substitute.For<IAgentRuntimeService>();
     private readonly IPromptProvider _promptProvider = Substitute.For<IPromptProvider>();
 
-    private readonly IBriefingBuilder _briefingBuilder = new BriefingBuilder();
+    private readonly IBriefingBuilder _briefingBuilder;
+
+    public BriefingOrchestratorTests() => _briefingBuilder = new BriefingBuilder(_promptProvider);
 
     private BriefingOrchestrator CreateSut(IReadOnlyCollection<AgentDefinition>? definitions = null)
     {
@@ -50,8 +57,10 @@ public sealed class BriefingOrchestratorTests
         _agentService.RunAsync(Arg.Any<AgentDefinition>(), Arg.Any<string>(), Arg.Any<AgentEvidence?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(Result(SynthesisName, "final-briefing", 10)));
 
-        return new BriefingOrchestrator(definitions ?? [Establishment, Ofsted, Trust, Synthesis], _contextRetriever, _promptBuilder,
-            _agentService, _agentRuntime, _promptProvider, _briefingBuilder);
+        var evidenceProvider = new BriefingEvidenceProvider(_contextRetriever, new BriefingOptions { MaxEvidencePerSearch = ConfiguredEvidencePerSearch });
+
+        return new BriefingOrchestrator(definitions ?? [Establishment, RecastConcerns, Trust, Synthesis], evidenceProvider, _promptBuilder,
+            _agentService, _agentRuntime, _briefingBuilder);
     }
 
     private void SetUpWebSearchResult(AgentResult result)
@@ -86,7 +95,7 @@ public sealed class BriefingOrchestratorTests
     private void SetUpDefaultSpecialistResults()
     {
         SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName), Result(EstablishmentName, "establishment-output", 10));
-        SetUpParallelResult(d => DefinitionsAre(d, OfstedName, TrustName), Result(OfstedName, "ofsted-output", 10), Result(TrustName, "trust-output", 10));
+        SetUpParallelResult(d => DefinitionsAre(d, RecastConcernsName, TrustName), Result(RecastConcernsName, "recast-output", 10), Result(TrustName, "trust-output", 10));
     }
 
     private static AgentResult Result(string agentName, string output, long totalTokens)
@@ -147,18 +156,18 @@ public sealed class BriefingOrchestratorTests
     [Fact]
     public async Task GetBriefing_ResolvesEvidence_UsingEachSpecialistsEvidenceCategoryAndSearchQuery()
     {
-        var sut = CreateSut([Establishment, Ofsted, Trust, Synthesis]);
+        var sut = CreateSut([Establishment, RecastConcerns, Trust, Synthesis]);
         SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName), Result(EstablishmentName, "establishment-output", 10));
 
         Func<AgentDefinition, CancellationToken, Task<AgentEvidence?>>? capturedResolveEvidence = null;
         _agentService.RunParallelAsync(
-                Arg.Is<IReadOnlyCollection<AgentDefinition>>(d => DefinitionsAre(d, OfstedName, TrustName)),
+                Arg.Is<IReadOnlyCollection<AgentDefinition>>(d => DefinitionsAre(d, RecastConcernsName, TrustName)),
                 Arg.Any<Func<AgentDefinition, CancellationToken, Task<string>>>(),
                 Arg.Any<AgentContext>(),
                 Arg.Any<Func<Exception, bool>?>(),
                 Arg.Do<Func<AgentDefinition, CancellationToken, Task<AgentEvidence?>>?>(f => capturedResolveEvidence = f),
                 Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<IReadOnlyList<AgentResult>>([Result(OfstedName, "ofsted-output", 10), Result(TrustName, "trust-output", 10)]));
+            .Returns(Task.FromResult<IReadOnlyList<AgentResult>>([Result(RecastConcernsName, "recast-output", 10), Result(TrustName, "trust-output", 10)]));
 
         var parameters = new BriefingParameters("123456", "Test Academy");
 
@@ -166,31 +175,31 @@ public sealed class BriefingOrchestratorTests
 
         await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.Establishment,
             Arg.Is<string>(q => q.Contains("Test Academy", StringComparison.Ordinal) && q.Contains("123456", StringComparison.Ordinal)),
-            25, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
+            ConfiguredEvidencePerSearch, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
 
         Assert.NotNull(capturedResolveEvidence);
-        await capturedResolveEvidence!(Ofsted, cancellationToken);
-        await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.Ofsted,
-            Arg.Is<string>(q => q.Contains("Ofsted inspection", StringComparison.Ordinal)), 25, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
+        await capturedResolveEvidence!(RecastConcerns, cancellationToken);
+        await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.RecastConcerns,
+            Arg.Is<string>(q => q.Contains("RECAST concerns", StringComparison.Ordinal)), ConfiguredEvidencePerSearch, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
 
         await capturedResolveEvidence!(Trust, cancellationToken);
         await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.Trust,
-            Arg.Is<string>(q => q.Contains("Trust data", StringComparison.Ordinal)), 25, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
+            Arg.Is<string>(q => q.Contains("Trust data", StringComparison.Ordinal)), ConfiguredEvidencePerSearch, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task GetBriefing_ExcludesEstablishmentAndSynthesis_FromTheSpecialistAgentsRun()
     {
-        var sut = CreateSut([Establishment, Ofsted, Synthesis]);
+        var sut = CreateSut([Establishment, RecastConcerns, Synthesis]);
         SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName), Result(EstablishmentName, "establishment-output", 10));
-        SetUpParallelResult(d => DefinitionsAre(d, OfstedName), Result(OfstedName, "ofsted-output", 10));
+        SetUpParallelResult(d => DefinitionsAre(d, RecastConcernsName), Result(RecastConcernsName, "recast-output", 10));
 
         var parameters = new BriefingParameters("123456", "Test Academy");
 
         var result = await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
 
         Assert.Equal("final-briefing", result.Output);
-        await AssertParallelCallReceived(d => DefinitionsAre(d, OfstedName));
+        await AssertParallelCallReceived(d => DefinitionsAre(d, RecastConcernsName));
     }
 
     [Fact]
@@ -221,7 +230,7 @@ public sealed class BriefingOrchestratorTests
             Arg.Any<AgentSpec>(), Arg.Any<string>(), Arg.Any<ToolCallResolver?>(),
             Arg.Is<string?>(evidence => evidence != null
                 && evidence.Contains("establishment-output", StringComparison.Ordinal)
-                && evidence.Contains("ofsted-output", StringComparison.Ordinal)
+                && evidence.Contains("recast-output", StringComparison.Ordinal)
                 && evidence.Contains("AGENT: Establishment", StringComparison.Ordinal)),
             Arg.Any<Func<AgentResult, string>?>(), Arg.Any<CancellationToken>());
     }
@@ -232,7 +241,7 @@ public sealed class BriefingOrchestratorTests
         var sut = CreateSut();
         SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName),
             Result(EstablishmentName, "# Test Academy\n\nSome findings.\n{{city: Coventry}}", 10));
-        SetUpParallelResult(d => DefinitionsAre(d, OfstedName, TrustName), Result(OfstedName, "ofsted-output", 10), Result(TrustName, "trust-output", 10));
+        SetUpParallelResult(d => DefinitionsAre(d, RecastConcernsName, TrustName), Result(RecastConcernsName, "recast-output", 10), Result(TrustName, "trust-output", 10));
 
         var parameters = new BriefingParameters("123456", "Test Academy");
 
@@ -249,9 +258,9 @@ public sealed class BriefingOrchestratorTests
     {
         var sut = CreateSut();
         SetUpParallelResult(d => DefinitionsAre(d, TrustName), Result(TrustName, "# Test Trust\n\nTrust findings.\n{{city: Leeds}}", 10));
-        SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName, OfstedName),
+        SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName, RecastConcernsName),
             Result(EstablishmentName, "## About the trust\n\nEstablishment findings.\n{{city: Coventry}}", 10),
-            Result(OfstedName, "ofsted-output", 10));
+            Result(RecastConcernsName, "recast-output", 10));
 
         var parameters = new BriefingParameters("TR12345", "Test Trust");
 
@@ -269,7 +278,7 @@ public sealed class BriefingOrchestratorTests
         var sut = CreateSut();
         SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName),
             Result(EstablishmentName, "# Test Academy\n\nSome findings.\n{{city: Coventry}}", 10));
-        SetUpParallelResult(d => DefinitionsAre(d, OfstedName, TrustName), Result(OfstedName, "ofsted-output", 10), Result(TrustName, "trust-output", 10));
+        SetUpParallelResult(d => DefinitionsAre(d, RecastConcernsName, TrustName), Result(RecastConcernsName, "recast-output", 10), Result(TrustName, "trust-output", 10));
         SetUpWebSearchResult(Result(WebSearchName, "web search findings", 10));
 
         var parameters = new BriefingParameters("123456", "Test Academy", AllowWebSearch: true);
@@ -311,7 +320,7 @@ public sealed class BriefingOrchestratorTests
                 d["SchoolOrTrustName"] == "Test Academy" &&
                 d["SchoolUrnOrTrustTrn"] == "123456" &&
                 d["Context"].Contains("AGENT: Establishment", StringComparison.Ordinal) &&
-                d["Context"].Contains("AGENT: Ofsted", StringComparison.Ordinal) &&
+                d["Context"].Contains("AGENT: Recast", StringComparison.Ordinal) &&
                 d["Context"].Contains("AGENT: Trust", StringComparison.Ordinal) &&
                 d["IncludedSections"].Contains("Establishment", StringComparison.Ordinal) &&
                 !d["IncludedSections"].Contains("-agent", StringComparison.Ordinal)));
@@ -322,7 +331,7 @@ public sealed class BriefingOrchestratorTests
     {
         var sut = CreateSut();
         SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName), Result(EstablishmentName, "establishment-output", 100));
-        SetUpParallelResult(d => DefinitionsAre(d, OfstedName, TrustName), Result(OfstedName, "ofsted-output", 50), Result(TrustName, "trust-output", 20));
+        SetUpParallelResult(d => DefinitionsAre(d, RecastConcernsName, TrustName), Result(RecastConcernsName, "recast-output", 50), Result(TrustName, "trust-output", 20));
         SetUpWebSearchResult(Result(WebSearchName, "web search findings", 15));
         _agentService.RunAsync(Arg.Is<AgentDefinition>(d => d.Name == SynthesisName), Arg.Any<string>(), Arg.Any<AgentEvidence?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(Result(SynthesisName, "final-briefing", 25)));
@@ -337,10 +346,10 @@ public sealed class BriefingOrchestratorTests
     [Fact]
     public async Task GetBriefing_RunsNonManagedSpecialists_LikeAnyOtherSpecialist()
     {
-        var sut = CreateSut([Establishment, Ofsted, Trust, RiseConcerns, Synthesis]);
+        var sut = CreateSut([Establishment, RecastConcerns, Trust, RiseConcerns, Synthesis]);
         SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName), Result(EstablishmentName, "establishment-output", 10));
-        SetUpParallelResult(d => DefinitionsAre(d, OfstedName, TrustName, RiseConcernsName),
-            Result(OfstedName, "ofsted-output", 10),
+        SetUpParallelResult(d => DefinitionsAre(d, RecastConcernsName, TrustName, RiseConcernsName),
+            Result(RecastConcernsName, "recast-output", 10),
             Result(TrustName, "trust-output", 10),
             Result(RiseConcernsName, "rise-output", 10));
 

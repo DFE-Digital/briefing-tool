@@ -1,4 +1,4 @@
-namespace Dfe.Briefing.Tool.Application.Constants;
+namespace Dfe.Briefing.Tool.Domain.Constants;
 
 public static class AgentNames
 {

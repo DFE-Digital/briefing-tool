@@ -1,5 +1,4 @@
 using Dfe.Briefing.Tool.Application.Builders.Interfaces;
-using Dfe.Briefing.Tool.Application.Constants;
 using Dfe.Briefing.Tool.Application.Helpers;
 using Dfe.Briefing.Tool.Application.Orchestrators.Interfaces;
 using Dfe.Briefing.Tool.Application.Providers;
@@ -19,22 +18,20 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
     IPromptTemplateBuilder promptBuilder, IAgentService agentService, IAgentRuntimeService agentRuntime,
     IBriefingBuilder briefingBuilder) : IBriefingOrchestrator
 {
-    private static bool IsTrust(string schoolUrnOrTrustTrn) => schoolUrnOrTrustTrn.StartsWith("TR");
-
     public async Task<AIResult> GetBriefing(BriefingParameters parameters, IProgress<string>? progress = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         ArgumentException.ThrowIfNullOrWhiteSpace(parameters.SchoolUrnOrTrustTrn);
         ArgumentException.ThrowIfNullOrWhiteSpace(parameters.SchoolOrTrustName);
 
-        var establihsmentOrTrustAgent = IsTrust(parameters.SchoolUrnOrTrustTrn)
+        var establihsmentOrTrustAgent = parameters.IsTrust
             ? definitions.Single(x => x.SystemPromptKey == SystemPromptKey.Trust)
             : definitions.Single(x => x.SystemPromptKey == SystemPromptKey.Establishment);
 
         var specialistAgents = GetSpecialistAgents(definitions, establihsmentOrTrustAgent.Name);
 
         progress?.Report($"Looking up records for {parameters.SchoolOrTrustName}...");
-        var establihsmentOrTrustEvidence = await evidenceProvider.GetEvidenceAsync(establihsmentOrTrustAgent, parameters, cancellationToken);
+        var establihsmentOrTrustEvidence = await evidenceProvider.GetEvidenceAsync(establihsmentOrTrustAgent, parameters, subjectEvidence: null, cancellationToken);
         if (!establihsmentOrTrustEvidence.HasEvidence)
             return briefingBuilder.BuildNoEvidenceResult(establihsmentOrTrustAgent, parameters);
 
@@ -58,7 +55,7 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
             specialistAgents,
             resolvePrompt: (_, _) => Task.FromResult(briefingBuilder.BuildSubjectInstruction(parameters)),
             context, cancellationToken: cancellationToken,
-            resolveEvidence: async (definition, ct) => await evidenceProvider.GetEvidenceAsync(definition, parameters, ct));
+            resolveEvidence: async (definition, ct) => await evidenceProvider.GetEvidenceAsync(definition, parameters, establihsmentOrTrustEvidence, ct));
         progress?.Report("Received findings from all specialist agents.");
 
         // The Establishment and Trust prompts both emit a city marker, and either can run as a specialist.

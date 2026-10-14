@@ -1,6 +1,6 @@
-﻿namespace Dfe.Briefing.Tool.Application.Constants;
+﻿namespace Dfe.Briefing.Tool.Domain.Constants;
 
-internal static class ErrorMessages
+public static class ErrorMessages
 {
     public const string NoEvidenceQueryConfigured = "Agent '{0}' has no evidence query configured.";
     public const string NoTrustInformationFound = "No trust information found.";

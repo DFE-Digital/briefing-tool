@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GovUK.Dfe.AI.Agents" Version="0.0.1-prerelease.358" />
-    <PackageReference Include="GovUK.Dfe.AI.Agents.AISearch" Version="0.0.1-prerelease.289" />
+    <PackageReference Include="GovUK.Dfe.AI.Agents" Version="0.0.1-prerelease.447" />
+    <PackageReference Include="GovUK.Dfe.AI.Agents.AISearch" Version="0.0.1-prerelease.405" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.12" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />

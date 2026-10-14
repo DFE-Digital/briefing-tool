@@ -1,6 +1,5 @@
 using Dfe.Briefing.Tool.Application.Builders;
 using Dfe.Briefing.Tool.Application.Builders.Interfaces;
-using Dfe.Briefing.Tool.Application.Constants;
 using Dfe.Briefing.Tool.Application.Options;
 using Dfe.Briefing.Tool.Application.Orchestrators;
 using Dfe.Briefing.Tool.Application.Providers;
@@ -154,9 +153,11 @@ public sealed class BriefingOrchestratorTests
     }
 
     [Fact]
-    public async Task GetBriefing_ResolvesEvidence_UsingEachSpecialistsEvidenceCategoryAndSearchQuery()
+    public async Task GetBriefing_FindsTheSchoolByUrn_AndPassesItsRecordToTheSpecialistSearches()
     {
         var sut = CreateSut([Establishment, RecastConcerns, Trust, Synthesis]);
+        _contextRetriever.GetContextAsync(EvidenceCategory.Establishment, Arg.Any<string>(), Arg.Any<int>(), Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ContextResult("establishment_urn: 123456\nassociated_trust_name: EXAMPLE TRUST", HasEvidence: true)));
         SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName), Result(EstablishmentName, "establishment-output", 10));
 
         Func<AgentDefinition, CancellationToken, Task<AgentEvidence?>>? capturedResolveEvidence = null;
@@ -173,18 +174,19 @@ public sealed class BriefingOrchestratorTests
 
         await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
 
-        await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.Establishment,
-            Arg.Is<string>(q => q.Contains("Test Academy", StringComparison.Ordinal) && q.Contains("123456", StringComparison.Ordinal)),
-            ConfiguredEvidencePerSearch, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
+        await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.Establishment, "*", ConfiguredEvidencePerSearch,
+            Arg.Is<ODataFilter>(f => f.ToString() == "establishment_urn eq '123456'"), Arg.Any<CancellationToken>());
 
         Assert.NotNull(capturedResolveEvidence);
         await capturedResolveEvidence!(RecastConcerns, cancellationToken);
         await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.RecastConcerns,
-            Arg.Is<string>(q => q.Contains("RECAST concerns", StringComparison.Ordinal)), ConfiguredEvidencePerSearch, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
+            Arg.Is<string>(q => q.Contains("Test Academy", StringComparison.Ordinal) && q.Contains("123456", StringComparison.Ordinal)),
+            ConfiguredEvidencePerSearch, Arg.Is<ODataFilter>(f => f.IsEmpty), Arg.Any<CancellationToken>());
 
+        // The trust is found through the school's own record, not by the name typed into the form.
         await capturedResolveEvidence!(Trust, cancellationToken);
-        await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.Trust,
-            Arg.Is<string>(q => q.Contains("Trust data", StringComparison.Ordinal)), ConfiguredEvidencePerSearch, Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
+        await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.Trust, "*", ConfiguredEvidencePerSearch,
+            Arg.Is<ODataFilter>(f => f.ToString() == "trust_name eq 'EXAMPLE TRUST'"), Arg.Any<CancellationToken>());
     }
 
     [Fact]

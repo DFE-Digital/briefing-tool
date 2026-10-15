@@ -10,10 +10,10 @@ using GovUK.Dfe.AI.Agents.ValueObjects;
 namespace Dfe.Briefing.Tool.Application.Providers;
 
 /// <summary>
-/// Finds each agent's records by exact identifier wherever the index allows it, so a similarly named school or
-/// trust can never be mixed in. Field names are written inside the filters themselves: the filter escapes every
-/// interpolated value, so only the values (never the field names) can be interpolated.
+/// Provides evidence for briefing agents by retrieving context from various sources based on the agent definition and briefing parameters.
 /// </summary>
+/// <param name="contextRetriever">The context retriever.</param>
+/// <param name="options">The briefing options.</param>
 internal partial class BriefingEvidenceProvider(IContextRetriever contextRetriever, BriefingOptions options) : IBriefingEvidenceProvider
 {
     private const string MatchAll = "*";

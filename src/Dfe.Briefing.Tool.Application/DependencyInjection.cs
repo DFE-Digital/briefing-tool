@@ -17,8 +17,8 @@ public static class DependencyInjection
     {
         services.AddOptions<BriefingOptions>()
             .BindConfiguration(BriefingOptions.SectionName)
-            .Validate(options => options.MaxEvidencePerSearch is >= 1 and <= 25,
-                $"{BriefingOptions.SectionName}:{nameof(BriefingOptions.MaxEvidencePerSearch)} must be between 1 and 25.")
+            .Validate(options => options.MaxEvidencePerSearch is >= 1 and <= 50,
+                $"{BriefingOptions.SectionName}:{nameof(BriefingOptions.MaxEvidencePerSearch)} must be between 1 and 50.")
             .ValidateOnStart();
         services.AddSingleton(provider => provider.GetRequiredService<IOptions<BriefingOptions>>().Value);
 

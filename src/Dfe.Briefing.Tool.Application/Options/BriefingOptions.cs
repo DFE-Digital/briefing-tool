@@ -4,5 +4,5 @@ public sealed class BriefingOptions
 {
     public const string SectionName = "Briefing";
 
-    public int MaxEvidencePerSearch { get; init; } = 3;
+    public int MaxEvidencePerSearch { get; init; } = 25;
 }

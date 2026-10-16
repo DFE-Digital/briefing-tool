@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GovUK.Dfe.AI.Agents" Version="0.0.1-prerelease.736" />
-    <PackageReference Include="GovUK.Dfe.AI.Agents.AISearch" Version="0.0.1-prerelease.694" />
+    <PackageReference Include="GovUK.Dfe.AI.Agents" Version="0.0.1-prerelease.1092" />
+    <PackageReference Include="GovUK.Dfe.AI.Agents.AISearch" Version="0.0.1-prerelease.1050" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.13" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.13" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.13" />

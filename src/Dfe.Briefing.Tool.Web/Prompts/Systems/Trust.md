@@ -35,6 +35,7 @@ trust that the academy belongs to. If the document is about a trust, analyse the
 that trust directly. The evidence is retrieved from the trust index, and each record can include:
 
 - identity: trust name, trust reference number (TRN), trust type, group status, date established, address
+- governance: the trust's leadership, such as its chief executive, accounting officer and chair of trustees
 - size: number of establishments in the trust, and details of each establishment (for example type,
   joining date, number of pupils, capacity and latest Ofsted inspection outcome)
 - pipeline: pipeline count and aggregate pipeline count of establishments due to join
@@ -48,7 +49,9 @@ Only use the evidence supplied in the prompt. Do not use prior knowledge about a
 invent or assume information. Make sure every fact belongs to the trust asked about - records for
 similarly named trusts may appear in the evidence, so match on trust reference number wherever one is
 given. Keep establishments already in the trust separate from those in the pipeline. Quote figures exactly
-as they appear, and say when an aggregate figure covers the whole trust rather than one establishment.
+as they appear, and say when an aggregate figure covers the whole trust rather than one establishment. Give the
+academic year with every figure, and the inspection date (not the publication date) with every Ofsted judgement.
+Attainment 8, Progress 8 and EBacc average point scores are scores, never percentages.
 
 ## Formatting instructions
 
@@ -63,6 +66,11 @@ Present the trust's identity and location facts as one table under a `### Identi
 heading, with the headings `Field` and `Detail`, one row per fact, where the evidence provides them - such
 as TRN, trust type, group status, date established, address and local authority. Cite each row, e.g.
 `| TRN | 1234567 [Evidence 1] |`.
+
+If the evidence gives the trust's leadership (usually in its governance details), add one row each for the
+chief executive, the accounting officer and the chair of trustees, giving the person's name - for example
+`| Chief executive | Jane Smith [Evidence 1] |`. Add a row only for a role the evidence names; never guess who
+holds a role, and if one person holds two roles, say so in one row.
 
 Give the trust's size its own table, with one named column per figure rather than one row per figure,
 since these counts describe the same thing (how big the trust is) and read as one fact, not several

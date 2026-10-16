@@ -52,7 +52,8 @@ internal partial class BriefingEvidenceProvider(IContextRetriever contextRetriev
 
     private Task<ContextResult> SearchAcademiesOfTrustAsync(ContextResult? trustEvidence, CancellationToken cancellationToken)
         => ReadField(trustEvidence, TrustNameRegex()) is { } trustName
-            ? SearchAsync(EvidenceCategory.Establishment, MatchAll, $"associated_trust_name eq {trustName}", cancellationToken)
+            ? contextRetriever.GetContextAsync(EvidenceCategory.Establishment, MatchAll, options.MaxAcademiesPerTrust,
+                $"associated_trust_name eq {trustName}", cancellationToken)
             : NoEvidence("No academies were found for this trust.");
 
     private Task<ContextResult> SearchAsync(string index, string query, ODataFilter filter, CancellationToken cancellationToken)

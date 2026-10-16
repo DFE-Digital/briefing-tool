@@ -13,6 +13,7 @@ namespace Dfe.Briefing.Tool.Application.Tests.Providers;
 public sealed class BriefingEvidenceProviderTests
 {
     private const int EvidencePerSearch = 4;
+    private const int AcademiesPerTrust = 98;
 
     private static readonly AgentDefinition Establishment = new(AgentNames.Establishment, SystemPromptKey.Establishment);
     private static readonly AgentDefinition Trust = new(AgentNames.Trust, SystemPromptKey.Trust);
@@ -30,13 +31,13 @@ public sealed class BriefingEvidenceProviderTests
     {
         _contextRetriever.GetContextAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new ContextResult("evidence", HasEvidence: true)));
-        _sut = new BriefingEvidenceProvider(_contextRetriever, new BriefingOptions { MaxEvidencePerSearch = EvidencePerSearch });
+        _sut = new BriefingEvidenceProvider(_contextRetriever, new BriefingOptions { MaxEvidencePerSearch = EvidencePerSearch, MaxAcademiesPerTrust = AcademiesPerTrust });
     }
 
     private static ContextResult Record(string text) => new(text, HasEvidence: true);
 
-    private Task ReceivedFilteredSearch(string index, string filter)
-        => _contextRetriever.Received(1).GetContextAsync(index, "*", EvidencePerSearch,
+    private Task ReceivedFilteredSearch(string index, string filter, int size = EvidencePerSearch)
+        => _contextRetriever.Received(1).GetContextAsync(index, "*", size,
             Arg.Is<ODataFilter>(f => f.ToString() == filter), Arg.Any<CancellationToken>());
 
     [Fact]
@@ -85,7 +86,7 @@ public sealed class BriefingEvidenceProviderTests
 
         await _sut.GetEvidenceAsync(Establishment, TrustSubject, trust, _cancellationToken);
 
-        await ReceivedFilteredSearch(EvidenceCategory.Establishment, "associated_trust_name eq 'EXAMPLE TRUST'");
+        await ReceivedFilteredSearch(EvidenceCategory.Establishment, "associated_trust_name eq 'EXAMPLE TRUST'", AcademiesPerTrust);
     }
 
     [Fact]

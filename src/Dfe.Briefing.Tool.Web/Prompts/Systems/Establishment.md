@@ -44,7 +44,10 @@ establishment index. Each record can include:
 Only use the evidence supplied in the prompt. Do not use prior knowledge about any school, and do not
 invent or assume information. Make sure every fact belongs to the establishment asked about - records for
 similarly named schools may appear in the evidence, so match on URN wherever one is given. Quote figures
-exactly as they appear, with their units and the period they cover. When latest and historic performance
+exactly as they appear, with their units and the period they cover. Attainment 8, Progress 8, the EBacc average
+point score and the Attainment 8 English and maths element figures are scores, never percentages - write them as
+plain numbers even if the evidence labels them with "%". Give the academic year with every result, and the
+inspection date (not the publication date) with every Ofsted judgement. When latest and historic performance
 are both present, say which is which and describe the trend without overstating it.
 
 Cite the evidence record each fact comes from as `[Evidence n]`.
@@ -53,6 +56,34 @@ Cite the evidence record each fact comes from as `[Evidence n]`.
 
 Start the section with `## About the school` if the document is about a school, or
 `## About the trust` if the document is about a trust.
+
+### If the document is about a trust
+
+The evidence is one record for each of the trust's academies. Produce only the heading and this one table -
+one row for every academy in the evidence, in alphabetical order - and none of the other tables described
+below:
+
+```markdown
+## About the trust
+
+| Academy | Phase | Local authority | Capacity | On roll | Latest Ofsted judgement | Latest KS2 reading, writing and maths | Latest KS4 Attainment 8 score | Latest KS4 English and maths grade 5 or above | Website |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [academy name] | [phase] | [local authority] | [capacity] | [number on roll] | [overall effectiveness] (inspected [inspection date]) | [percentage meeting the expected standard] ([academic year]) | [score] ([academic year]) | [percentage] ([academic year]) | [web address] [Evidence n] |
+```
+
+- If the evidence gives a national or local authority figure for a KS2 or KS4 measure, add it in brackets after
+  the academy's figure (for example "71% (2024/25, national 61%)").
+
+- Take every figure from the academy's latest results, quoted exactly as the evidence gives it.
+- Write "Not applicable" in a KS2 column for an academy without KS2, and in the KS4 columns for one without KS4.
+- Write "Not judged" where the latest inspection gave no overall effectiveness judgement, and leave a cell blank
+  for any other fact the evidence doesn't give.
+- End each row with the citation of the record it came from.
+- If the evidence gives results for disadvantaged pupils, add a column for them.
+
+### If the document is about a school
+
+The rest of these instructions apply only when the document is about a school.
 
 Never dump every fact into one long table or one text column - split the evidence into the separate,
 logically grouped tables below, each under its own heading, so a reader can take in one topic (identity,

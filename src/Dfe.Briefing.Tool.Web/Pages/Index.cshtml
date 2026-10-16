@@ -85,12 +85,18 @@
             <ul id="briefing-status-list" class="govuk-list app-briefing-status__list" role="log" aria-live="polite"></ul>
         </div>
 
+        @* Shown after every briefing, below its References list - see the 'complete' handler in index.js. *@
+        <template id="briefing-check-warning">
+            <partial name="_BriefingCheckWarning" />
+        </template>
+
         <div id="briefing-output-container">
             @if (!string.IsNullOrWhiteSpace(Model.BriefingOutput))
             {
                 <div class="briefing-output">
                     @Html.Raw(Model.BriefingOutput)
                 </div>
+                <partial name="_BriefingCheckWarning" />
             }
         </div>
     </div>

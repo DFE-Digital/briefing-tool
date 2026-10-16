@@ -142,12 +142,47 @@ function initBriefingProgress() {
             '<div class="govuk-error-summary__body"><ul class="govuk-list govuk-error-summary__list"><li></li></ul></div></div>';
          errorSummary.querySelector('.govuk-error-summary__list li').textContent = message;
          errorSummary.querySelector('.govuk-error-summary').focus();
+         stopCurrentStep();
          finish();
       }
 
+      // Each progress message is one step: the newest is in progress (spinner), every earlier one is done (tick).
+      function completeCurrentStep() {
+         var current = statusList.querySelector('.app-briefing-status__step--current');
+         if (!current) {
+            return;
+         }
+         current.classList.remove('app-briefing-status__step--current');
+         current.classList.add('app-briefing-status__step--done');
+         current.querySelector('.govuk-visually-hidden').textContent = 'Done: ';
+      }
+
+      function stopCurrentStep() {
+         var current = statusList.querySelector('.app-briefing-status__step--current');
+         if (current) {
+            current.classList.remove('app-briefing-status__step--current');
+            current.querySelector('.govuk-visually-hidden').textContent = 'Stopped: ';
+         }
+      }
+
       source.addEventListener('progress', function (e) {
+         completeCurrentStep();
+
          var item = document.createElement('li');
-         item.textContent = e.data;
+         item.className = 'app-briefing-status__step app-briefing-status__step--current';
+
+         var icon = document.createElement('span');
+         icon.className = 'app-briefing-status__icon';
+         icon.setAttribute('aria-hidden', 'true');
+
+         var state = document.createElement('span');
+         state.className = 'govuk-visually-hidden';
+         state.textContent = 'In progress: ';
+
+         var text = document.createElement('span');
+         text.textContent = e.data;
+
+         item.append(icon, state, text);
          statusList.appendChild(item);
       });
 
@@ -156,6 +191,10 @@ function initBriefingProgress() {
          output.className = 'briefing-output';
          output.innerHTML = e.data;
          outputContainer.appendChild(output);
+         var warning = document.getElementById('briefing-check-warning');
+         if (warning) {
+            outputContainer.appendChild(warning.content.cloneNode(true));
+         }
          clearButton.hidden = false;
          statusRegion.hidden = true;
          finish();

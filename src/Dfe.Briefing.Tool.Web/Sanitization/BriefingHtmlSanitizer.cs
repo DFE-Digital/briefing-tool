@@ -1,5 +1,6 @@
 using Ganss.Xss;
 using Markdig;
+using Markdig.Extensions.AutoLinks;
 
 namespace Dfe.Briefing.Tool.Web.Sanitization;
 
@@ -15,12 +16,16 @@ namespace Dfe.Briefing.Tool.Web.Sanitization;
 public static class BriefingHtmlSanitizer
 {
     // Pipe tables: agents use tables to present comparable facts (e.g. Ofsted judgements across
-    // inspections), which plain CommonMark can't parse.
-    private static readonly MarkdownPipeline MarkdownPipeline = new MarkdownPipelineBuilder().UsePipeTables().Build();
+    // inspections), which plain CommonMark can't parse. Auto-links: agents write web addresses as plain text
+    // (a Markdown link would become a numbered reference), so bare https:// and www. addresses become links here.
+    private static readonly MarkdownPipeline MarkdownPipeline = new MarkdownPipelineBuilder()
+        .UsePipeTables()
+        .UseAutoLinks(new AutoLinkOptions { UseHttpsForWWWLinks = true })
+        .Build();
     private static readonly HtmlSanitizer Sanitizer = CreateSanitizer();
 
     public static string? Sanitize(string? markdown)
-        => markdown is null ? null : Sanitizer.Sanitize(Markdown.ToHtml(CitationReferenceFormatter.CollectReferences(markdown), MarkdownPipeline));
+        => markdown is null ? null : Sanitizer.Sanitize(Markdown.ToHtml(WebAddresses.WithSchemes(CitationReferenceFormatter.CollectReferences(markdown)), MarkdownPipeline));
 
     private static HtmlSanitizer CreateSanitizer()
     {

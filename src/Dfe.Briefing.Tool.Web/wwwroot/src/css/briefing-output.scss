@@ -136,16 +136,50 @@
 .app-briefing-status__list {
   margin-bottom: 0;
 
-  // Each "progress" event appends a new item, building a running history. Grey out completed
-  // steps and highlight the last one, which is always the current step.
+  // Each "progress" event appends a step; index.js marks the newest as current (spinner) and the
+  // earlier ones as done (tick), so it's clear which step is still running.
   li {
     @include govuk-font(16);
+    display: flex;
+    align-items: center;
+    gap: govuk-spacing(2);
     color: govuk-colour("mid-grey");
   }
+}
 
-  li:last-child {
-    color: govuk-colour("black");
-    font-weight: bold;
+.app-briefing-status__icon {
+  flex-shrink: 0;
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+}
+
+.app-briefing-status__step--current {
+  color: govuk-colour("black");
+  font-weight: bold;
+
+  .app-briefing-status__icon {
+    border: 2px solid govuk-colour("mid-grey");
+    border-top-color: govuk-colour("blue");
+    border-radius: 50%;
+    box-sizing: border-box;
+    animation: app-spin 0.8s linear infinite;
+  }
+}
+
+.app-briefing-status__step--done .app-briefing-status__icon::before {
+  content: "\2713";
+  display: block;
+  line-height: 16px;
+  text-align: center;
+  font-weight: bold;
+  color: govuk-colour("green");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-briefing-status__step--current .app-briefing-status__icon {
+    animation: none;
+    border-style: dashed;
   }
 }
 

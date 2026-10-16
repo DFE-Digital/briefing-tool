@@ -43,20 +43,19 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
             resolvePrompt: (_, _) => Task.FromResult(briefingBuilder.BuildSubjectInstruction(parameters)),
             context, shouldSuppress: _ => false, cancellationToken: cancellationToken,
             resolveEvidence: (_, _) => Task.FromResult<AgentEvidence?>(establihsmentOrTrustEvidence));
-        progress?.Report($"Received {establihsmentOrTrustAgent.Name.ToDisplayName()} information.");
 
         var (subjectResult, city) = CityExtractorHelper.ExtractCity(establishmentOrTrustResults.Single());
         establishmentOrTrustResults = [subjectResult];
 
-        foreach (var definition in specialistAgents)
-            progress?.Report($"Calling {definition.Name.ToDisplayName()} agent...");
+        // Each progress message is one step, shown as in progress until the next one arrives - so agents that
+        // run in parallel are announced together, as a single step.
+        progress?.Report($"Calling {string.Join(", ", specialistAgents.Select(definition => definition.Name.ToDisplayName()))} agents...");
 
         var specialistAgentResults = await agentService.RunParallelAsync(
             specialistAgents,
             resolvePrompt: (_, _) => Task.FromResult(briefingBuilder.BuildSubjectInstruction(parameters)),
             context, cancellationToken: cancellationToken,
             resolveEvidence: async (definition, ct) => await evidenceProvider.GetEvidenceAsync(definition, parameters, establihsmentOrTrustEvidence, ct));
-        progress?.Report("Received findings from all specialist agents.");
 
         // The Establishment and Trust prompts both emit a city marker, and either can run as a specialist.
         var strippedSpecialistResults = specialistAgentResults.Select(result => CityExtractorHelper.ExtractCity(result).Result);
@@ -68,7 +67,6 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
             progress?.Report("Searching the web for additional information...");
             var webSearchResult = await RunWebSearchAsync(parameters, city, knownResults, cancellationToken);
             specialistResults = [.. knownResults, webSearchResult];
-            progress?.Report("Received web search findings.");
         }
 
         progress?.Report("Compiling the briefing...");

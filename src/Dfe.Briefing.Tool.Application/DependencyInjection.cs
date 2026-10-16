@@ -19,9 +19,10 @@ public static class DependencyInjection
             .BindConfiguration(BriefingOptions.SectionName)
             .Validate(options => options.MaxEvidencePerSearch is >= 1 and <= 50,
                 $"{BriefingOptions.SectionName}:{nameof(BriefingOptions.MaxEvidencePerSearch)} must be between 1 and 50.")
+            .Validate(options => options.MaxAcademiesPerTrust is >= 1 and <= 100,
+                $"{BriefingOptions.SectionName}:{nameof(BriefingOptions.MaxAcademiesPerTrust)} must be between 1 and 100.")
             .ValidateOnStart();
         services.AddSingleton(provider => provider.GetRequiredService<IOptions<BriefingOptions>>().Value);
-
         services.AddSingleton<IReadOnlyCollection<AgentDefinition>>(BriefingAgents.All);
         services.AddScoped<IBriefingOrchestrator, BriefingOrchestrator>();
         services.AddScoped<IBriefingBuilder, BriefingBuilder>();

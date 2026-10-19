@@ -25,7 +25,7 @@ public static class BriefingHtmlSanitizer
     private static readonly HtmlSanitizer Sanitizer = CreateSanitizer();
 
     public static string? Sanitize(string? markdown)
-        => markdown is null ? null : Sanitizer.Sanitize(Markdown.ToHtml(WebAddresses.WithSchemes(CitationReferenceFormatter.CollectReferences(markdown)), MarkdownPipeline));
+        => markdown is null ? null : Sanitizer.Sanitize(Markdown.ToHtml(CitationReferenceFormatter.CollectReferences(markdown), MarkdownPipeline));
 
     private static HtmlSanitizer CreateSanitizer()
     {

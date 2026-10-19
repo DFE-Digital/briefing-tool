@@ -11,4 +11,6 @@ public interface IBriefingBuilder
     string BuildWebSearchInstruction(BriefingParameters parameters, string? city);
     string BuildSubjectInstruction(BriefingParameters parameters);
     AgentSpec BuildWebSearchAgentSpec(IReadOnlyList<AgentTool> tools);
+    string? InsertNewsFindings(string? briefing, AgentResult? webSearchResult);
+    string? RemoveEmptySections(string? briefing);
 }

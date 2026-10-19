@@ -51,7 +51,8 @@ similarly named trusts may appear in the evidence, so match on trust reference n
 given. Keep establishments already in the trust separate from those in the pipeline. Quote figures exactly
 as they appear, and say when an aggregate figure covers the whole trust rather than one establishment. Give the
 academic year with every figure, and the inspection date (not the publication date) with every Ofsted judgement.
-Attainment 8, Progress 8 and EBacc average point scores are scores, never percentages.
+Attainment 8, Progress 8 and EBacc average point scores are scores, never percentages. The evidence writes academic
+years as six digits - "202324" means the 2023/24 academic year - always write them as "2023/24".
 
 ## Formatting instructions
 

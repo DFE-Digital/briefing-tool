@@ -33,11 +33,13 @@ internal static partial class WebAddresses
             : "https://" + trimmed;
     }
 
-    [GeneratedRegex(@"`(" + Address + ")`", RegexOptions.IgnoreCase)]
+    // Case-sensitive: a typed web address is lower case ("silverdale.chorustrust.org"), whereas a capitalised one
+    // ("Education.gov.uk", "GOV.UK") is a publisher's name in a sentence, and must stay as text.
+    [GeneratedRegex(@"`(" + Address + ")`")]
     private static partial Regex QuotedAddressRegex();
 
     // Not preceded by "/" or ":" (already has a scheme, or is inside one), "@" (an email address) or a word character.
-    [GeneratedRegex(@"(?<![/\w.@:-])((?:www\.)?(?:[a-z0-9-]+\.)+(?:co\.uk|org\.uk|gov\.uk|sch\.uk|ac\.uk|nhs\.uk|police\.uk|uk|org|com|net|gov|edu|info|io)\b(?:/[^\s<>()\[\]`""]*[^\s<>()\[\]`"".,;:!?'])?/?)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?<![/\w.@:-])((?:www\.)?(?:[a-z0-9-]+\.)+(?:co\.uk|org\.uk|gov\.uk|sch\.uk|ac\.uk|nhs\.uk|police\.uk|uk|org|com|net|gov|edu|info|io)\b(?:/[^\s<>()\[\]`""]*[^\s<>()\[\]`"".,;:!?'])?/?)")]
     private static partial Regex BareAddressRegex();
 
     [GeneratedRegex("^" + Address + "$", RegexOptions.IgnoreCase)]

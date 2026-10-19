@@ -47,7 +47,9 @@ similarly named schools may appear in the evidence, so match on URN wherever one
 exactly as they appear, with their units and the period they cover. Attainment 8, Progress 8, the EBacc average
 point score and the Attainment 8 English and maths element figures are scores, never percentages - write them as
 plain numbers even if the evidence labels them with "%". Give the academic year with every result, and the
-inspection date (not the publication date) with every Ofsted judgement. When latest and historic performance
+inspection date (not the publication date) with every Ofsted judgement. The evidence writes academic years as six
+digits - "202324" means the 2023/24 academic year and "202223" means 2022/23 - for KS1, KS2 and KS4 alike: always
+write them as "2023/24", and take the year of the latest results from the evidence rather than saying it isn't given. When latest and historic performance
 are both present, say which is which and describe the trend without overstating it.
 
 Cite the evidence record each fact comes from as `[Evidence n]`.

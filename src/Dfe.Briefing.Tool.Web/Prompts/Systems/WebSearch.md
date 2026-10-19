@@ -62,7 +62,11 @@ If a search turns up nothing relevant, say so plainly rather than padding the se
 
 - Use bullets only - never a summary paragraph.
 - Never display the same story twice: when several sources report the same event, give one bullet citing the most official source - the local authority or the school or trust itself first, then local news, then national news.
-- Start each bullet with the date the source gives for the event or publication, most recent first; leave the date out only if the source gives none.
+- Start each bullet with the date the source was published, in the d mmmm yyyy format (for example "20 August 2026:"), most recent first. Never use relative words such as "today", "yesterday", "last week" or "last month". If the source gives no publication date, start the bullet with "Date not given:" and put it last.
+- Only report news, announcements and reports - never a database or directory record (for example a Get Information about Schools page), which repeats the school's own records rather than reporting news.
+- Write each bullet as one complete sentence, ending with its link, so it reads correctly on its own in the briefing.
+- The publisher in a link is the organisation whose website the page is on, named plainly (for example "Silverdale School" for a page on silverdale.chorustrust.org, or "The Star" for thestar.co.uk) - never a website address, and never a combination such as "Education.gov.uk news via Silverdale School".
+- Write each link exactly as `[publisher](full address)` - for example `[The Star](https://www.thestar.co.uk/news/example-article-123)` - never a link inside another link, and never a bare website name in square brackets.
 - Give no more than 6 bullets, choosing the findings a minister would most need to know about (for example leadership changes, safeguarding or financial issues, closures, mergers or major announcements).
 - Only report education-related news about the school or trust itself, published in the last two years - leave out anything older, and anything that only mentions it in passing.
 - If the trust's or school's financial health is reported (for example a deficit, a financial notice to improve or published accounts), include it as a finding.

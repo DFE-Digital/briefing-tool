@@ -62,10 +62,11 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
         var knownResults = establishmentOrTrustResults.Concat(strippedSpecialistResults).ToList();
 
         var specialistResults = knownResults;
+        AgentResult? webSearchResult = null;
         if (parameters.AllowWebSearch)
         {
             progress?.Report("Searching the web for additional information...");
-            var webSearchResult = await RunWebSearchAsync(parameters, city, knownResults, cancellationToken);
+            webSearchResult = await RunWebSearchAsync(parameters, city, knownResults, cancellationToken);
             specialistResults = [.. knownResults, webSearchResult];
         }
 
@@ -74,7 +75,8 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
         var synthesisResult = await RunSynthesisAsync(synthesisAgent, parameters, specialistResults, cancellationToken);
         var totalTokens = specialistResults.Sum(x => x.TotalTokens) + synthesisResult.TotalTokens;
 
-        return new AIResult(synthesisResult.Output, totalTokens);
+        var briefing = briefingBuilder.RemoveEmptySections(briefingBuilder.InsertNewsFindings(synthesisResult.Output, webSearchResult));
+        return new AIResult(briefing, totalTokens);
     } 
 
     private async Task<AgentResult> RunWebSearchAsync(BriefingParameters parameters, string? city,

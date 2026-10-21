@@ -47,8 +47,6 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
         var (subjectResult, city) = CityExtractorHelper.ExtractCity(establishmentOrTrustResults.Single());
         establishmentOrTrustResults = [subjectResult];
 
-        // Each progress message is one step, shown as in progress until the next one arrives - so agents that
-        // run in parallel are announced together, as a single step.
         progress?.Report($"Calling {string.Join(", ", specialistAgents.Select(definition => definition.Name.ToDisplayName()))} agents...");
 
         var specialistAgentResults = await agentService.RunParallelAsync(
@@ -57,7 +55,6 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
             context, cancellationToken: cancellationToken,
             resolveEvidence: async (definition, ct) => await evidenceProvider.GetEvidenceAsync(definition, parameters, establihsmentOrTrustEvidence, ct));
 
-        // The Establishment and Trust prompts both emit a city marker, and either can run as a specialist.
         var strippedSpecialistResults = specialistAgentResults.Select(result => CityExtractorHelper.ExtractCity(result).Result);
         var knownResults = establishmentOrTrustResults.Concat(strippedSpecialistResults).ToList();
 
@@ -71,11 +68,9 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
         return new AIResult(briefing, totalTokens, city);
     }
 
-    // A briefing that found no records is a title and a message only - there's nothing to add news to.
     public bool CanAddWebSearchFindings(string? briefing)
         => !string.IsNullOrWhiteSpace(briefing) && briefing.Contains("\n## ", StringComparison.Ordinal) && !briefingBuilder.HasNewsSection(briefing);
 
-    // Runs the web search agent alone - the briefing it's given is reused as it is, so no other agent runs again.
     public async Task<AIResult> AddWebSearchFindings(BriefingParameters parameters, string briefing, string? city,
         CancellationToken cancellationToken = default)
     {

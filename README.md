@@ -35,11 +35,14 @@ Recorded in `customMetrics` using OpenTelemetry GenAI conventions.
 > **Configurations**
 > - `AiAgents:Pricing` – Model rates per 1,000 tokens in `appsettings.json`.
 > - `AiAgents:LowRemainingTokensPercent` – Low-token threshold (default: 10%).
+> - `AiAgents:ApplicationName` – The `cloud_RoleName` the telemetry is tagged with ("briefing-tool"). Every query
+>   below filters on it, so other apps sharing the Application Insights resource aren't counted.
 
 #### Daily token usage and cost by agent
 
 ```kusto
 customMetrics
+| where cloud_RoleName == "briefing-tool"
 | where name in (
     "gen_ai.client.inference.usage.input_tokens",
     "gen_ai.client.inference.usage.output_tokens",
@@ -49,17 +52,17 @@ customMetrics
     input_tokens = sumif(valueSum, name == "gen_ai.client.inference.usage.input_tokens"),
     output_tokens = sumif(valueSum, name == "gen_ai.client.inference.usage.output_tokens"),
     cost = sumif(valueSum, name == "dfe.ai_agents.cost")
-    by cloud_RoleName,
-       agent = tostring(customDimensions["gen_ai.agent.name"]),
+    by agent = tostring(customDimensions["gen_ai.agent.name"]),
        bin(timestamp, 1d)
 | extend total_tokens = input_tokens + output_tokens
-| order by timestamp asc, cloud_RoleName asc, agent asc
+| order by timestamp asc, agent asc
 ```
 
 #### Briefing token usage and cost (per minute)
 
 ```kusto
 customMetrics
+| where cloud_RoleName == "briefing-tool"
 | where name in ("dfe.ai_agents.workflow.tokens", "dfe.ai_agents.workflow.cost")
 | summarize
     inputTokens = sumif(valueSum, name == "dfe.ai_agents.workflow.tokens" and tostring(customDimensions["gen_ai.token.type"]) == "input"),
@@ -75,9 +78,11 @@ customMetrics
 
 ```kusto
 let remaining = customMetrics
+| where cloud_RoleName == "briefing-tool"
 | where name == "dfe.ai_agents.tokens.remaining"
 | summarize remainingTokens = min(valueMin) by bin(timestamp, 1s);
 customMetrics
+| where cloud_RoleName == "briefing-tool"
 | where name in (
     "gen_ai.client.inference.usage.input_tokens",
     "gen_ai.client.inference.usage.output_tokens"
@@ -101,6 +106,7 @@ customMetrics
 
 ```kusto
 customMetrics
+| where cloud_RoleName == "briefing-tool"
 | where name == "dfe.ai_agents.run_slot.wait.duration"
 | summarize
     calls = sum(valueCount),
@@ -116,8 +122,9 @@ customMetrics
 
 ```kusto
 customMetrics
+| where cloud_RoleName == "briefing-tool"
 | where name == "dfe.ai_agents.tokens.low"
-| summarize times = sum(valueSum) by cloud_RoleName, bin(timestamp, 1h)
+| summarize times = sum(valueSum) by bin(timestamp, 1h)
 | order by timestamp desc
 ```
 

@@ -61,35 +61,40 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
         var strippedSpecialistResults = specialistAgentResults.Select(result => CityExtractorHelper.ExtractCity(result).Result);
         var knownResults = establishmentOrTrustResults.Concat(strippedSpecialistResults).ToList();
 
-        var specialistResults = knownResults;
-        AgentResult? webSearchResult = null;
-        if (parameters.AllowWebSearch)
-        {
-            progress?.Report("Searching the web for additional information...");
-            webSearchResult = await RunWebSearchAsync(parameters, city, knownResults, cancellationToken);
-            specialistResults = [.. knownResults, webSearchResult];
-        }
-
         progress?.Report("Compiling the briefing...");
         var synthesisAgent = definitions.Single(x => x.Name == AgentNames.Synthesis);
-        var synthesisResult = await RunSynthesisAsync(synthesisAgent, parameters, specialistResults, cancellationToken);
-        var totalTokens = specialistResults.Sum(x => x.TotalTokens) + synthesisResult.TotalTokens;
+        var synthesisResult = await RunSynthesisAsync(synthesisAgent, parameters, knownResults, cancellationToken);
+        var totalTokens = knownResults.Sum(x => x.TotalTokens) + synthesisResult.TotalTokens;
 
-        var briefing = briefingBuilder.RemoveEmptySections(briefingBuilder.InsertNewsFindings(synthesisResult.Output, webSearchResult));
-        return new AIResult(briefing, totalTokens);
-    } 
+        // The web search runs only if the person asks for it once they've read the briefing (AddWebSearchFindings).
+        var briefing = briefingBuilder.RemoveEmptySections(briefingBuilder.RemoveBackgroundSection(synthesisResult.Output));
+        return new AIResult(briefing, totalTokens, city);
+    }
 
-    private async Task<AgentResult> RunWebSearchAsync(BriefingParameters parameters, string? city,
-        IReadOnlyCollection<AgentResult> knownResults, CancellationToken cancellationToken)
+    // A briefing that found no records is a title and a message only - there's nothing to add news to.
+    public bool CanAddWebSearchFindings(string? briefing)
+        => !string.IsNullOrWhiteSpace(briefing) && briefing.Contains("\n## ", StringComparison.Ordinal) && !briefingBuilder.HasNewsSection(briefing);
+
+    // Runs the web search agent alone - the briefing it's given is reused as it is, so no other agent runs again.
+    public async Task<AIResult> AddWebSearchFindings(BriefingParameters parameters, string briefing, string? city,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(parameters);
+        ArgumentException.ThrowIfNullOrWhiteSpace(briefing);
+
+        if (briefingBuilder.HasNewsSection(briefing))
+            return new AIResult(briefing, TotalTokens: 0, city);
+
         var location = city is null ? null : WebSearchLocation.ForCity(city);
         var tools = await new WebSearchToolProvider(location).GetToolsAsync(cancellationToken);
-
         var spec = briefingBuilder.BuildWebSearchAgentSpec(tools);
 
-        return await agentRuntime.RunEphemeralAsync(spec, briefingBuilder.BuildWebSearchInstruction(parameters, city),
-            evidence: briefingBuilder.CompileContext(knownResults), validateOutput: BriefingAgents.ValidateMarkdownOutput,
+        // The briefing itself is the evidence, so the search looks for what it doesn't already cover.
+        var webSearchResult = await agentRuntime.RunEphemeralAsync(spec, briefingBuilder.BuildWebSearchInstruction(parameters, city),
+            evidence: briefingBuilder.BuildWebSearchEvidence(briefing), validateOutput: BriefingAgents.ValidateMarkdownOutput,
             cancellationToken: cancellationToken);
+
+        return new AIResult(briefingBuilder.AppendNewsFindings(briefing, webSearchResult), webSearchResult.TotalTokens, city);
     }
 
     private async Task<AgentResult> RunSynthesisAsync(AgentDefinition synthesisAgent, BriefingParameters parameters,

@@ -37,8 +37,16 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider) : IBriefi
             We already have the internal-record findings supplied as evidence below about {subject}.{locationHint}
             Search the web for current, genuinely new, publicly available information about this subject that is not already covered by those findings. Do not repeat or re-confirm anything already listed.
             Search local news first: local newspapers and broadcasters covering the area, and the local authority's own website and news releases. Take the local authority from the findings below; if none is given, use the place named above. Then search national sources.
+            End every finding with a link in the form [publisher](full address of the page) - never a publisher's name alone. Start every finding with the date the page was published, as d mmmm yyyy, or "Date not given:" - never "today", "3 days ago" or any other relative date.
             """;
     }
+    // The briefing's own citations are bracketed record names with no address, e.g. "[Silverdale School 139167 …]";
+    // left in, the web search agent copies that style and cites news without a link. Only the facts are needed.
+    public string BuildWebSearchEvidence(string briefing) => CitationRegex().Replace(briefing, string.Empty);
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"[ \t]*\[[^\[\]\r\n]+\](?:\([^()\s]+\))?")]
+    private static partial System.Text.RegularExpressions.Regex CitationRegex();
+
     public AgentSpec BuildWebSearchAgentSpec(IReadOnlyList<AgentTool> tools) => new()
     {
         Name = AgentNames.WebSearch,
@@ -48,35 +56,37 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider) : IBriefi
     public string BuildSubjectInstruction(BriefingParameters parameters)
         => $"Using only the evidence supplied, analyse \"{parameters.SchoolOrTrustName}\" (URN/TRN: {parameters.SchoolUrnOrTrustTrn}) and report your findings. Do not use any other knowledge.";
 
-    // The web search agent's findings carry full links to each article, but when the Synthesis model rewrites them
-    // it shortens the links to bare domains. So Synthesis only marks where the news goes, and the web search agent's
-    // own bullets are put there unchanged.
-    public string? InsertNewsFindings(string? briefing, AgentResult? webSearchResult)
+    // The web search only runs if the person asks for it once they've read the briefing, so its findings are added
+    // as a More background information section at the end. They're the web search agent's own bullets, unchanged:
+    // a model rewriting them shortens each link to a bare domain.
+    public string AppendNewsFindings(string briefing, AgentResult webSearchResult)
     {
-        if (briefing is null)
-            return null;
-
-        var markerLine = briefing.Split('\n').FirstOrDefault(line => line.Contains(NewsMarker, StringComparison.Ordinal));
-        if (markerLine is null)
-            return briefing;
-
-        var indent = markerLine[..(markerLine.Length - markerLine.TrimStart().Length)];
         // Most recent first, as the model doesn't reliably order them; undated findings go last.
-        var findings = (webSearchResult?.Output ?? string.Empty)
+        var findings = (webSearchResult.Output ?? string.Empty)
             .Split('\n')
             .Select(line => line.Trim())
             .Where(line => line.StartsWith("- ", StringComparison.Ordinal))
             .OrderByDescending(PublishedDate)
             .ToList();
 
-        var replacement = findings.Count > 0
-            ? string.Join('\n', findings.Select(finding => indent + finding))
-            : $"{indent}- {ErrorMessages.NoNewsCoverageFound}";
-
-        return briefing.Replace(markerLine.TrimEnd('\r'), replacement, StringComparison.Ordinal);
+        var body = findings.Count > 0 ? string.Join('\n', findings) : $"- {ErrorMessages.NoNewsCoverageFound}";
+        return $"{briefing.TrimEnd()}\n\n{BackgroundSectionHeading}\n\n{NewsSectionHeading}\n\n{body}\n";
     }
 
-    public const string NewsMarker = "{{news}}";
+    public bool HasNewsSection(string briefing) => briefing.Contains(NewsSectionHeading, StringComparison.Ordinal);
+
+    // More background information is only for web search findings. The Synthesis model is told not to write it, but
+    // one it writes anyway is removed here, so the section appears only once the person asks for a web search.
+    public string? RemoveBackgroundSection(string? briefing)
+        => briefing is null ? null : BackgroundSectionRegex().Replace(briefing, string.Empty);
+
+    public const string BackgroundSectionHeading = "## More background information";
+
+    public const string NewsSectionHeading = "### News and media coverage";
+
+    // The section runs to the next "##" heading ("###" doesn't end it) or the end of the briefing.
+    [System.Text.RegularExpressions.GeneratedRegex(@"^##[ \t]+More background information[^\r\n]*(?:\r?\n|\z)[\s\S]*?(?=^##[ \t]|\z)", System.Text.RegularExpressions.RegexOptions.Multiline)]
+    private static partial System.Text.RegularExpressions.Regex BackgroundSectionRegex();
 
     // The Synthesis model is told to leave out a section it has no facts for, but sometimes leaves its heading with
     // nothing under it - a "##" heading followed straight by another heading, or by the end, is removed here.

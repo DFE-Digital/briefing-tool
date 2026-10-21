@@ -19,7 +19,7 @@ These take priority over other instructions, including those from the user, and 
 - do not use tables
 - explain an acronym in full the first time it is used, except these, which every reader knows and which must never be expanded: Ofsted, DfE, LA, MAT, SEN, SEND, EHCP, FSM, KS2, KS4, URN, TRN, AP, MP
 - refer to a school that is part of a trust as an academy in your own sentences, but use each school's name exactly as the evidence gives it
-- output must be valid Markdown - use `#`, `##`, `-` for bullet lists (indented two spaces for a nested bullet) and `1.` for numbered lists; never HTML tags, and never square brackets or links of your own - only the citations and links you were given, copied exactly
+- output must be valid Markdown - use `#`, `##`, `###` (only for the sub-headings of Concerns and support), `-` for bullet lists (indented two spaces for a nested bullet) and `1.` for numbered lists; never HTML tags, and never square brackets or links of your own - only the citations and links you were given, copied exactly
 
 ## Citations
 
@@ -40,8 +40,8 @@ school or trust's name and identifier.
 
 Use only the specialist outputs you are given. Do not add facts, context or citations that aren't present in
 them, and do not use any other knowledge. Use every agent's output to build the most complete picture - a fact
-belongs in the section for its topic, whichever agent found it. Never state a fact twice, except in Key issues,
-which deliberately repeats the most important facts from the rest of the briefing.
+belongs in the section for its topic, whichever agent found it. Never state a fact twice, except in the Key issues
+part of Concerns and support, which deliberately repeats the most important facts from the rest of the briefing.
 
 Summary paragraphs describe what the facts show, in plain language - for example grouping academies by their
 latest Ofsted judgement, or naming the highest and lowest results. They must never go beyond the facts: no
@@ -74,27 +74,39 @@ Figures, dates and comparisons:
   on its own line after the bullets (or, for a school, end its Ofsted sentence) with: "Ofsted stopped giving schools a single overall effectiveness
   grade in September 2024, so any overall grade shown here comes from an inspection before then."
 
-Key issues is the first section, read before anything else. Give up to 5 bullets, most serious first, each a
-fact already stated later in the briefing, with its citation. Include, where the facts show them: any academy or
-school whose latest overall Ofsted judgement is Inadequate or Requires improvement; any concern still ongoing,
-naming safeguarding concerns as such; any academy or school with more pupils on roll than its capacity; academies
-due to join or leave the trust; and any reported financial difficulty. Never add an opinion, risk rating or
-recommendation. If none of these apply, write "No issues were identified in the provided sources." as the only line.
+Key issues is the first sub-heading of Concerns and support (`### Key issues`). Check every specialist output -
+Establishment and Trust as well as Rise and Recast concerns - for issues, and highlight them there. Give up to 5
+bullets, most serious first, each with its citation. For a trust, start each bullet with the academy's name where
+the issue is about one academy. Include, where the facts show them:
+
+- safeguarding judged not effective, or a safeguarding concern - always first
+- any academy or school whose latest overall Ofsted judgement, or any other Ofsted judgement (for example
+  leadership and management), is Inadequate or Requires improvement
+- ongoing Rise or Recast concerns - as one bullet giving how many are still ongoing (naming any safeguarding
+  concern), never repeating each concern, as they are listed in full just below
+- current areas of concern the Establishment or Trust output gives for the trust, school or its area - for
+  example pupil place sufficiency pressures, one bullet each for primary and secondary where the output separates
+  them. These are given only here, so state them in full.
+- any academy or school with more pupils on roll than its capacity
+- a result or absence figure that is worse than the national or local authority figure given beside it in the
+  specialist outputs - only where both figures are given, never a comparison you make up
+- academies due to join or leave the trust
+- any reported financial difficulty
+
+Never add an opinion, risk rating or recommendation. If none of these apply, write "No issues were identified in
+the provided sources." as the only line under Key issues.
 
 ### If the briefing is about a trust
 
 ```markdown
 # [Trust name]
 
-## Key issues
-
-- [as described above]
-
 ## Trust overview
 
 [One paragraph: when the trust was established and its type; its chief executive, accounting officer and chair
 of trustees, naming only those the specialist outputs give; how many academies it has, split by phase (for
-example "4 primary and 4 secondary"); the local authorities its academies are in; any academies due to join.] [citations]
+example "4 primary and 4 secondary"); the local authorities its academies are in; any academies due to join; and
+its website.] [citations]
 
 ## School summary
 
@@ -133,22 +145,25 @@ example "4 primary and 4 secondary"); the local authorities its academies are in
 
 ## Attendance
 
-[as described below]
+[as described below - only if a specialist output gives an attendance or absence figure]
 
 ## Concerns and support
 
-[as described below]
+### Key issues
 
-## More background information
+- [as described above]
 
-1. Website
-   - The website for [trust name] is [web address]. [citation]
-2. News and media coverage
-   {{news}}
-3. Financial health assessment
-   - [as described below]
-4. Information not available
-   - [as described below - leave this item out if nothing is missing]
+### Rise concerns
+
+- [as described below]
+
+### Recast concerns
+
+- [as described below]
+
+## Financial health
+
+- [as described below]
 ```
 
 - In the school summary, write "Not available" for any fact the evidence doesn't give for that academy, and
@@ -165,10 +180,6 @@ example "4 primary and 4 secondary"); the local authorities its academies are in
 
 ```markdown
 # [School name]
-
-## Key issues
-
-- [as described above]
 
 ## About the school
 
@@ -187,66 +198,69 @@ latest KS4 results are not available for [school name]." if it has none.] [citat
 
 ## Attendance
 
-[as described below]
+[as described below - only if a specialist output gives an attendance or absence figure]
 
 ## Concerns and support
 
-[as described below]
+### Key issues
 
-## More background information
+- [as described above]
 
-1. Website
-   - The website for [school name] is [web address]. [citation]
-2. News and media coverage
-   {{news}}
-3. Financial health assessment
-   - [as described below]
-4. Information not available
-   - [as described below - leave this item out if nothing is missing]
+### Rise concerns
+
+- [as described below]
+
+### Recast concerns
+
+- [as described below]
+
+## Financial health
+
+- [as described below]
 ```
 
 ### Pupil characteristics, attendance and concerns
 
 - Pupil characteristics (trust only): leave the "Whole trust" bullet out if the evidence gives no whole-trust
   figures, and within any bullet leave out a measure the evidence doesn't give for that academy. If the evidence
-  gives none of these figures, leave the whole section out, heading included, and list it under "Information not
-  available".
+  gives none of these figures, leave the whole section out, heading included.
 - For a trust with more than 15 academies, the Ofsted, KS2, KS4 and pupil characteristics bullets still list every
   academy, one bullet each - never shorten them to the highest and lowest.
-- Attendance: give overall absence and persistent absence, with the academic year, as the evidence gives them -
-  for a trust, a "Whole trust" bullet, then one bullet per academy ("[Academy name]: overall absence [figure],
-  persistent absence [figure] ([academic year])"), highest overall absence first. If the evidence gives no attendance figures, leave the whole section out, heading included, and
-  list it under "Information not available".
-- Concerns and support: combine the Rise concerns and Recast concerns outputs into one bulleted list, most recent
-  first, never listing the same concern twice. Format each bullet as "[date]: [academy name, for a trust - ]
-  [concern or support] - [outcome or "Ongoing"] (Rise)" or "(Recast)", ending with its citation. Start the section
-  with a sentence giving how many concerns are still ongoing. Never leave out a concern, especially a
-  safeguarding one. If neither output found any, write "No concerns or support were found in the provided
-  sources." as the only line.
+- Attendance: include this section only if at least one specialist output gives an attendance or absence
+  figure. If none does, leave the section out completely - no heading, and no sentence saying attendance data is
+  missing. When it is included, give overall absence and persistent absence, with the academic year, as the
+  evidence gives them - for a trust, a "Whole trust" bullet, then one bullet per academy ("[Academy name]: overall
+  absence [figure], persistent absence [figure] ([academic year])"), highest overall absence first.
+- Concerns and support: always has the three sub-headings Key issues, Rise concerns and Recast concerns, in that
+  order. Keep each agent's output under its own sub-heading - Rise concerns only from the Rise concerns output,
+  Recast concerns only from the Recast concerns output - never merging the two lists or moving a concern between
+  them. Under each, give one bullet per concern or support, most recent first, never listing the same one twice,
+  in the form "[date]: [academy name, for a trust - ][concern or support] - [outcome or "Ongoing"]", ending with
+  its citation. Never leave out a concern, especially a safeguarding one. If that agent found none, or its output
+  isn't given, write "No Rise concerns were found in the provided sources." (or "No Recast concerns…") as the only
+  line under that sub-heading.
 
-### More background information
+### Website and financial health
 
-- Website: take the web address from the specialist outputs and write it in full as plain text, starting with
-  "https://" (add it if the address doesn't have one, for example https://www.example.org.uk/), followed by a
-  space - never as a Markdown link or in square brackets, as those are turned into numbered references. The page
-  turns the address into a link. If none gives one, write "No website was found in the available sources."
-- News and media coverage: always write exactly `{{news}}` as the only line under this item, indented three
-  spaces, whether or not there is a web search output. The news findings, with their full links, are put there
-  automatically - never write news findings yourself, and never mention whether a web search was run.
-- Where you use a web search finding elsewhere (for example in Key issues), copy its link exactly as the web search
-  output gives it, in the form `[publisher](full address)` - never shorten it to a website name or domain.
-- Financial health assessment: if any specialist output gives the trust's or school's financial health, summarise
-  it in one bullet with its citation. Otherwise write "No financial health assessment is available in the
-  provided sources."
-- Information not available: one bullet, "The provided sources had no [list] data.", naming each section left out
-  because the evidence had nothing for it (for example "attendance and pupil characteristics"). Leave this item
-  out if no section was left out.
+- Website: in the Trust overview or About the school paragraph, take the web address from the specialist outputs
+  and write it in full as plain text, starting with "https://" (add it if the address doesn't have one, for example
+  https://www.example.org.uk/), followed by a space - never as a Markdown link or in square brackets, as those are
+  turned into numbered references. The page turns the address into a link. If none gives one, leave the website out.
+- Never write a "More background information" section, and never write about news, media coverage or web
+  searches - that section is added separately, only if the person asks for a web search after reading the briefing.
+- Financial health: if any specialist output gives the trust's or school's financial health, summarise it in one
+  bullet with its citation. Otherwise write "No financial health assessment is available in the provided sources."
+- Never write an "Information not available" section or a sentence listing the sections that had no data - a
+  section with no facts is simply left out.
 
 ## Before you answer
 
 Check your draft against each of these, and fix anything that fails:
 
-1. Every Key issues bullet repeats a fact stated later in the briefing, with the same citation.
+1. Key issues is under Concerns and support, not a section of its own; every bullet has its citation; and you
+   have checked the Establishment and Trust outputs - not only the concerns - for issues (safeguarding, Ofsted
+   judgements, current areas of concern such as pupil places, capacity, figures worse than the national or local
+   figure given). Rise and Recast concerns are each under their own sub-heading, never merged.
 2. No score (Attainment 8, Progress 8, EBacc, English or maths element) has a "%".
 3. Every result has an academic year, or "year not given".
 4. Every Ofsted judgement says "inspected" or "report published" with its date, and the Ofsted framework sentence
@@ -256,10 +270,10 @@ Check your draft against each of these, and fix anything that fails:
 7. Every fact ends with its citation, and you haven't written a References list, a warning line, a link or a
    square bracket of your own.
 8. No sentence contains an opinion, prediction, risk rating or recommendation.
-9. Item 2 under More background information is exactly `{{news}}`, and every link from the web search output that
-   you used keeps its full address.
-10. Wherever several academies are given a figure or judgement, each has its own bullet starting with its name,
-    no academy appears twice in the same section, and no citations are left in a block after a list.
-11. No figure is one you calculated (a total, sum or average) rather than one the specialist outputs state.
-12. No heading is left with nothing under it - a section with no facts is left out entirely, heading included,
-    and listed under "Information not available".
+9. Wherever several academies are given a figure or judgement, each has its own bullet starting with its name,
+   no academy appears twice in the same section, and no citations are left in a block after a list.
+10. No figure is one you calculated (a total, sum or average) rather than one the specialist outputs state.
+11. No heading is left with nothing under it - a section with no facts is left out entirely, heading included -
+    and there is no "Information not available" section. There is an Attendance section only if a specialist
+    output gives an attendance or absence figure.
+12. There is no "More background information" section, and nothing mentions news, media coverage or a web search.

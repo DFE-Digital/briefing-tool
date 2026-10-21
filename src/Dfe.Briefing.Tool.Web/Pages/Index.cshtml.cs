@@ -4,6 +4,7 @@ using Dfe.Briefing.Tool.Web.Sanitization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using System.Threading.Channels;
 
 namespace Dfe.Briefing.Tool.Web.Pages
@@ -17,10 +18,6 @@ namespace Dfe.Briefing.Tool.Web.Pages
 
         public string? ErrorMessage { get; private set; }
 
-        public void OnGet()
-        {
-        }
-
         public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
@@ -28,7 +25,7 @@ namespace Dfe.Briefing.Tool.Web.Pages
                 return Page();
             }
 
-            var parameters = new BriefingParameters(Input.SchoolUrnOrTrustTrn, Input.SchoolOrTrustName, Input.AllowWebSearch);
+            var parameters = new BriefingParameters(Input.SchoolUrnOrTrustTrn, Input.SchoolOrTrustName);
 
             try
             {
@@ -47,8 +44,7 @@ namespace Dfe.Briefing.Tool.Web.Pages
         /// <summary>
         /// Streams the briefing generation progress and final output to the client using Server-Sent Events (SSE).
         /// </summary>
-        public async Task OnGetStreamAsync(string? schoolUrnOrTrustTrn, string? schoolOrTrustName, bool allowWebSearch,
-            CancellationToken cancellationToken)
+        public async Task OnGetStreamAsync(string? schoolUrnOrTrustTrn, string? schoolOrTrustName, CancellationToken cancellationToken)
         {
             Response.ContentType = "text/event-stream";
             Response.Headers.CacheControl = "no-cache";
@@ -60,7 +56,7 @@ namespace Dfe.Briefing.Tool.Web.Pages
                 return;
             }
 
-            var parameters = new BriefingParameters(schoolUrnOrTrustTrn, schoolOrTrustName, allowWebSearch);
+            var parameters = new BriefingParameters(schoolUrnOrTrustTrn, schoolOrTrustName);
             var channel = Channel.CreateUnbounded<string>();
             var briefingTask = RunBriefingAsync(parameters, channel.Writer, cancellationToken);
 
@@ -72,6 +68,15 @@ namespace Dfe.Briefing.Tool.Web.Pages
             try
             {
                 var result = await briefingTask;
+
+                // Offer a web search only for a briefing that found records. Sent before "complete", as the browser
+                // closes the stream once the briefing arrives.
+                if (result.Output is { } briefing && briefingOrchestrator.CanAddWebSearchFindings(briefing))
+                {
+                    var offer = new WebSearchRequest(schoolUrnOrTrustTrn, schoolOrTrustName, briefing, result.City);
+                    await WriteEventAsync("web-search-offer", JsonSerializer.Serialize(offer, JsonOptions), cancellationToken);
+                }
+
                 await WriteEventAsync("complete", BriefingHtmlSanitizer.Sanitize(result.Output) ?? string.Empty, cancellationToken);
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
@@ -80,6 +85,39 @@ namespace Dfe.Briefing.Tool.Web.Pages
                 await WriteEventAsync("error-message", "Sorry, something went wrong generating this briefing. Please try again.", cancellationToken);
             }
         }
+
+        /// <summary>
+        /// Runs the web search the person asked for after reading the briefing, and returns the briefing with a More
+        /// background information section of its findings added at the end. Only the web search agent runs - the browser sends back the
+        /// briefing it was given, which is reused as it is, so this also works whichever server instance answers.
+        /// </summary>
+        public async Task<IActionResult> OnPostWebSearchAsync([FromBody] WebSearchRequest? request, CancellationToken cancellationToken)
+        {
+            if (request is null || string.IsNullOrWhiteSpace(request.SchoolUrnOrTrustTrn) || string.IsNullOrWhiteSpace(request.SchoolOrTrustName)
+                || string.IsNullOrWhiteSpace(request.Briefing) || request.Briefing.Length > MaxBriefingCharacters
+                || !briefingOrchestrator.CanAddWebSearchFindings(request.Briefing))
+            {
+                return BadRequest(new { error = "This briefing can't be searched for more information. Generate it again and try once more." });
+            }
+
+            try
+            {
+                var parameters = new BriefingParameters(request.SchoolUrnOrTrustTrn, request.SchoolOrTrustName);
+                var result = await briefingOrchestrator.AddWebSearchFindings(parameters, request.Briefing, request.City, cancellationToken);
+                return new JsonResult(new { html = BriefingHtmlSanitizer.Sanitize(result.Output) ?? string.Empty });
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                logger.LogError(ex, "Failed to search the web for {SchoolOrTrustName}", request.SchoolOrTrustName);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { error = "Sorry, something went wrong searching the web. Your briefing is unchanged - please try again." });
+            }
+        }
+
+        // A briefing is well under this; the limit stops an oversized request being sent to the web search agent.
+        private const int MaxBriefingCharacters = 300_000;
+
+        private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
         private async Task<AIResult> RunBriefingAsync(BriefingParameters parameters, ChannelWriter<string> writer,
             CancellationToken cancellationToken)
@@ -118,7 +156,8 @@ namespace Dfe.Briefing.Tool.Web.Pages
 
         [Required(ErrorMessage = "Enter the school or trust name")]
         public string SchoolOrTrustName { get; set; } = string.Empty;
-
-        public bool AllowWebSearch { get; set; }
     }
+
+    /// <summary>A briefing the person has asked to add web search findings to.</summary>
+    public sealed record WebSearchRequest(string SchoolUrnOrTrustTrn, string SchoolOrTrustName, string Briefing, string? City);
 }

@@ -101,17 +101,19 @@ public sealed class BriefingBuilderTests
     }
 
     [Fact]
-    public void InsertNewsFindings_PutsTheWebSearchBulletsInPlaceOfTheMarker_KeepingTheirFullLinks()
+    public void AppendNewsFindings_AddsTheWebSearchBulletsAsAMoreBackgroundInformationSection_KeepingTheirFullLinks()
     {
-        const string briefing = "## More background information\n\n2. News and media coverage\n   {{news}}\n3. Financial health assessment";
+        const string briefing = "# Test Academy\n\n## Financial health\n\n- No financial health assessment is available.\n";
         var webSearch = Result(AgentNames.WebSearch,
             "## Web search findings\n\n- 20 August 2026: Best GCSE results. [The Star](https://www.thestar.co.uk/news/a-1)\n- 22 July 2026: New chief executive. [Chorus](https://www.chorustrust.org/news/ceo)");
 
-        var result = _sut.InsertNewsFindings(briefing, webSearch);
+        var result = _sut.AppendNewsFindings(briefing, webSearch);
 
-        Assert.Contains("   - 20 August 2026: Best GCSE results. [The Star](https://www.thestar.co.uk/news/a-1)\n   - 22 July 2026: New chief executive. [Chorus](https://www.chorustrust.org/news/ceo)\n3. Financial", result, StringComparison.Ordinal);
-        Assert.DoesNotContain("{{news}}", result, StringComparison.Ordinal);
+        Assert.StartsWith(briefing.TrimEnd(), result, StringComparison.Ordinal);
+        Assert.EndsWith("\n\n## More background information\n\n### News and media coverage\n\n- 20 August 2026: Best GCSE results. [The Star](https://www.thestar.co.uk/news/a-1)\n- 22 July 2026: New chief executive. [Chorus](https://www.chorustrust.org/news/ceo)\n", result, StringComparison.Ordinal);
         Assert.DoesNotContain("Web search findings", result, StringComparison.Ordinal);
+        Assert.True(_sut.HasNewsSection(result));
+        Assert.False(_sut.HasNewsSection(briefing));
     }
 
     [Fact]
@@ -128,36 +130,38 @@ public sealed class BriefingBuilderTests
     }
 
     [Fact]
-    public void InsertNewsFindings_OrdersFindingsMostRecentFirst_WithUndatedOnesLast()
+    public void AppendNewsFindings_OrdersFindingsMostRecentFirst_WithUndatedOnesLast()
     {
         var webSearch = Result(AgentNames.WebSearch,
             "- Date not given: C. [C](https://c.org/c)\n- 10 June 2026: B. [B](https://b.org/b)\n- 24 September 2026: A. [A](https://a.org/a)");
 
-        var result = _sut.InsertNewsFindings("   {{news}}", webSearch)!;
+        var result = _sut.AppendNewsFindings("# Test Academy", webSearch);
 
         Assert.True(result.IndexOf("24 September", StringComparison.Ordinal) < result.IndexOf("10 June", StringComparison.Ordinal));
         Assert.True(result.IndexOf("10 June", StringComparison.Ordinal) < result.IndexOf("Date not given", StringComparison.Ordinal));
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("## Web search findings\n\nNo current web information was found for this school or trust.")]
-    public void InsertNewsFindings_WithNoFindings_SaysNoCoverageWasFound(string? webSearchOutput)
+    [Fact]
+    public void AppendNewsFindings_WithNoFindings_SaysNoCoverageWasFound()
     {
-        var webSearch = webSearchOutput is null ? null : Result(AgentNames.WebSearch, webSearchOutput);
+        var webSearch = Result(AgentNames.WebSearch, "## Web search findings\n\nNo current web information was found for this school or trust.");
 
-        var result = _sut.InsertNewsFindings("2. News and media coverage\r\n   {{news}}\r\n3. Financial", webSearch);
+        var result = _sut.AppendNewsFindings("# Test Academy", webSearch);
 
-        Assert.Contains($"   - {ErrorMessages.NoNewsCoverageFound}", result, StringComparison.Ordinal);
-        Assert.DoesNotContain("{{news}}", result, StringComparison.Ordinal);
+        Assert.EndsWith($"## More background information\n\n### News and media coverage\n\n- {ErrorMessages.NoNewsCoverageFound}\n", result, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void InsertNewsFindings_WithNoMarker_LeavesTheBriefingUnchanged()
+    [Theory]
+    [InlineData("# Trust\n\n## Attendance\n\n- A: 5%\n\n## More background information\n\n1. Website\n   - https://a.org/\n\n## Concerns and support\n\nNone found.\n")]
+    [InlineData("# Trust\n\n## Attendance\n\n- A: 5%\n\n## More background information\n\n### News and media coverage\n\n- 1 May 2026: News. [A](https://a.org/x)\n")]
+    public void RemoveBackgroundSection_RemovesTheWholeSection_AndKeepsTheRest(string briefing)
     {
-        const string briefing = "# Test Academy\n\nNo marker here.";
+        var result = _sut.RemoveBackgroundSection(briefing)!;
 
-        Assert.Equal(briefing, _sut.InsertNewsFindings(briefing, Result(AgentNames.WebSearch, "- 1 May 2026: News. [A](https://a.org/x)")));
+        Assert.DoesNotContain("More background information", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("a.org", result, StringComparison.Ordinal);
+        Assert.Contains("## Attendance\n\n- A: 5%", result, StringComparison.Ordinal);
+        Assert.Equal(briefing.Contains("## Concerns", StringComparison.Ordinal), result.Contains("## Concerns and support\n\nNone found.", StringComparison.Ordinal));
     }
 
     [Fact]

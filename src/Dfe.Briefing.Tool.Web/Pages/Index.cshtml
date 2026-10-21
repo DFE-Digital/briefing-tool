@@ -53,17 +53,6 @@
                 <input asp-for="Input.SchoolOrTrustName" class="govuk-input @(nameInvalid == true ? "govuk-input--error" : "")" aria-describedby="Input_SchoolOrTrustName-error" />
             </div>
 
-            <div class="govuk-form-group">
-                <div class="govuk-checkboxes" data-module="govuk-checkboxes">
-                    <div class="govuk-checkboxes__item">
-                        <input class="govuk-checkboxes__input" asp-for="Input.AllowWebSearch" type="checkbox" />
-                        <label class="govuk-label govuk-checkboxes__label" asp-for="Input.AllowWebSearch">
-                            Include a web search for current, publicly available information
-                        </label>
-                    </div>
-                </div>
-            </div>
-
             <div class="govuk-button-group">
                 <button type="submit" class="govuk-button" data-module="govuk-button" id="briefing-submit">Search</button>
                 <button type="button" class="govuk-button govuk-button--secondary" data-module="govuk-button"
@@ -79,10 +68,24 @@
             <h2 class="govuk-heading-m app-briefing-status__heading">
                 <output>
                     <span class="app-spinner" aria-hidden="true"></span>
-                    Generating briefing...
+                    <span id="briefing-status-title">Generating briefing...</span>
                 </output>
             </h2>
             <ul id="briefing-status-list" class="govuk-list app-briefing-status__list" role="log" aria-live="polite"></ul>
+        </div>
+
+        @* Offered once a briefing is shown: the web search only runs if the person chooses it - see index.js. *@
+        <div id="web-search-offer" class="govuk-inset-text" hidden>
+            <h2 class="govuk-heading-m" id="web-search-offer-title" tabindex="-1">Do you want more information from the web?</h2>
+            <p class="govuk-body">
+                This searches local and national sources for education-related news about this school or trust from the
+                last two years. What it finds is added in a "More background information" section at the end of the
+                briefing - the rest of the briefing stays as it is.
+            </p>
+            <div class="govuk-button-group">
+                <button type="button" class="govuk-button" data-module="govuk-button" id="web-search-yes">Yes, search the web</button>
+                <button type="button" class="govuk-button govuk-button--secondary" data-module="govuk-button" id="web-search-no">No, finish the briefing</button>
+            </div>
         </div>
 
         @* Shown after every briefing, below its References list - see the 'complete' handler in index.js. *@

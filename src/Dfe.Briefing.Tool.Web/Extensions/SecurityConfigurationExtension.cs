@@ -4,6 +4,10 @@ namespace Dfe.Briefing.Tool.Web.Extensions;
 
 public static class SecurityConfigurationExtension
 {
+    // dotnet watch's and Visual Studio's hot-reload websocket, allowed in Development only.
+    private const string LocalWebSocket = "ws://localhost:*";
+    private const string LocalSecureWebSocket = "wss://localhost:*";
+
     /// <summary>
     /// Add API key based authentication
     /// </summary>
@@ -19,7 +23,7 @@ public static class SecurityConfigurationExtension
         app.UseAuthorization();
         return app;
     }
-    private static IApplicationBuilder AddForwardedHeaders(this IApplicationBuilder app)
+    private static void AddForwardedHeaders(this IApplicationBuilder app)
     {
         var forwardOptions = new ForwardedHeadersOptions
         {
@@ -29,11 +33,9 @@ public static class SecurityConfigurationExtension
         forwardOptions.KnownIPNetworks.Clear();
         forwardOptions.KnownProxies.Clear();
         app.UseForwardedHeaders(forwardOptions);
-
-        return app;
     }
 
-    private static IApplicationBuilder AddSecurityHeaders(this IApplicationBuilder app)
+    private static void AddSecurityHeaders(this IApplicationBuilder app)
     {
         var isDevelopment = app.ApplicationServices.GetRequiredService<IHostEnvironment>().IsDevelopment();
 
@@ -57,7 +59,7 @@ public static class SecurityConfigurationExtension
                         // notifications - CSP has no "same-origin websocket" shorthand, so this has
                         // to be spelled out explicitly, and only for Development; never allow
                         // arbitrary ws/wss origins once this is actually deployed.
-                        connectSrc.From("ws://localhost:*").From("wss://localhost:*");
+                        connectSrc.From(LocalWebSocket).From(LocalSecureWebSocket);
                     }
                 })
                 .AddPermissionsPolicy(builder =>
@@ -78,6 +80,5 @@ public static class SecurityConfigurationExtension
                     builder.AddUsb().None();
                 });
         });
-        return app;
     }
 }

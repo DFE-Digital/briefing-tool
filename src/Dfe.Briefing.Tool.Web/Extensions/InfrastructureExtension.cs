@@ -1,4 +1,3 @@
-using Dfe.Briefing.Tool.Application;
 using Dfe.Briefing.Tool.Infrastructure;
 using Dfe.Briefing.Tool.Web.Services;
 using GovUk.Frontend.AspNetCore;
@@ -10,12 +9,11 @@ public static class InfrastructureExtension
     public static WebApplicationBuilder AddInfrastructure(this WebApplicationBuilder builder)
     {
         builder.Services.AddGovUkFrontend();
-        builder.Services.AddInfrastructure(builder.Configuration);
+        builder.Services.AddInfrastructure(builder.Configuration); 
         builder.AddSecurityServices();
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IAnalyticsConsentService, AnalyticsConsentService>();
         builder.AddApplicationInsights();
-        // Add services to the container.
         builder.Services.AddRazorPages(options =>
         {
             options.Conventions.AuthorizeFolder("/");

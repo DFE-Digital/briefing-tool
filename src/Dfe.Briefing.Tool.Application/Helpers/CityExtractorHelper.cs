@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Dfe.Briefing.Tool.Application.Helpers; 
 
-internal partial class CityExtractorHelper
+internal static partial class CityExtractorHelper
 {
     public static (AgentResult Result, string? City) ExtractCity(AgentResult result)
     {

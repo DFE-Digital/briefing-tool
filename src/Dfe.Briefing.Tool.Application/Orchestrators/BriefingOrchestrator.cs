@@ -6,8 +6,7 @@ using Dfe.Briefing.Tool.Application.Providers.Interfaces;
 using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
 using GovUK.Dfe.AI.Agents.Context;
-using GovUK.Dfe.AI.Agents.Extensions;
-using GovUK.Dfe.AI.Agents.Prompts.Interfaces;
+using Dfe.Briefing.Tool.Application.Extensions;
 using GovUK.Dfe.AI.Agents.Services.Interfaces;
 using GovUK.Dfe.AI.Agents.Tools.WebSearch;
 using GovUK.Dfe.AI.Agents.ValueObjects;
@@ -15,8 +14,7 @@ using GovUK.Dfe.AI.Agents.ValueObjects;
 namespace Dfe.Briefing.Tool.Application.Orchestrators;
 
 public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> definitions, IBriefingEvidenceProvider evidenceProvider,
-    IPromptTemplateBuilder promptBuilder, IAgentService agentService, IAgentRuntimeService agentRuntime,
-    IBriefingBuilder briefingBuilder) : IBriefingOrchestrator
+    IAgentService agentService, IAgentRuntimeService agentRuntime, IBriefingBuilder briefingBuilder) : IBriefingOrchestrator
 {
     public async Task<AIResult> GetBriefing(BriefingParameters parameters, IProgress<string>? progress = null, CancellationToken cancellationToken = default)
     {
@@ -95,14 +93,7 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
     private async Task<AgentResult> RunSynthesisAsync(AgentDefinition synthesisAgent, BriefingParameters parameters,
         IReadOnlyCollection<AgentResult> specialistResults, CancellationToken cancellationToken)
     {
-        var prompt = promptBuilder.Build(UserPromptType.Synthesis, new Dictionary<string, string>
-        {
-            ["SchoolOrTrustName"] = parameters.SchoolOrTrustName,
-            ["SchoolUrnOrTrustTrn"] = parameters.SchoolUrnOrTrustTrn,
-            ["Context"] = briefingBuilder.CompileContext(specialistResults),
-            ["IncludedSections"] = string.Join(", ", specialistResults.Select(result => result.AgentName.ToDisplayName()))
-        });
-
+        var prompt = briefingBuilder.BuildSynthesisPrompt(parameters, specialistResults);
         return await agentService.RunAsync(synthesisAgent, prompt, cancellationToken: cancellationToken);
     }
 

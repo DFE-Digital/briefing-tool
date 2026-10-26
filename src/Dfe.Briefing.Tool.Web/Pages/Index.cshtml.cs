@@ -1,3 +1,4 @@
+using Dfe.Briefing.Tool.Application.Helpers;
 using Dfe.Briefing.Tool.Application.Orchestrators.Interfaces;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
 using Dfe.Briefing.Tool.Web.Sanitization;
@@ -67,14 +68,11 @@ namespace Dfe.Briefing.Tool.Web.Pages
 
             try
             {
-                var result = await briefingTask;
-
-                // Offer a web search only for a briefing that found records. Sent before "complete", as the browser
-                // closes the stream once the briefing arrives.
+                var result = await briefingTask; 
                 if (result.Output is { } briefing && briefingOrchestrator.CanAddWebSearchFindings(briefing))
                 {
                     var offer = new WebSearchRequest(schoolUrnOrTrustTrn, schoolOrTrustName, briefing, result.City);
-                    await WriteEventAsync("web-search-offer", JsonSerializer.Serialize(offer, JsonOptions), cancellationToken);
+                    await WriteEventAsync("web-search-offer", JsonSerializer.Serialize(offer, JsonSerializerHelper.JsonOptions), cancellationToken);
                 }
 
                 await WriteEventAsync("complete", BriefingHtmlSanitizer.Sanitize(result.Output) ?? string.Empty, cancellationToken);
@@ -115,9 +113,7 @@ namespace Dfe.Briefing.Tool.Web.Pages
         }
 
         // A briefing is well under this; the limit stops an oversized request being sent to the web search agent.
-        private const int MaxBriefingCharacters = 300_000;
-
-        private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+        private const int MaxBriefingCharacters = 300_000; 
 
         private async Task<AIResult> RunBriefingAsync(BriefingParameters parameters, ChannelWriter<string> writer,
             CancellationToken cancellationToken)

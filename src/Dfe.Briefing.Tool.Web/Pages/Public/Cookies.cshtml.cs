@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace Dfe.Briefing.Tool.Web.Pages.Public
 {
     [AllowAnonymous]
-    [IgnoreAntiforgeryToken]
     public class Cookies(IAnalyticsConsentService analyticsConsentService) : PageModel
     {
         public bool? Consent { get; set; }

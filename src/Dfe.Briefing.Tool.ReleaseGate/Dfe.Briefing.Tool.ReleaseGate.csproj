@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>6527a5d4-93b7-4b0c-bd1a-bdffed4bff00</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GovUK.Dfe.AI.Agents.Evaluation" Version="0.0.1-prerelease.2470" />
+    <PackageReference Include="Azure.Monitor.OpenTelemetry.Exporter" Version="1.10.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.13" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.20.1" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="10.0.1" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dfe.Briefing.Tool.Infrastructure\Dfe.Briefing.Tool.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The gate tests the agents exactly as the web app runs them: its settings and its prompt files. They stay in the
+         web app (edit them there); they're only copied into the gate's output, so they're hidden here. -->
+    <None Include="..\Dfe.Briefing.Tool.Web\appsettings.json" Link="briefing.appsettings.json" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <None Include="..\Dfe.Briefing.Tool.Web\Prompts\**\*.md" Link="Prompts\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestCases\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Baselines\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dfe.Briefing.Tool.ReleaseGate.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -10,6 +10,7 @@ public interface IBriefingBuilder
     string CompileContext(IReadOnlyCollection<AgentResult> results);
     string BuildWebSearchInstruction(BriefingParameters parameters, string? city);
     string BuildSubjectInstruction(BriefingParameters parameters);
+    string BuildSynthesisPrompt(BriefingParameters parameters, IReadOnlyCollection<AgentResult> specialistResults);
     AgentSpec BuildWebSearchAgentSpec(IReadOnlyList<AgentTool> tools);
     string BuildWebSearchEvidence(string briefing);
     string AppendNewsFindings(string briefing, AgentResult webSearchResult);

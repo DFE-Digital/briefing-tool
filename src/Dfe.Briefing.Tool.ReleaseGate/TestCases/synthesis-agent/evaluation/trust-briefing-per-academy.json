@@ -1,0 +1,37 @@
+{
+  "subject": {
+    "name": "Example Learning Trust",
+    "urnOrTrn": "TR09001"
+  },
+  "specialistOutputs": [
+    {
+      "agent": "trust-agent",
+      "output": "## About the trust\n\n### Identity and location\n\n| Field | Detail |\n| --- | --- |\n| TRN | TR09001 [Evidence 1] |\n| Date established | 1 September 2014 [Evidence 1] |\n| Chief executive | Alex Example [Evidence 1] |\n\n### Current areas of concern\n\n- Secondary pupil place sufficiency: shortfall of places forecast from 2026 [Evidence 1]\n\n### Attendance\n\n| Academy | Overall absence (2023/24) | Persistent absence (2023/24) |\n| --- | --- | --- |\n| Exampleton Primary School | 6.1% [Evidence 2] | 17.0% [Evidence 2] |\n| Example Valley Academy | 8.4% [Evidence 2] | 24.9% [Evidence 2] |"
+    },
+    {
+      "agent": "establishment-agent",
+      "output": "## About the trust\n\n| Academy | Phase | Capacity | On roll | Latest Ofsted |\n| --- | --- | --- | --- | --- |\n| Exampleton Primary School | Primary | 420 [Evidence 3] | 431 [Evidence 3] | Requires improvement (inspected 14 March 2023) [Evidence 3] |\n| Example Valley Academy | Secondary | 1200 [Evidence 4] | 1104 [Evidence 4] | Good (inspected 28 November 2022) [Evidence 4] |"
+    },
+    {
+      "agent": "recast-concerns-agent",
+      "output": "## Concerns and support\n\n| Date | Concern or support | Outcome |\n| --- | --- | --- |\n| 3 March 2025 | Example Valley Academy - falling roll affecting financial viability [Evidence 5] | Ongoing |"
+    }
+  ],
+  "mustMention": [
+    "# Example Learning Trust",
+    "## Trust overview",
+    "## School summary",
+    "### Key issues",
+    "### Recast concerns",
+    "Exampleton Primary School",
+    "Example Valley Academy",
+    "## Attendance",
+    "8.4%",
+    "shortfall"
+  ],
+  "mustNotMention": [
+    "More background information",
+    "Information not available",
+    "Whole trust: overall absence"
+  ]
+}

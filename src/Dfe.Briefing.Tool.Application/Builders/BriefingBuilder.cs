@@ -1,6 +1,7 @@
-﻿using Dfe.Briefing.Tool.Application.Builders.Interfaces;
+using Dfe.Briefing.Tool.Application.Builders.Interfaces;
 using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
+using Dfe.Briefing.Tool.Application.Extensions;
 using GovUK.Dfe.AI.Agents.Extensions;
 using GovUK.Dfe.AI.Agents.Prompts.Interfaces;
 using GovUK.Dfe.AI.Agents.Tools;
@@ -8,7 +9,11 @@ using GovUK.Dfe.AI.Agents.ValueObjects;
 
 namespace Dfe.Briefing.Tool.Application.Builders;
 
-internal partial class BriefingBuilder(IPromptProvider promptProvider) : IBriefingBuilder
+/// <summary>
+/// The one place the briefing agents' prompts are built - the app and the release gate both use it, so the gate tests
+/// the prompts the app sends.
+/// </summary>
+internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTemplateBuilder promptBuilder) : IBriefingBuilder
 {
     public AIResult BuildNoEvidenceResult(AgentDefinition establihsmentOrTrustAgent, BriefingParameters parameters)
     {
@@ -55,6 +60,15 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider) : IBriefi
     };
     public string BuildSubjectInstruction(BriefingParameters parameters)
         => $"Using only the evidence supplied, analyse \"{parameters.SchoolOrTrustName}\" (URN/TRN: {parameters.SchoolUrnOrTrustTrn}) and report your findings. Do not use any other knowledge.";
+
+    public string BuildSynthesisPrompt(BriefingParameters parameters, IReadOnlyCollection<AgentResult> specialistResults)
+        => promptBuilder.Build(UserPromptType.Synthesis, new Dictionary<string, string>
+        {
+            ["SchoolOrTrustName"] = parameters.SchoolOrTrustName,
+            ["SchoolUrnOrTrustTrn"] = parameters.SchoolUrnOrTrustTrn,
+            ["Context"] = CompileContext(specialistResults),
+            ["IncludedSections"] = string.Join(", ", specialistResults.Select(result => result.AgentName.ToDisplayName()))
+        });
 
     // The web search only runs if the person asks for it once they've read the briefing, so its findings are added
     // as a More background information section at the end. They're the web search agent's own bullets, unchanged:

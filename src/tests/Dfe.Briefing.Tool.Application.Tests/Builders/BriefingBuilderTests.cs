@@ -1,6 +1,7 @@
 using Dfe.Briefing.Tool.Application.Builders;
 using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
+using Dfe.Briefing.Tool.Application.Extensions;
 using GovUK.Dfe.AI.Agents.Extensions;
 using GovUK.Dfe.AI.Agents.Prompts.Interfaces;
 using GovUK.Dfe.AI.Agents.Tools;
@@ -16,9 +17,10 @@ public sealed class BriefingBuilderTests
     private static readonly AgentDefinition Trust = new(AgentNames.Trust, SystemPromptKey.Trust);
 
     private readonly IPromptProvider _promptProvider = Substitute.For<IPromptProvider>();
+    private readonly IPromptTemplateBuilder _promptBuilder = Substitute.For<IPromptTemplateBuilder>();
     private readonly BriefingBuilder _sut;
 
-    public BriefingBuilderTests() => _sut = new BriefingBuilder(_promptProvider);
+    public BriefingBuilderTests() => _sut = new BriefingBuilder(_promptProvider, _promptBuilder);
 
     private static AgentResult Result(string agentName, string output)
         => new() { AgentName = agentName, Output = output, TotalTokens = 10 };
@@ -162,6 +164,22 @@ public sealed class BriefingBuilderTests
         Assert.DoesNotContain("a.org", result, StringComparison.Ordinal);
         Assert.Contains("## Attendance\n\n- A: 5%", result, StringComparison.Ordinal);
         Assert.Equal(briefing.Contains("## Concerns", StringComparison.Ordinal), result.Contains("## Concerns and support\n\nNone found.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void BuildSynthesisPrompt_FillsTheSynthesisTemplate_WithTheSubjectAndEachAgentsOutput()
+    {
+        _promptBuilder.Build(UserPromptType.Synthesis, Arg.Any<IReadOnlyDictionary<string, string>>()).Returns("synthesis-prompt");
+
+        var prompt = _sut.BuildSynthesisPrompt(new BriefingParameters("123456", "Test Academy"),
+            [Result(AgentNames.Establishment, "establishment-output"), Result(AgentNames.RiseConcerns, "rise-output")]);
+
+        Assert.Equal("synthesis-prompt", prompt);
+        _promptBuilder.Received(1).Build(UserPromptType.Synthesis, Arg.Is<IReadOnlyDictionary<string, string>>(values =>
+            values["SchoolOrTrustName"] == "Test Academy"
+            && values["SchoolUrnOrTrustTrn"] == "123456"
+            && values["Context"].Contains("establishment-output") && values["Context"].Contains("rise-output")
+            && values["IncludedSections"] == $"{AgentNames.Establishment.ToDisplayName()}, {AgentNames.RiseConcerns.ToDisplayName()}"));
     }
 
     [Fact]

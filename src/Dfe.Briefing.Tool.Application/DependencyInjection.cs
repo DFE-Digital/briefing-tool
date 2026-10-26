@@ -5,6 +5,9 @@ using Dfe.Briefing.Tool.Application.Options;
 using Dfe.Briefing.Tool.Application.Orchestrators.Interfaces;
 using Dfe.Briefing.Tool.Application.Providers;
 using Dfe.Briefing.Tool.Application.Providers.Interfaces;
+using Dfe.Briefing.Tool.Application.Services;
+using Dfe.Briefing.Tool.Application.Services.Interfaces;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using GovUK.Dfe.AI.Agents.ValueObjects;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -27,6 +30,25 @@ public static class DependencyInjection
         services.AddScoped<IBriefingOrchestrator, BriefingOrchestrator>();
         services.AddScoped<IBriefingBuilder, BriefingBuilder>();
         services.AddScoped<IBriefingEvidenceProvider, BriefingEvidenceProvider>();
+        services.AddSingleton<IAgentHousekeepingService, AgentHousekeepingService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds the daily agent clean-ups that are enabled: the orphan agent sweep and the agent version sweep, each at its
+    /// own time. They run only in a host that starts its background services, i.e. the web app; the console tool's
+    /// "sweep" command runs both on demand.
+    /// </summary>
+    public static IServiceCollection AddAgentSweeps(this IServiceCollection services, BriefingOptions briefingOptions)
+    {
+        services.TryAddSingleton(TimeProvider.System);
+
+        if (briefingOptions.OrphanAgentSweepEnabled)
+            services.AddHostedService<OrphanAgentSweepService>();
+
+        if (briefingOptions.AgentVersionSweepEnabled)
+            services.AddHostedService<AgentVersionSweepService>();
 
         return services;
     }

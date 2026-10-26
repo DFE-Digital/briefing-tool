@@ -43,7 +43,7 @@ public sealed class BriefingOrchestratorTests
 
     private readonly IBriefingBuilder _briefingBuilder;
 
-    public BriefingOrchestratorTests() => _briefingBuilder = new BriefingBuilder(_promptProvider);
+    public BriefingOrchestratorTests() => _briefingBuilder = new BriefingBuilder(_promptProvider, _promptBuilder);
 
     private BriefingOrchestrator CreateSut(IReadOnlyCollection<AgentDefinition>? definitions = null)
     {
@@ -58,7 +58,7 @@ public sealed class BriefingOrchestratorTests
 
         var evidenceProvider = new BriefingEvidenceProvider(_contextRetriever, new BriefingOptions { MaxEvidencePerSearch = ConfiguredEvidencePerSearch });
 
-        return new BriefingOrchestrator(definitions ?? [Establishment, RecastConcerns, Trust, Synthesis], evidenceProvider, _promptBuilder,
+        return new BriefingOrchestrator(definitions ?? [Establishment, RecastConcerns, Trust, Synthesis], evidenceProvider,
             _agentService, _agentRuntime, _briefingBuilder);
     }
 

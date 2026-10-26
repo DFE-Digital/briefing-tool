@@ -71,11 +71,11 @@
                 {
                     if (cookie.StartsWith("_ga") || cookie.Equals("_gid"))
                     {
-                        _logger.LogInformation("Expiring Google analytics cookie: {cookie}", cookie);
+                        _logger.LogInformation("Expiring Google analytics cookie: {Cookie}", cookie);
                         //Delete if domain is the same
                         _httpContextAccessor.HttpContext.Response.Cookies.Delete(cookie);
                         //Delete if domain matches - need both as we wont be sent the cookie if the domain doesnt match
-                        _httpContextAccessor.HttpContext.Response.Cookies.Delete(cookie, new CookieOptions() { Domain = _analyticsDomain });
+                        _httpContextAccessor.HttpContext.Response.Cookies.Delete(cookie, new CookieOptions() { Domain = _analyticsDomain, Secure = true, HttpOnly = true });
                     }
 
                     // App Insights

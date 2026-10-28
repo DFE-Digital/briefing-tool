@@ -49,22 +49,27 @@ With no console to ask in (e.g. in a pipeline), `dotnet run` runs the gate.
 
 | What builds up | Cleaned up by |
 | --- | --- |
-| Orphaned temporary agents (e.g. a web search agent a crash left behind) | **Orphan agent sweep**, daily in the web app at `Briefing:OrphanAgentSweepTime` |
-| Old versions of each agent (a new one on every prompt, model or guardrail change) | **Agent version sweep**, daily in the web app at `Briefing:AgentVersionSweepTime`; and the library, whenever a new version is created |
+| Orphaned temporary agents (e.g. a web search agent a crash left behind) | **Orphan agent sweep**, part of the daily agent sweep in the web app |
+| Old versions of each agent (a new one on every prompt, model or guardrail change) | **Agent version sweep**, part of the daily agent sweep in the web app; and the library, whenever a new version is created |
+
+The daily agent sweep runs at `Briefing:AgentSweepTime`: the orphan agent sweep first, then the agent version sweep.
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
+| `Briefing:AgentSweepTime` | `01:00` | When the agent sweep runs, in UTC |
 | `Briefing:OrphanAgentSweepEnabled` | `true` | Runs the orphan agent sweep |
-| `Briefing:OrphanAgentSweepTime` | `01:00` | When it runs, in UTC |
+| `Briefing:OrphanAgentMinimumAge` | `7200` | Seconds a temporary agent must be old before it's deleted. At least `AiAgents:RunTimeout` plus 90; less is refused and logged as an error |
+| `AiAgents:RunTimeout` | `1800` | Seconds one agent run may take (library default 300). The orphan agent sweep needs it |
 | `Briefing:AgentVersionSweepEnabled` | `true` | Runs the agent version sweep |
-| `Briefing:AgentVersionSweepTime` | `02:00` | When it runs, in UTC |
 | `AiAgents:KeepLatestVersions` | `3` | Versions kept per agent |
 | `AiAgents:ProtectedVersions` | none | Versions never deleted, e.g. `{ "synthesis-agent": [ "4" ] }` |
 
 > **Note:**
+>
 > - **Never deleted:** pinned versions (`AiAgents:VersionPins`), protected versions, temporary agents a run could still be using, and other apps' agents.
-> - **If a sweep fails:** it's logged as an error, and it runs again the next day.
-> - **Several web app instances:** each runs the sweeps once a day. Repeating them is harmless; to run them on one only, set the `Enabled` settings to `false` on the others.
+> - **If a sweep fails:** it's logged as an error, the other sweep still runs, and both run again the next day.
+> - **Both sweeps off:** the agent sweep isn't started at all.
+> - **Several web app instances:** each runs the sweep once a day. Repeating it is harmless; to run it on one only, set both `Enabled` settings to `false` on the others.
 
 ## Guardrail
 
@@ -147,6 +152,7 @@ the whole briefing, and test with **Compare meaning** and **General quality**.
 | `Expected response` | "A briefing on {name} that includes: …", the facts those cases must mention |
 
 > **Note*:*
+>
 > - Guardrail cases aren't exported.
 > - A case's own `copilotStudio.question` or `copilotStudio.expectedResponse` is used instead, if it has one.
 >
@@ -216,6 +222,61 @@ customMetrics
     cost = round(sumif(valueSum, name == "dfe.ai_agents.cost"), 4)
     by day = bin(timestamp, 1d), agent = tostring(customDimensions["gen_ai.agent.name"])
 | order by day desc, cost desc
+```
+
+**Agent's execution time per sec:**
+
+``` kusto
+customMetrics
+| where cloud_RoleName == "briefing-tool"
+| where name == "gen_ai.invoke_agent.duration"
+| extend agent = tostring(customDimensions["gen_ai.agent.name"])
+| summarize runs = sum(valueCount), totalSec = sum(valueSum), maxSec = max(valueMax) by agent
+| extend avgSec = round(totalSec / iff(runs == 0, 1, runs), 2)
+| project agent, runs, avgSec, maxSec
+| order by avgSec desc
+```
+
+**Concurrency pressure – Hourly average execution-slot wait time:** Sustained increases may require adjusting `MaxRunsPerInstance` or `GlobalConcurrency:MaxRunsAcrossInstances`
+
+| Maximum Waiting Time | Severity | Recommended Action |
+| --- | --- | --- |
+| 0–2 seconds | Low | No action |
+| >2–3 seconds | Moderate | Monitor |
+| >3–5 seconds | High | Investigate capacity limits |
+| >5 seconds | Critical | Consider increasing capacity |
+
+```kusto
+customMetrics
+| where cloud_RoleName == "briefing-tool"
+| where name == "dfe.ai_agents.run_slot.wait.duration"
+| summarize
+    calls = sum(valueCount),
+    totalWaitSec = sum(valueSum),
+    maxWaitSec = max(valueMax)
+    by timestamp = bin(timestamp, 1h)
+| extend avgWaitSec = round(totalWaitSec / iff(calls == 0, 1, calls), 3)
+| extend severity = case(
+    maxWaitSec <= 2, "Low",
+    maxWaitSec <= 3, "Moderate",
+    maxWaitSec <= 5, "High",
+    "Critical"
+)
+| extend recommendedAction = case(
+    severity == "Low", "No action",
+    severity == "Moderate", "Monitor",
+    severity == "High", "Investigate capacity limits",
+    "Consider increasing capacity"
+)
+| project
+    timestamp,
+    calls,
+    avgWaitSec,
+    maxWaitSec = round(maxWaitSec, 3),
+    totalWaitSec = round(totalWaitSec, 3),
+    severity,
+    recommendedAction
+| order by timestamp desc
 ```
 
 **Errors**, newest first. A briefing that says "Sorry, something went wrong" shows its cause here:

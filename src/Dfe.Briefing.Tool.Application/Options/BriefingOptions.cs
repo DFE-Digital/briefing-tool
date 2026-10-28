@@ -20,9 +20,10 @@ public sealed class BriefingOptions
     public bool OrphanAgentSweepEnabled { get; init; } = true;
 
     /// <summary>
-    /// Gets the time of day when the orphan agent sweep operation is scheduled to run.
+    /// Gets how many seconds old a temporary agent must be before the orphan agent sweep deletes it (Default 7200). The AI
+    /// agent library refuses less than AiAgents:RunTimeout plus 90 seconds, as a run could still be using the agent.
     /// </summary>
-    public TimeOnly OrphanAgentSweepTime { get; init; } = new(1, 0);
+    public int OrphanAgentMinimumAge { get; init; } = 7200;
 
     /// <summary>
     /// Enables the agent version sweep, which deletes old versions of briefing agents in Foundry (Default true), keeping only the latest N versions.
@@ -30,7 +31,7 @@ public sealed class BriefingOptions
     public bool AgentVersionSweepEnabled { get; init; } = true;
 
     /// <summary>
-    /// Gets the time of day when the agent version sweep occurs.
+    /// Gets the time of day (UTC) when the daily agent sweep runs the enabled sweeps.
     /// </summary>
-    public TimeOnly AgentVersionSweepTime { get; init; } = new(2, 0);
+    public TimeOnly AgentSweepTime { get; init; } = new(1, 0);
 }

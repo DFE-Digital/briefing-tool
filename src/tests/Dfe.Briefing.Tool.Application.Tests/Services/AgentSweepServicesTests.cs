@@ -1,11 +1,14 @@
 using System.Globalization;
 using Dfe.Briefing.Tool.Application.Options;
+using Dfe.Briefing.Tool.Application.Providers;
 using Dfe.Briefing.Tool.Application.Services;
 using Dfe.Briefing.Tool.Application.Services.Base;
-using Dfe.Briefing.Tool.Application.Services.Interfaces;
+using GovUK.Dfe.AI.Agents.Factories.Interfaces;
+using GovUK.Dfe.AI.Agents.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Xunit;
 
 namespace Dfe.Briefing.Tool.Application.Tests.Services;
@@ -13,50 +16,97 @@ namespace Dfe.Briefing.Tool.Application.Tests.Services;
 public sealed class AgentSweepServicesTests
 {
     private readonly CancellationToken cancellationToken = TestContext.Current.CancellationToken;
-    private readonly IAgentHousekeepingService _housekeeping = Substitute.For<IAgentHousekeepingService>();
+    private readonly IAgentRuntimeService _agentRuntime = Substitute.For<IAgentRuntimeService>();
+    private readonly IAgentFactory _agentFactory = Substitute.For<IAgentFactory>();
 
-    private AgentVersionSweepService CreateVersionSweep(int? keepLatestVersions)
+    private AgentSweepService CreateSweep(bool orphanSweepEnabled = true, bool versionSweepEnabled = true,
+        int? keepLatestVersions = 3, int orphanMinimumAgeSeconds = 7200)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [AgentVersionSweepService.KeepLatestVersionsKey] = keepLatestVersions?.ToString(CultureInfo.InvariantCulture)
+                [AgentSweepService.KeepLatestVersionsKey] = keepLatestVersions?.ToString(CultureInfo.InvariantCulture)
             })
             .Build();
+        var options = new BriefingOptions
+        {
+            OrphanAgentSweepEnabled = orphanSweepEnabled,
+            OrphanAgentMinimumAge = orphanMinimumAgeSeconds,
+            AgentVersionSweepEnabled = versionSweepEnabled
+        };
 
-        return new AgentVersionSweepService(_housekeeping, configuration, new BriefingOptions(), TimeProvider.System,
-            NullLogger<AgentVersionSweepService>.Instance);
+        return new AgentSweepService(_agentRuntime, _agentFactory, configuration, options, TimeProvider.System,
+            NullLogger<AgentSweepService>.Instance);
     }
 
     [Fact]
-    public async Task OrphanAgentSweep_DeletesOrphanedAgents()
+    public async Task AgentSweep_RunsBothSweeps_KeepingTheConfiguredNumberOfVersions()
     {
-        var sut = new OrphanAgentSweepService(_housekeeping, new BriefingOptions(), TimeProvider.System,
-            NullLogger<OrphanAgentSweepService>.Instance);
+        await CreateSweep().RunAsync(cancellationToken);
 
-        await sut.RunAsync(cancellationToken);
-
-        await _housekeeping.Received(1).DeleteOrphanedAgentsAsync(cancellationToken);
-        await _housekeeping.DidNotReceiveWithAnyArgs().PruneOldVersionsAsync(default, cancellationToken);
+        await _agentRuntime.Received(1).DeleteOrphanedEphemeralAgentsAsync(TimeSpan.FromHours(2), cancellationToken);
+        foreach (var agent in BriefingAgents.All)
+            await _agentFactory.Received(1).PruneVersionsAsync(agent.Name, 3, cancellationToken);
     }
 
     [Fact]
-    public async Task AgentVersionSweep_PrunesOldVersions_KeepingTheConfiguredNumber()
+    public async Task AgentSweep_DeletesOrphansOlderThanTheConfiguredMinimumAge()
     {
-        await CreateVersionSweep(keepLatestVersions: 3).RunAsync(cancellationToken);
+        await CreateSweep(orphanMinimumAgeSeconds: 2700).RunAsync(cancellationToken);
 
-        await _housekeeping.Received(1).PruneOldVersionsAsync(3, cancellationToken);
-        await _housekeeping.DidNotReceiveWithAnyArgs().DeleteOrphanedAgentsAsync(cancellationToken);
+        await _agentRuntime.Received(1).DeleteOrphanedEphemeralAgentsAsync(TimeSpan.FromMinutes(45), cancellationToken);
+    }
+
+    [Fact]
+    public async Task AgentSweep_WithOrphanSweepOff_OnlyPrunesVersions()
+    {
+        await CreateSweep(orphanSweepEnabled: false).RunAsync(cancellationToken);
+
+        await _agentRuntime.DidNotReceiveWithAnyArgs().DeleteOrphanedEphemeralAgentsAsync(default, cancellationToken);
+        await _agentFactory.ReceivedWithAnyArgs(BriefingAgents.All.Count()).PruneVersionsAsync(default!, default, cancellationToken);
+    }
+
+    [Fact]
+    public async Task AgentSweep_WithVersionSweepOff_OnlyDeletesOrphans()
+    {
+        await CreateSweep(versionSweepEnabled: false).RunAsync(cancellationToken);
+
+        await _agentRuntime.Received(1).DeleteOrphanedEphemeralAgentsAsync(TimeSpan.FromHours(2), cancellationToken);
+        await _agentFactory.DidNotReceiveWithAnyArgs().PruneVersionsAsync(default!, default, cancellationToken);
+    }
+
+    [Fact]
+    public async Task AgentSweep_WhenOrphanSweepFails_StillPrunesVersions()
+    {
+        _agentRuntime.DeleteOrphanedEphemeralAgentsAsync(Arg.Any<TimeSpan>(), cancellationToken)
+            .ThrowsAsync(new InvalidOperationException("Foundry is down"));
+
+        await CreateSweep().RunAsync(cancellationToken);
+
+        await _agentFactory.ReceivedWithAnyArgs(BriefingAgents.All.Count()).PruneVersionsAsync(default!, default, cancellationToken);
+    }
+
+    [Fact]
+    public async Task AgentSweep_WhenOneAgentFailsToPrune_StillPrunesTheOthers()
+    {
+        var failing = BriefingAgents.All[0].Name;
+        _agentFactory.PruneVersionsAsync(failing, Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("Foundry unavailable"));
+
+        await CreateSweep(keepLatestVersions: 2).RunAsync(cancellationToken);
+
+        foreach (var agent in BriefingAgents.All.Skip(1))
+            await _agentFactory.Received(1).PruneVersionsAsync(agent.Name, 2, cancellationToken);
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData(0)]
-    public async Task AgentVersionSweep_WithoutKeepLatestVersions_PrunesNothing(int? keepLatestVersions)
+    public async Task AgentSweep_WithoutKeepLatestVersions_PrunesNothing(int? keepLatestVersions)
     {
-        await CreateVersionSweep(keepLatestVersions).RunAsync(cancellationToken);
+        await CreateSweep(keepLatestVersions: keepLatestVersions).RunAsync(cancellationToken);
 
-        await _housekeeping.DidNotReceiveWithAnyArgs().PruneOldVersionsAsync(default, cancellationToken);
+        await _agentFactory.DidNotReceiveWithAnyArgs().PruneVersionsAsync(default!, default, cancellationToken);
     }
 
     [Theory]

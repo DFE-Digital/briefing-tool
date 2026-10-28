@@ -36,7 +36,7 @@ internal static class ExportCopilotStudioCommand
             .GroupBy(item => item.Question)
             .Select(group => (Question: group.Key,
                 ExpectedResponse: group.Select(item => item.ExpectedResponse).FirstOrDefault(response => response is not null)
-                    ?? ExpectedResponse(group.First().Subject, [.. group.SelectMany(item => item.Facts).Distinct(StringComparer.OrdinalIgnoreCase)])))
+                    ?? DefaultExpectedResponse(group.First().Subject, [.. group.SelectMany(item => item.Facts).Distinct(StringComparer.OrdinalIgnoreCase)])))
             .Where(question => question.Question.Length <= CopilotStudioTestSet.MaxQuestionLength)
             .ToList();
 
@@ -64,7 +64,7 @@ internal static class ExportCopilotStudioCommand
     private static Case ToCase(JsonObject testCase, string relativePath, IReadOnlyList<string> refusals)
     {
         var copilotStudio = testCase[TestCaseFields.CopilotStudio]?.AsObject();
-        var subject = Subject(testCase, relativePath);
+        var subject = SubjectOf(testCase, relativePath);
 
         // Markdown headings check the briefing agents' layout, and refusals a specialist's empty answer: neither is a
         // fact a whole briefing gives.
@@ -77,13 +77,13 @@ internal static class ExportCopilotStudioCommand
             ReadText(copilotStudio, TestCaseFields.CopilotStudioExpectedResponse), facts);
     }
 
-    private static string ExpectedResponse(string subject, IReadOnlyList<string> facts)
+    private static string DefaultExpectedResponse(string subject, IReadOnlyList<string> facts)
         => facts.Count == 0
             ? $"A briefing on {subject}."
             : $"A briefing on {subject} that includes: {string.Join(CopilotStudioTestSet.ListSeparator, facts)}.";
 
     // "Exampleton Primary School (URN 900001)".
-    private static string Subject(JsonObject testCase, string relativePath)
+    private static string SubjectOf(JsonObject testCase, string relativePath)
     {
         var subject = testCase[TestCaseFields.Subject]?.AsObject()
             ?? throw new InvalidDataException($"{relativePath} needs a \"{TestCaseFields.Subject}\".");

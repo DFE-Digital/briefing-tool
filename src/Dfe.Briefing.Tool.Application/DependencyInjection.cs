@@ -6,7 +6,6 @@ using Dfe.Briefing.Tool.Application.Orchestrators.Interfaces;
 using Dfe.Briefing.Tool.Application.Providers;
 using Dfe.Briefing.Tool.Application.Providers.Interfaces;
 using Dfe.Briefing.Tool.Application.Services;
-using Dfe.Briefing.Tool.Application.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using GovUK.Dfe.AI.Agents.ValueObjects;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,31 +23,29 @@ public static class DependencyInjection
                 $"{BriefingOptions.SectionName}:{nameof(BriefingOptions.MaxEvidencePerSearch)} must be between 1 and 50.")
             .Validate(options => options.MaxAcademiesPerTrust is >= 1 and <= 100,
                 $"{BriefingOptions.SectionName}:{nameof(BriefingOptions.MaxAcademiesPerTrust)} must be between 1 and 100.")
+            .Validate(options => options.OrphanAgentMinimumAge > 0,
+                $"{BriefingOptions.SectionName}:{nameof(BriefingOptions.OrphanAgentMinimumAge)} must be more than zero.")
             .ValidateOnStart();
         services.AddSingleton(provider => provider.GetRequiredService<IOptions<BriefingOptions>>().Value);
         services.AddSingleton<IReadOnlyCollection<AgentDefinition>>(BriefingAgents.All);
         services.AddScoped<IBriefingOrchestrator, BriefingOrchestrator>();
         services.AddScoped<IBriefingBuilder, BriefingBuilder>();
         services.AddScoped<IBriefingEvidenceProvider, BriefingEvidenceProvider>();
-        services.AddSingleton<IAgentHousekeepingService, AgentHousekeepingService>();
 
         return services;
     }
 
     /// <summary>
-    /// Adds the daily agent clean-ups that are enabled: the orphan agent sweep and the agent version sweep, each at its
-    /// own time. They run only in a host that starts its background services, i.e. the web app; the console tool's
-    /// "sweep" command runs both on demand.
+    /// Adds the daily agent sweep if either of its sweeps (orphan agents, old agent versions) is enabled. It runs only
+    /// in a host that starts its background services, i.e. the web app.
     /// </summary>
     public static IServiceCollection AddAgentSweeps(this IServiceCollection services, BriefingOptions briefingOptions)
     {
+        if (!briefingOptions.OrphanAgentSweepEnabled && !briefingOptions.AgentVersionSweepEnabled)
+            return services;
+
         services.TryAddSingleton(TimeProvider.System);
-
-        if (briefingOptions.OrphanAgentSweepEnabled)
-            services.AddHostedService<OrphanAgentSweepService>();
-
-        if (briefingOptions.AgentVersionSweepEnabled)
-            services.AddHostedService<AgentVersionSweepService>();
+        services.AddHostedService<AgentSweepService>();
 
         return services;
     }

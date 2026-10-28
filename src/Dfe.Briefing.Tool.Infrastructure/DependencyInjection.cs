@@ -14,7 +14,7 @@ public static class DependencyInjection
     /// <summary>
     /// Registers the briefing agents. The web app and the release gate share this, so both run the agents with the
     /// same settings and guardrail; each adds what only it needs through <paramref name="configureAgents"/>.
-    /// Cleaning up old agents and versions isn't done here: the daily "sweep" job does it (see README).
+    /// It also adds the daily agent sweep, which only a host that starts its background services (the web app) runs.
     /// </summary>
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration,
         Action<AgentsBuilder>? configureAgents = null)

@@ -61,7 +61,7 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
         var synthesisResult = await RunSynthesisAsync(synthesisAgent, parameters, knownResults, cancellationToken);
         var totalTokens = knownResults.Sum(x => x.TotalTokens) + synthesisResult.TotalTokens;
 
-        // The web search runs only if the person asks for it once they've read the briefing (AddWebSearchFindings).
+        // The web search runs only if the person asks for it once they've read the briefing (GetWebSearchFindings).
         var briefing = briefingBuilder.RemoveEmptySections(briefingBuilder.RemoveBackgroundSection(synthesisResult.Output));
         return new AIResult(briefing, totalTokens, city);
     }
@@ -69,14 +69,11 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
     public bool CanAddWebSearchFindings(string? briefing)
         => !string.IsNullOrWhiteSpace(briefing) && briefing.Contains("\n## ", StringComparison.Ordinal) && !briefingBuilder.HasNewsSection(briefing);
 
-    public async Task<AIResult> AddWebSearchFindings(BriefingParameters parameters, string briefing, string? city,
+    public async Task<AIResult> GetWebSearchFindings(BriefingParameters parameters, string briefing, string? city,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         ArgumentException.ThrowIfNullOrWhiteSpace(briefing);
-
-        if (briefingBuilder.HasNewsSection(briefing))
-            return new AIResult(briefing, TotalTokens: 0, city);
 
         var location = city is null ? null : WebSearchLocation.ForCity(city);
         var tools = await new WebSearchToolProvider(location).GetToolsAsync(cancellationToken);
@@ -87,7 +84,7 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
             evidence: briefingBuilder.BuildWebSearchEvidence(briefing), validateOutput: BriefingAgents.ValidateMarkdownOutput,
             cancellationToken: cancellationToken);
 
-        return new AIResult(briefingBuilder.AppendNewsFindings(briefing, webSearchResult), webSearchResult.TotalTokens, city);
+        return new AIResult(briefingBuilder.BuildNewsFindings(webSearchResult), webSearchResult.TotalTokens, city);
     }
 
     private async Task<AgentResult> RunSynthesisAsync(AgentDefinition synthesisAgent, BriefingParameters parameters,

@@ -89,8 +89,15 @@
   }
 }
 
+// Web search findings, shown apart from the briefing above them.
+.app-web-search-output {
+  margin-top: govuk-spacing(6);
+  padding-top: govuk-spacing(4);
+  border-top: 2px solid govuk-colour("mid-grey");
+}
+
 // Live step-by-step status shown while a briefing streams in - see initBriefingProgress in
-// index.js. Styled as a quiet, bordered log rather than a GOV.UK panel, so it doesn't compete
+// briefing.js. Styled as a quiet, bordered log rather than a GOV.UK panel, so it doesn't compete
 // with the actual briefing content once it appears below.
 .app-briefing-status {
   margin-top: govuk-spacing(4);
@@ -136,7 +143,7 @@
 .app-briefing-status__list {
   margin-bottom: 0;
 
-  // Each "progress" event appends a step; index.js marks the newest as current (spinner) and the
+  // Each "progress" event appends a step; briefing.js marks the newest as current (spinner) and the
   // earlier ones as done (tick), so it's clear which step is still running.
   li {
     @include govuk-font(16);

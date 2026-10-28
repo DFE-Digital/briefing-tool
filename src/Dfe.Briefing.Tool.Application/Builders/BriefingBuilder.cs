@@ -70,10 +70,10 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
             ["IncludedSections"] = string.Join(", ", specialistResults.Select(result => result.AgentName.ToDisplayName()))
         });
 
-    // The web search only runs if the person asks for it once they've read the briefing, so its findings are added
-    // as a More background information section at the end. They're the web search agent's own bullets, unchanged:
-    // a model rewriting them shortens each link to a bare domain.
-    public string AppendNewsFindings(string briefing, AgentResult webSearchResult)
+    // The web search only runs if the person asks for it once they've read the briefing, so its findings are a
+    // More background information section of their own, shown apart from the briefing. They're the web search agent's
+    // own bullets, unchanged: a model rewriting them shortens each link to a bare domain.
+    public string BuildNewsFindings(AgentResult webSearchResult)
     {
         // Most recent first, as the model doesn't reliably order them; undated findings go last.
         var findings = (webSearchResult.Output ?? string.Empty)
@@ -84,7 +84,7 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
             .ToList();
 
         var body = findings.Count > 0 ? string.Join('\n', findings) : $"- {ErrorMessages.NoNewsCoverageFound}";
-        return $"{briefing.TrimEnd()}\n\n{BackgroundSectionHeading}\n\n{NewsSectionHeading}\n\n{body}\n";
+        return $"{BackgroundSectionHeading}\n\n{NewsSectionHeading}\n\n{body}\n";
     }
 
     public bool HasNewsSection(string briefing) => briefing.Contains(NewsSectionHeading, StringComparison.Ordinal);

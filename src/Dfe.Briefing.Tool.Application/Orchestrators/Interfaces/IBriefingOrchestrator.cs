@@ -17,15 +17,13 @@ public interface IBriefingOrchestrator
     bool CanAddWebSearchFindings(string? briefing);
 
     /// <summary>
-    /// Searches the web for current news about the school or trust, once the person has asked for it, and adds the
-    /// findings as a "More background information" section, under "News and media coverage", at the end of a
-    /// briefing <see cref="GetBriefing"/> produced.
-    /// Only the web search agent runs; the briefing is reused as it is.
+    /// Searches the web for current news about the school or trust, once the person has asked for it, using a briefing
+    /// <see cref="GetBriefing"/> produced as evidence. Only the web search agent runs; the briefing isn't changed.
     /// </summary>
     /// <param name="parameters">The school or trust the briefing is about.</param>
     /// <param name="briefing">The briefing's Markdown, as <see cref="GetBriefing"/> returned it.</param>
     /// <param name="city">The town or city <see cref="GetBriefing"/> returned, if any, to focus the search.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The briefing with the More background information section at the end.</returns>
-    Task<AIResult> AddWebSearchFindings(BriefingParameters parameters, string briefing, string? city, CancellationToken cancellationToken = default);
+    /// <returns>The findings alone, as a "More background information" section under "News and media coverage".</returns>
+    Task<AIResult> GetWebSearchFindings(BriefingParameters parameters, string briefing, string? city, CancellationToken cancellationToken = default);
 }

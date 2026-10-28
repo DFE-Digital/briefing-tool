@@ -229,13 +229,13 @@ public sealed class BriefingOrchestratorTests
         => Assert.False(CreateSut().CanAddWebSearchFindings(briefing));
 
     [Fact]
-    public async Task AddWebSearchFindings_RunsTheWebSearchAgent_WithTheBriefingWithoutItsCitationsAsEvidence_AndTheCityInItsPrompt()
+    public async Task GetWebSearchFindings_RunsTheWebSearchAgent_WithTheBriefingWithoutItsCitationsAsEvidence_AndTheCityInItsPrompt()
     {
         var sut = CreateSut();
         SetUpWebSearchResult(Result(WebSearchName, "- 20 August 2026: Record results. [The Star](https://www.thestar.co.uk/a-1)", 10));
         const string briefing = "# Test Academy\n\n## School summary\n\nRated Good. [Test Academy 123456 Academy converter]";
 
-        await sut.AddWebSearchFindings(new BriefingParameters("123456", "Test Academy"), briefing, "Coventry", cancellationToken);
+        await sut.GetWebSearchFindings(new BriefingParameters("123456", "Test Academy"), briefing, "Coventry", cancellationToken);
 
         await _agentRuntime.Received(1).RunEphemeralAsync(
             Arg.Any<AgentSpec>(), Arg.Is<string>(prompt => prompt.Contains("Coventry", StringComparison.Ordinal)), Arg.Any<ToolCallResolver?>(),
@@ -244,32 +244,18 @@ public sealed class BriefingOrchestratorTests
     }
 
     [Fact]
-    public async Task AddWebSearchFindings_AddsMoreBackgroundInformationAtTheEnd_WithoutRerunningTheOtherAgents()
+    public async Task GetWebSearchFindings_ReturnsOnlyTheMoreBackgroundInformationSection_WithoutRerunningTheOtherAgents()
     {
         var sut = CreateSut();
         SetUpWebSearchResult(Result(WebSearchName, "## Web search findings\n\n- 20 August 2026: Record results. [The Star](https://www.thestar.co.uk/a-1)", 15));
         const string briefing = "# Test Academy\n\n## School summary\n\nRated Good.\n\n## Financial health\n\n- Not available.\n";
 
-        var result = await sut.AddWebSearchFindings(new BriefingParameters("123456", "Test Academy"), briefing, city: null, cancellationToken);
+        var result = await sut.GetWebSearchFindings(new BriefingParameters("123456", "Test Academy"), briefing, city: null, cancellationToken);
 
-        Assert.StartsWith(briefing.TrimEnd(), result.Output, StringComparison.Ordinal);
-        Assert.EndsWith("## More background information\n\n### News and media coverage\n\n- 20 August 2026: Record results. [The Star](https://www.thestar.co.uk/a-1)\n", result.Output, StringComparison.Ordinal);
+        Assert.Equal("## More background information\n\n### News and media coverage\n\n- 20 August 2026: Record results. [The Star](https://www.thestar.co.uk/a-1)\n", result.Output);
         Assert.Equal(15, result.TotalTokens);
         await _agentService.DidNotReceiveWithAnyArgs().RunParallelAsync(default!, default!, default!, cancellationToken: cancellationToken);
         await _agentService.DidNotReceiveWithAnyArgs().RunAsync(default!, default!, cancellationToken: cancellationToken);
-    }
-
-    [Fact]
-    public async Task AddWebSearchFindings_WhenTheBriefingAlreadyHasNews_DoesNotSearchAgain()
-    {
-        var sut = CreateSut();
-        const string briefing = "# Test Academy\n\n## School summary\n\nRated Good.\n\n## More background information\n\n### News and media coverage\n\n- 1 May 2026: News. [A](https://a.org/x)\n";
-
-        var result = await sut.AddWebSearchFindings(new BriefingParameters("123456", "Test Academy"), briefing, city: null, cancellationToken);
-
-        await _agentRuntime.DidNotReceiveWithAnyArgs().RunEphemeralAsync(default!, default!, cancellationToken: cancellationToken);
-        Assert.Equal(briefing, result.Output);
-        Assert.Equal(0, result.TotalTokens);
     }
 
     [Fact]

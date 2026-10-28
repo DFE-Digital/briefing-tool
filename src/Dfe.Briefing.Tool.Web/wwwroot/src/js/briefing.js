@@ -1,26 +1,4 @@
-﻿// Please see documentation at https://docs.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
-
-// Write your JavaScript code.
-import * as GOVUKFrontend from "govuk-frontend";
-import * as MOJFrontend from "@ministryofjustice/frontend";
-
-window.GOVUKFrontend = GOVUKFrontend;
-window.MOJFrontend = MOJFrontend;
-
-// Initialize everything when DOM is ready
-document.addEventListener('DOMContentLoaded', function () {
-
-   // Initialize GOV.UK Frontend
-   GOVUKFrontend.initAll();
-
-   // Initialize MOJ Frontend
-   MOJFrontend.initAll();
-
-   initBriefingProgress();
-});
-
-function initBriefingProgress() {
+export function initBriefingProgress() {
    var form = document.getElementById('briefing-form');
    if (!form || typeof window.EventSource === 'undefined') {
       return;
@@ -31,6 +9,8 @@ function initBriefingProgress() {
    var statusRegion = document.getElementById('briefing-status');
    var statusList = document.getElementById('briefing-status-list');
    var outputContainer = document.getElementById('briefing-output-container');
+   var warningContainer = document.getElementById('briefing-warning-container');
+   var webSearchContainer = document.getElementById('web-search-output-container');
    var errorSummary = document.getElementById('briefing-error-summary');
    var validationSummary = document.getElementById('briefing-validation-summary');
    var statusTitle = document.getElementById('briefing-status-title');
@@ -38,7 +18,7 @@ function initBriefingProgress() {
    var webSearchYes = document.getElementById('web-search-yes');
    var webSearchNo = document.getElementById('web-search-no');
 
-   // The briefing the person can choose to add web search findings to, as the server sent it.
+   // The briefing the web search uses as evidence, as the server sent it.
    var pendingWebSearch = null;
 
    function hideWebSearchOffer() {
@@ -46,8 +26,14 @@ function initBriefingProgress() {
       webSearchOffer.hidden = true;
    }
 
-   clearButton.addEventListener('click', function () {
+   function clearBriefing() {
       outputContainer.innerHTML = '';
+      webSearchContainer.innerHTML = '';
+      warningContainer.innerHTML = '';
+   }
+
+   clearButton.addEventListener('click', function () {
+      clearBriefing();
       clearButton.hidden = true;
       hideWebSearchOffer();
       form.querySelector('[name="Input.SchoolUrnOrTrustTrn"]')?.focus();
@@ -109,35 +95,43 @@ function initBriefingProgress() {
       stopCurrentStep();
    }
 
+   // The warning goes in its own container, so the progress and web search offer sit between it and the briefing.
    function renderBriefing(html) {
-      outputContainer.innerHTML = '';
+      clearBriefing();
       var output = document.createElement('div');
       output.className = 'briefing-output';
       output.innerHTML = html;
       outputContainer.appendChild(output);
       var warning = document.getElementById('briefing-check-warning');
       if (warning) {
-         outputContainer.appendChild(warning.content.cloneNode(true));
+         warningContainer.appendChild(warning.content.cloneNode(true));
       }
    }
 
-   // The web search findings come in a new More background information section at the end: take the reader to it.
-   function focusNewsSection() {
-      var headings = outputContainer.querySelectorAll('.briefing-output h2');
-      var news = Array.prototype.find.call(headings, function (heading) {
-         return heading.textContent.trim() === 'More background information';
-      });
-      if (news) {
-         news.setAttribute('tabindex', '-1');
-         news.focus();
-         news.scrollIntoView({ block: 'start' });
+   // The web search findings are shown apart from the briefing, below it: take the reader to them.
+   function renderWebSearchFindings(html) {
+      var findings = document.createElement('div');
+      findings.className = 'briefing-output app-web-search-output';
+      findings.innerHTML = html;
+      webSearchContainer.replaceChildren(findings);
+
+      var heading = findings.querySelector('h2');
+      if (heading) {
+         heading.setAttribute('tabindex', '-1');
+         heading.focus();
+         heading.scrollIntoView({ block: 'start' });
       }
+   }
+
+   function focusBriefing() {
+      var heading = outputContainer.querySelector('.briefing-output h1, .briefing-output h2');
+      heading?.setAttribute('tabindex', '-1');
+      heading?.focus();
    }
 
    webSearchNo.addEventListener('click', function () {
       hideWebSearchOffer();
-      outputContainer.querySelector('.briefing-output h1, .briefing-output h2')?.setAttribute('tabindex', '-1');
-      outputContainer.querySelector('.briefing-output h1, .briefing-output h2')?.focus();
+      focusBriefing();
    });
 
    webSearchYes.addEventListener('click', async function () {
@@ -173,9 +167,8 @@ function initBriefingProgress() {
          }
 
          completeCurrentStep();
-         renderBriefing(result.html);
          statusRegion.hidden = true;
-         focusNewsSection();
+         renderWebSearchFindings(result.html);
       } catch (error) {
          // A network failure: the briefing on the page is untouched, so the person can simply try again.
          console.error(error);
@@ -260,7 +253,7 @@ function initBriefingProgress() {
          return;
       }
 
-      outputContainer.innerHTML = '';
+      clearBriefing();
       clearButton.hidden = true;
       hideWebSearchOffer();
       startStatus('Generating briefing...');
@@ -302,10 +295,11 @@ function initBriefingProgress() {
          statusRegion.hidden = true;
          finish();
 
+         // The offer sits below the briefing, so start the reader at the briefing, not the offer.
          if (offer) {
             pendingWebSearch = offer;
             webSearchOffer.hidden = false;
-            document.getElementById('web-search-offer-title').focus();
+            focusBriefing();
          }
       });
 

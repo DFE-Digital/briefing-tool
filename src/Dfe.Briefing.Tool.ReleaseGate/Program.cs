@@ -1,4 +1,6 @@
 using Dfe.Briefing.Tool.Infrastructure;
+using Dfe.Briefing.Tool.Infrastructure.Constants;
+using Dfe.Briefing.Tool.Infrastructure.Extensions;
 using Dfe.Briefing.Tool.ReleaseGate;
 using Dfe.Briefing.Tool.ReleaseGate.Commands;
 using Dfe.Briefing.Tool.ReleaseGate.Constants;
@@ -33,10 +35,10 @@ var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
     DisableDefaults = true
 });
 
-// The web app's settings first, then the gate's own; secrets come from user secrets locally, or environment
-// variables in a pipeline (e.g. AiAgents__Authentication__ClientSecret).
+// The settings shared with the web app first, then the gate's own; secrets come from user secrets locally, or
+// environment variables in a pipeline (e.g. AiAgents__Authentication__ClientSecret).
 builder.Configuration
-    .AddJsonFile(Settings.BriefingAppSettingsFile, optional: false)
+    .AddSharedSettings()
     .AddJsonFile(Settings.AppSettingsFile, optional: false)
     .AddUserSecrets(typeof(GateCommand).Assembly, optional: true)
     .AddEnvironmentVariables();
@@ -52,14 +54,15 @@ builder.Services.AddInfrastructure(builder.Configuration, agents => agents
     .AddQualityEvaluation()
     .AddReleaseGate());
 
-var telemetryOn = builder.AddApplicationInsights();
+// Same cloud_RoleName as the web app; its own cloud_RoleInstance tells the gate's telemetry apart.
+var telemetryOn = builder.AddApplicationInsights(Telemetry.RoleInstance);
 
 using var host = builder.Build();
 var services = host.Services;
 if (telemetryOn)
     services.StartTelemetry();
 else
-    Console.WriteLine($"{Settings.ApplicationInsightsConnectionStringKey} isn't set, so results aren't sent to Application Insights.");
+    Console.WriteLine($"{TelemetrySettings.ConnectionStringKey} isn't set, so results aren't sent to Application Insights.");
 
 using var cancellation = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; cancellation.Cancel(); };

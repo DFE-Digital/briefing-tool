@@ -10,12 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="GovUK.Dfe.AI.Agents.Evaluation" Version="0.0.1-prerelease.2966" />
-    <PackageReference Include="Azure.Monitor.OpenTelemetry.Exporter" Version="1.10.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.20.1" />
-    <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
-    <PackageReference Include="Serilog.Settings.Configuration" Version="10.0.1" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,9 +18,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The gate tests the agents exactly as the web app runs them: its settings and its prompt files. They stay in the
-         web app (edit them there); they're only copied into the gate's output, so they're hidden here. -->
-    <None Include="..\Dfe.Briefing.Tool.Web\appsettings.json" Link="briefing.appsettings.json" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <!-- The gate tests the agents exactly as the web app runs them: the shared settings (appsettings.shared.json, copied
+         from Infrastructure) and the web app's prompt files. The prompts stay in the web app (edit them there); they're
+         only copied into the gate's output, so they're hidden here. -->
     <None Include="..\Dfe.Briefing.Tool.Web\Prompts\**\*.md" Link="Prompts\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
     <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestCases\**\*.json" CopyToOutputDirectory="PreserveNewest" />

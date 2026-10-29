@@ -1,7 +1,9 @@
+using Dfe.Briefing.Tool.Infrastructure.Extensions;
 using Dfe.Briefing.Tool.Web.Extensions;
 using GovUk.Frontend.AspNetCore; 
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddSharedSettings();
 
 builder.AddInfrastructure();
 

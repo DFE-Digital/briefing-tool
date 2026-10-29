@@ -69,7 +69,7 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
     public bool CanAddWebSearchFindings(string? briefing)
         => !string.IsNullOrWhiteSpace(briefing) && briefing.Contains("\n## ", StringComparison.Ordinal) && !briefingBuilder.HasNewsSection(briefing);
 
-    public async Task<AIResult> GetWebSearchFindings(BriefingParameters parameters, string briefing, string? city,
+    public async Task<AIResult> GetWebSearchFindings(BriefingParameters parameters, string briefing, string? city, string? website,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(parameters);
@@ -84,7 +84,7 @@ public partial class BriefingOrchestrator(IReadOnlyCollection<AgentDefinition> d
             evidence: briefingBuilder.BuildWebSearchEvidence(briefing), validateOutput: BriefingAgents.ValidateMarkdownOutput,
             cancellationToken: cancellationToken);
 
-        return new AIResult(briefingBuilder.BuildNewsFindings(webSearchResult), webSearchResult.TotalTokens, city);
+        return new AIResult(briefingBuilder.BuildNewsFindings(webSearchResult, parameters, website), webSearchResult.TotalTokens, city);
     }
 
     private async Task<AgentResult> RunSynthesisAsync(AgentDefinition synthesisAgent, BriefingParameters parameters,

@@ -23,7 +23,12 @@ public interface IBriefingOrchestrator
     /// <param name="parameters">The school or trust the briefing is about.</param>
     /// <param name="briefing">The briefing's Markdown, as <see cref="GetBriefing"/> returned it.</param>
     /// <param name="city">The town or city <see cref="GetBriefing"/> returned, if any, to focus the search.</param>
+    /// <param name="website">The school's or trust's own website, from its record, if it has one.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The findings alone, as a "More background information" section under "News and media coverage".</returns>
-    Task<AIResult> GetWebSearchFindings(BriefingParameters parameters, string briefing, string? city, CancellationToken cancellationToken = default);
+    /// <returns>
+    /// The findings alone, as a "More background information" section: "Website", when given, then "News and media
+    /// coverage".
+    /// </returns>
+    Task<AIResult> GetWebSearchFindings(BriefingParameters parameters, string briefing, string? city, string? website,
+        CancellationToken cancellationToken = default);
 }

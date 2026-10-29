@@ -11,7 +11,9 @@
     public class AnalyticsConsentService : IAnalyticsConsentService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private const string ConsentCookieName = "ACCEPT_OPTIONAL_COOKIES";
+        // Named for this app: another DfE service on the same host (e.g. localhost) can set ACCEPT_OPTIONAL_COOKIES,
+        // which would hide this app's banner before the person has chosen.
+        public const string ConsentCookieName = "BriefingCookieConsent";
         private bool? Consent { get; set; }
         private readonly string _analyticsDomain = ".education.gov.uk";
 
@@ -61,7 +63,7 @@
         private void SetConsent(bool consent)
         {
             Consent = consent;
-            var cookieOptions = new CookieOptions { Expires = DateTime.Today.AddMonths(6), Secure = true, HttpOnly = true };
+            var cookieOptions = new CookieOptions { Expires = DateTime.Today.AddYears(1), Secure = true, HttpOnly = true };
             _httpContextAccessor.HttpContext!.Response.Cookies.Append(ConsentCookieName, consent.ToString().ToLower(), cookieOptions);
             var request = _httpContextAccessor.HttpContext.Request;
 

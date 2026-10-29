@@ -3,11 +3,10 @@
 
 // Write your JavaScript code.
 import * as GOVUKFrontend from "govuk-frontend";
-import * as MOJFrontend from "@ministryofjustice/frontend";
 import { initBriefingProgress } from "./js/briefing.js";
+import { initSubjectAutocomplete } from "./js/subjectAutocomplete.js";
 
 window.GOVUKFrontend = GOVUKFrontend;
-window.MOJFrontend = MOJFrontend;
 
 // Initialize everything when DOM is ready
 document.addEventListener('DOMContentLoaded', function () {
@@ -15,8 +14,6 @@ document.addEventListener('DOMContentLoaded', function () {
    // Initialize GOV.UK Frontend
    GOVUKFrontend.initAll();
 
-   // Initialize MOJ Frontend
-   MOJFrontend.initAll();
-
    initBriefingProgress();
+   initSubjectAutocomplete();
 });

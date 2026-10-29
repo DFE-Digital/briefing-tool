@@ -13,7 +13,7 @@ public interface IBriefingBuilder
     string BuildSynthesisPrompt(BriefingParameters parameters, IReadOnlyCollection<AgentResult> specialistResults);
     AgentSpec BuildWebSearchAgentSpec(IReadOnlyList<AgentTool> tools);
     string BuildWebSearchEvidence(string briefing);
-    string BuildNewsFindings(AgentResult webSearchResult);
+    string BuildNewsFindings(AgentResult webSearchResult, BriefingParameters parameters, string? website);
     bool HasNewsSection(string briefing);
     string? RemoveBackgroundSection(string? briefing);
     string? RemoveEmptySections(string? briefing);

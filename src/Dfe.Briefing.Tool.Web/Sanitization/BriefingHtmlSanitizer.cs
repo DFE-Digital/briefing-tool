@@ -24,8 +24,12 @@ public static class BriefingHtmlSanitizer
         .Build();
     private static readonly HtmlSanitizer Sanitizer = CreateSanitizer();
 
-    public static string? Sanitize(string? markdown)
-        => markdown is null ? null : Sanitizer.Sanitize(Markdown.ToHtml(CitationReferenceFormatter.CollectReferences(markdown), MarkdownPipeline));
+    /// <param name="markdown">The agent's Markdown.</param>
+    /// <param name="referenceIdPrefix">The prefix of its reference anchors' ids - see <see cref="CitationReferenceFormatter.CollectReferences"/>.</param>
+    public static string? Sanitize(string? markdown, string referenceIdPrefix = CitationReferenceFormatter.DefaultReferenceIdPrefix)
+        => markdown is null
+            ? null
+            : Sanitizer.Sanitize(Markdown.ToHtml(CitationReferenceFormatter.CollectReferences(markdown, referenceIdPrefix), MarkdownPipeline));
 
     private static HtmlSanitizer CreateSanitizer()
     {

@@ -89,11 +89,18 @@
   }
 }
 
-// Web search findings, shown apart from the briefing above them.
+// Web search findings, under the briefing in the same panel as Further context. Its sections (Website, then News and
+// media coverage) are numbered, as in the designs; the numbers aren't in the Markdown, so copying it stays clean.
 .app-web-search-output {
   margin-top: govuk-spacing(6);
   padding-top: govuk-spacing(4);
   border-top: 2px solid govuk-colour("mid-grey");
+  counter-reset: app-web-search-section;
+
+  .briefing-output h3::before {
+    counter-increment: app-web-search-section;
+    content: counter(app-web-search-section) ". ";
+  }
 }
 
 // Live step-by-step status shown while a briefing streams in - see initBriefingProgress in
@@ -201,4 +208,56 @@
 .app-header__signed-in-text {
   @include govuk-font(16);
   color: govuk-colour("white");
+}
+
+// The light blue panels on the generate and summary pages: the AI disclaimer, and the summary itself.
+$app-panel-colour: govuk-tint(govuk-colour("blue"), 80%);
+
+.app-disclaimer {
+  padding: govuk-spacing(4);
+  background-color: $app-panel-colour;
+}
+
+.app-briefing-panel {
+  @include govuk-responsive-margin(6, "bottom");
+  padding: govuk-spacing(4);
+  background-color: $app-panel-colour;
+
+  .briefing-output > :first-child {
+    margin-top: 0;
+  }
+}
+
+// The "Read more" link under the warning's text, on a line of its own and in normal weight.
+.app-briefing-warning__link {
+  display: block;
+  margin-top: govuk-spacing(1);
+  font-weight: normal;
+}
+
+// A button that does something on the page (re-generate, copy) but reads as a link, as in the designs.
+.app-link-button {
+  @include govuk-font(19);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+// The school or trust search on the Find page (subjectAutocomplete.js): a match's region under its name, and the
+// autocomplete's input marked like a GOV.UK input when the field has an error.
+.app-autocomplete__hint {
+  @include govuk-font(16);
+  display: block;
+  color: $govuk-secondary-text-colour;
+}
+
+.autocomplete__option--focused .app-autocomplete__hint,
+.autocomplete__option:hover .app-autocomplete__hint {
+  color: govuk-colour("white");
+}
+
+.govuk-form-group--error .autocomplete__input {
+  border-color: $govuk-error-colour;
 }

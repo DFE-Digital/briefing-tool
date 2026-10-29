@@ -235,7 +235,7 @@ public sealed class BriefingOrchestratorTests
         SetUpWebSearchResult(Result(WebSearchName, "- 20 August 2026: Record results. [The Star](https://www.thestar.co.uk/a-1)", 10));
         const string briefing = "# Test Academy\n\n## School summary\n\nRated Good. [Test Academy 123456 Academy converter]";
 
-        await sut.GetWebSearchFindings(new BriefingParameters("123456", "Test Academy"), briefing, "Coventry", cancellationToken);
+        await sut.GetWebSearchFindings(new BriefingParameters("123456", "Test Academy"), briefing, "Coventry", website: null, cancellationToken);
 
         await _agentRuntime.Received(1).RunEphemeralAsync(
             Arg.Any<AgentSpec>(), Arg.Is<string>(prompt => prompt.Contains("Coventry", StringComparison.Ordinal)), Arg.Any<ToolCallResolver?>(),
@@ -250,7 +250,7 @@ public sealed class BriefingOrchestratorTests
         SetUpWebSearchResult(Result(WebSearchName, "## Web search findings\n\n- 20 August 2026: Record results. [The Star](https://www.thestar.co.uk/a-1)", 15));
         const string briefing = "# Test Academy\n\n## School summary\n\nRated Good.\n\n## Financial health\n\n- Not available.\n";
 
-        var result = await sut.GetWebSearchFindings(new BriefingParameters("123456", "Test Academy"), briefing, city: null, cancellationToken);
+        var result = await sut.GetWebSearchFindings(new BriefingParameters("123456", "Test Academy"), briefing, city: null, website: null, cancellationToken);
 
         Assert.Equal("## More background information\n\n### News and media coverage\n\n- 20 August 2026: Record results. [The Star](https://www.thestar.co.uk/a-1)\n", result.Output);
         Assert.Equal(15, result.TotalTokens);

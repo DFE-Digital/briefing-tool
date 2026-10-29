@@ -71,9 +71,10 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
         });
 
     // The web search only runs if the person asks for it once they've read the briefing, so its findings are a
-    // More background information section of their own, shown apart from the briefing. They're the web search agent's
-    // own bullets, unchanged: a model rewriting them shortens each link to a bare domain.
-    public string BuildNewsFindings(AgentResult webSearchResult)
+    // More background information section of their own, shown apart from the briefing: the school's or trust's own
+    // website, from its record, then the news. The news is the web search agent's own bullets, unchanged: a model
+    // rewriting them shortens each link to a bare domain.
+    public string BuildNewsFindings(AgentResult webSearchResult, BriefingParameters parameters, string? website)
     {
         // Most recent first, as the model doesn't reliably order them; undated findings go last.
         var findings = (webSearchResult.Output ?? string.Empty)
@@ -84,7 +85,13 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
             .ToList();
 
         var body = findings.Count > 0 ? string.Join('\n', findings) : $"- {ErrorMessages.NoNewsCoverageFound}";
-        return $"{BackgroundSectionHeading}\n\n{NewsSectionHeading}\n\n{body}\n";
+
+        // The address is plain text, so it's shown as a link but isn't collected into the References like a citation.
+        var websiteSection = string.IsNullOrWhiteSpace(website)
+            ? string.Empty
+            : $"{WebsiteSectionHeading}\n\nThe website for {parameters.SchoolOrTrustName} is: {website.Trim()}\n\n";
+
+        return $"{BackgroundSectionHeading}\n\n{websiteSection}{NewsSectionHeading}\n\n{body}\n";
     }
 
     public bool HasNewsSection(string briefing) => briefing.Contains(NewsSectionHeading, StringComparison.Ordinal);
@@ -95,6 +102,8 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
         => briefing is null ? null : BackgroundSectionRegex().Replace(briefing, string.Empty);
 
     public const string BackgroundSectionHeading = "## More background information";
+
+    public const string WebsiteSectionHeading = "### Website";
 
     public const string NewsSectionHeading = "### News and media coverage";
 

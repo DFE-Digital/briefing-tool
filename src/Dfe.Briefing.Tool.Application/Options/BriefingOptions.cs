@@ -31,6 +31,13 @@ public sealed class BriefingOptions
     public bool AgentVersionSweepEnabled { get; init; } = true;
 
     /// <summary>
+    /// Gets the day of the week (UTC) the agent version sweep runs on, at <see cref="AgentSweepTime"/>; when not set, it runs
+    /// every day. A new version is only made when an agent's prompt, model, tools or guardrail changes - a deployment, so
+    /// weekly is enough. The orphan agent sweep runs every day whatever this is.
+    /// </summary>
+    public DayOfWeek? AgentVersionSweepDay { get; init; }
+
+    /// <summary>
     /// Gets the time of day (UTC) when the daily agent sweep runs the enabled sweeps.
     /// </summary>
     public TimeOnly AgentSweepTime { get; init; } = new(1, 0);

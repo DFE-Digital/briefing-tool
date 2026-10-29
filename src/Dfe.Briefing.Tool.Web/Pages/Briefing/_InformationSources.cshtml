@@ -1,0 +1,47 @@
+@model SummaryModel
+@*
+    Where each part of the summary came from. The date is the one the school's or trust's own record gives for its
+    last update (see BriefingSubjectFinder.RecordDateFields); without one, the source is named without a date.
+*@
+@{
+    var subject = Model.Subject!;
+    var kind = subject.IsTrust ? "Trust" : "School";
+    var onDate = subject.RecordDate is { } recordDate ? $" on {recordDate:d MMMM yyyy}" : string.Empty;
+}
+
+<govuk-details>
+    <govuk-details-summary>Where this information came from</govuk-details-summary>
+    <govuk-details-text>
+        <h3 class="govuk-heading-s">@kind details</h3>
+        <ul class="govuk-list govuk-list--bullet">
+            <li>All information was taken from <a href="https://get-information-schools.service.gov.uk" class="govuk-link">Get information about schools</a>@onDate</li>
+        </ul>
+
+        <h3 class="govuk-heading-s">@kind summary</h3>
+        <ul class="govuk-list govuk-list--bullet">
+            <li>Pupil numbers, attainment and attendance were taken from <a href="https://www.compare-school-performance.service.gov.uk" class="govuk-link">Compare school and college performance in England</a></li>
+            <li>Inspection outcomes were taken from <a href="https://reports.ofsted.gov.uk" class="govuk-link">Ofsted</a></li>
+            <li>Concerns and support were taken from Rise and Recast</li>
+            <li>All other information was taken from Get information about schools@onDate</li>
+        </ul>
+
+        <h3 class="govuk-heading-s">Reference numbers</h3>
+        <ul class="govuk-list govuk-list--bullet">
+            <li>All information was taken from Get information about schools@onDate</li>
+        </ul>
+
+        @* Shown by briefing.js once the web search has run. *@
+        <div id="web-search-sources" hidden>
+            <h3 class="govuk-heading-s">Further context</h3>
+            <ul class="govuk-list govuk-list--bullet">
+                <li>The website was taken from Get information about schools@onDate</li>
+                <li>News and media coverage was found on the websites listed under its References</li>
+            </ul>
+        </div>
+
+        <p class="govuk-body">Each fact in the summary links to the record it came from, listed under References.</p>
+        <p class="govuk-body">
+            <a asp-page="/AiSummaries" class="govuk-link">Read more about the Briefing Tool and AI summaries</a>
+        </p>
+    </govuk-details-text>
+</govuk-details>

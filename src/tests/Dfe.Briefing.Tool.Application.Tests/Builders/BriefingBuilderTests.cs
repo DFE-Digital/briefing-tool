@@ -15,6 +15,7 @@ public sealed class BriefingBuilderTests
 {
     private static readonly AgentDefinition Establishment = new(AgentNames.Establishment, SystemPromptKey.Establishment);
     private static readonly AgentDefinition Trust = new(AgentNames.Trust, SystemPromptKey.Trust);
+    private static readonly BriefingParameters Subject = new("123456", "Test Academy");
 
     private readonly IPromptProvider _promptProvider = Substitute.For<IPromptProvider>();
     private readonly IPromptTemplateBuilder _promptBuilder = Substitute.For<IPromptTemplateBuilder>();
@@ -108,7 +109,7 @@ public sealed class BriefingBuilderTests
         var webSearch = Result(AgentNames.WebSearch,
             "## Web search findings\n\n- 20 August 2026: Best GCSE results. [The Star](https://www.thestar.co.uk/news/a-1)\n- 22 July 2026: New chief executive. [Chorus](https://www.chorustrust.org/news/ceo)");
 
-        var result = _sut.BuildNewsFindings(webSearch);
+        var result = _sut.BuildNewsFindings(webSearch, Subject, website: null);
 
         Assert.Equal("## More background information\n\n### News and media coverage\n\n- 20 August 2026: Best GCSE results. [The Star](https://www.thestar.co.uk/news/a-1)\n- 22 July 2026: New chief executive. [Chorus](https://www.chorustrust.org/news/ceo)\n", result);
         Assert.True(_sut.HasNewsSection(result));
@@ -128,12 +129,24 @@ public sealed class BriefingBuilderTests
     }
 
     [Fact]
+    public void BuildNewsFindings_WithAWebsite_GivesItFirst_AsPlainText()
+    {
+        var webSearch = Result(AgentNames.WebSearch, "- 20 August 2026: Best GCSE results. [The Star](https://www.thestar.co.uk/news/a-1)");
+
+        var result = _sut.BuildNewsFindings(webSearch, Subject, website: " www.test-academy.example.org ");
+
+        Assert.StartsWith(
+            "## More background information\n\n### Website\n\nThe website for Test Academy is: www.test-academy.example.org\n\n" +
+            "### News and media coverage\n\n- 20 August 2026", result, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BuildNewsFindings_OrdersFindingsMostRecentFirst_WithUndatedOnesLast()
     {
         var webSearch = Result(AgentNames.WebSearch,
             "- Date not given: C. [C](https://c.org/c)\n- 10 June 2026: B. [B](https://b.org/b)\n- 24 September 2026: A. [A](https://a.org/a)");
 
-        var result = _sut.BuildNewsFindings(webSearch);
+        var result = _sut.BuildNewsFindings(webSearch, Subject, website: null);
 
         Assert.True(result.IndexOf("24 September", StringComparison.Ordinal) < result.IndexOf("10 June", StringComparison.Ordinal));
         Assert.True(result.IndexOf("10 June", StringComparison.Ordinal) < result.IndexOf("Date not given", StringComparison.Ordinal));
@@ -144,7 +157,7 @@ public sealed class BriefingBuilderTests
     {
         var webSearch = Result(AgentNames.WebSearch, "## Web search findings\n\nNo current web information was found for this school or trust.");
 
-        var result = _sut.BuildNewsFindings(webSearch);
+        var result = _sut.BuildNewsFindings(webSearch, Subject, website: null);
 
         Assert.EndsWith($"## More background information\n\n### News and media coverage\n\n- {ErrorMessages.NoNewsCoverageFound}\n", result, StringComparison.Ordinal);
     }

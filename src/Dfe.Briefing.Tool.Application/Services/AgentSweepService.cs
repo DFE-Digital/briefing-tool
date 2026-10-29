@@ -9,7 +9,10 @@ using Microsoft.Extensions.Logging;
 namespace Dfe.Briefing.Tool.Application.Services;
 
 /// <summary>
-/// Executes scheduled sweeps to remove orphaned agents and prune old agent versions based on configuration.
+/// Executes scheduled sweeps to remove orphaned agents and prune old agent versions based on configuration. It runs every
+/// day at <see cref="BriefingOptions.AgentSweepTime"/>: the orphan agent sweep every day, as a run's temporary agent is
+/// only left behind when the app stops mid-run (a deployment, restart or crash); the agent version sweep on
+/// <see cref="BriefingOptions.AgentVersionSweepDay"/>, as versions only change with a deployment.
 /// </summary>
 /// <param name="agentRuntime">Deletes orphaned temporary agents.</param>
 /// <param name="agentFactory">Prunes old agent versions.</param>
@@ -35,13 +38,20 @@ internal sealed partial class AgentSweepService(IAgentRuntimeService agentRuntim
         if (options.OrphanAgentSweepEnabled)
             await RunSweepAsync(OrphanAgentSweep, () => DeleteOrphanedAgentsAsync(cancellationToken), cancellationToken);
 
-        if (options.AgentVersionSweepEnabled)
+        if (options.AgentVersionSweepEnabled && IsVersionSweepDay())
             await RunSweepAsync(AgentVersionSweep, () => PruneOldVersionsAsync(cancellationToken), cancellationToken);
     }
 
+    // The day is UTC's, as AgentSweepTime is.
+    private bool IsVersionSweepDay()
+        => options.AgentVersionSweepDay is not { } day || TimeProvider.GetUtcNow().UtcDateTime.DayOfWeek == day;
+
     // The library refuses an age shorter than AiAgents:RunTimeout plus 90 seconds, or no RunTimeout at all.
-    private Task<IReadOnlyList<string>> DeleteOrphanedAgentsAsync(CancellationToken cancellationToken)
-        => agentRuntime.DeleteOrphanedEphemeralAgentsAsync(TimeSpan.FromSeconds(options.OrphanAgentMinimumAge), cancellationToken);
+    private async Task DeleteOrphanedAgentsAsync(CancellationToken cancellationToken)
+    {
+        var deleted = await agentRuntime.DeleteOrphanedEphemeralAgentsAsync(TimeSpan.FromSeconds(options.OrphanAgentMinimumAge), cancellationToken);
+        LogOrphansDeleted(logger, deleted.Count, string.Join(", ", deleted));
+    }
 
     private async Task PruneOldVersionsAsync(CancellationToken cancellationToken)
     {
@@ -51,17 +61,21 @@ internal sealed partial class AgentSweepService(IAgentRuntimeService agentRuntim
             return;
         }
 
+        var pruned = 0;
         foreach (var agentName in BriefingAgents.All.Select(agent => agent.Name))
         {
             try
             {
                 await agentFactory.PruneVersionsAsync(agentName, keep, cancellationToken);
+                pruned++;
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 LogPruneFailed(logger, ex, agentName);
             }
         }
+
+        LogVersionsPruned(logger, pruned, keep);
     }
 
     private async Task RunSweepAsync(string sweep, Func<Task> run, CancellationToken cancellationToken)
@@ -76,12 +90,19 @@ internal sealed partial class AgentSweepService(IAgentRuntimeService agentRuntim
         }
     }
 
+    // How much each sweep finds, so its schedule can be checked: an orphan sweep that finds nothing for weeks could be weekly.
+    [LoggerMessage(Level = LogLevel.Information, Message = "Orphan agent sweep deleted {Count} orphaned agents: {AgentNames}")]
+    private static partial void LogOrphansDeleted(ILogger logger, int count, string agentNames);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Agent version sweep pruned {Count} agents to their latest {KeepLatestVersions} versions")]
+    private static partial void LogVersionsPruned(ILogger logger, int count, int keepLatestVersions);
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "Old agent versions weren't pruned: {Setting} isn't set")]
     private static partial void LogNotConfigured(ILogger logger, string setting);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Couldn't prune old versions of {AgentName}; the next sweep tries again")]
     private static partial void LogPruneFailed(ILogger logger, Exception exception, string agentName);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "{Sweep} failed; it runs again tomorrow")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "{Sweep} failed; it runs again at its next scheduled time")]
     private static partial void LogSweepFailed(ILogger logger, Exception exception, string sweep);
 }

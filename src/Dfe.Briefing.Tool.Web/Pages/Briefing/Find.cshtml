@@ -1,0 +1,27 @@
+@page
+@model FindModel
+@{
+    var heading = $"Search for a {Model.SubjectNoun}";
+    ViewData["Title"] = heading;
+    var example = Model.IsTrust ? "TR01234" : "123456";
+}
+
+@section BeforeMain {
+    <govuk-back-link href="@Url.BackLink(Url.Page("Type", new { type = Model.Type }))">Back</govuk-back-link>
+}
+
+<form method="post" novalidate>
+    <input type="hidden" name="Type" value="@Model.Type" />
+
+    <div id="subject-autocomplete" data-search-url="@Url.Page("Find", "Search", new { type = Model.Type })"
+         data-minimum-length="@FindModel.MinimumSearchLength" data-subject="@Model.SubjectNoun">
+        <govuk-input for="UrnOrTrn" spellcheck="false" autocomplete="off">
+            <govuk-input-label is-page-heading="true" class="govuk-label--l">@heading</govuk-input-label>
+            <govuk-input-hint>
+                Enter its name, URN or TRN, or the start of one, for example @example. Choose a match from the list as you type.
+            </govuk-input-hint>
+        </govuk-input>
+    </div>
+
+    <govuk-button type="submit">Continue</govuk-button>
+</form>

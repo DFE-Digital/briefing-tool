@@ -1,0 +1,21 @@
+@using Dfe.Briefing.Tool.Web.Models
+@using Dfe.Briefing.Tool.Web.Services
+@{
+    // Set by the cookies page when the banner's accept or reject sends the person back here: shown once.
+    var hasCookiesSet = TempData["PreferencesSet"];
+    TempData["PreferencesSet"] = null;
+    TempData["IsRubyRequest"] = null;
+}
+
+@if (hasCookiesSet != null)
+{
+    <govuk-notification-banner class="govuk-notification-banner--success">
+        <govuk-notification-banner-title>
+            Success
+        </govuk-notification-banner-title>
+        <h3>
+            You've @(Context.Request.Cookies[AnalyticsConsentService.ConsentCookieName] == "true" ? "accepted" : "rejected") analytics cookies.
+            You can <a class="govuk-link" data-testid="cookie-banner-link-2" asp-page="@Links.Public.CookiePreferences.Page">change your cookie settings</a> at any time.
+        </h3>
+    </govuk-notification-banner>
+}

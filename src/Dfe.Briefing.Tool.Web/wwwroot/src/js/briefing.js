@@ -1,137 +1,226 @@
+// Progress and button helpers, shared by the summary and the web search; they use only what they are given.
+
+function setDisabled(button, isDisabled) {
+   button.disabled = isDisabled;
+   if (isDisabled) {
+      button.setAttribute('aria-disabled', 'true');
+   } else {
+      button.removeAttribute('aria-disabled');
+   }
+}
+
+// Each progress message is one step: the newest is in progress (spinner), every earlier one is done (tick).
+function completeCurrentStep(list) {
+   var current = list.querySelector('.app-briefing-status__step--current');
+   if (!current) {
+      return;
+   }
+   current.classList.remove('app-briefing-status__step--current');
+   current.classList.add('app-briefing-status__step--done');
+   current.querySelector('.govuk-visually-hidden').textContent = 'Done: ';
+}
+
+function stopCurrentStep(list) {
+   var current = list.querySelector('.app-briefing-status__step--current');
+   if (current) {
+      current.classList.remove('app-briefing-status__step--current');
+      current.querySelector('.govuk-visually-hidden').textContent = 'Stopped: ';
+   }
+}
+
+function addStep(list, message) {
+   completeCurrentStep(list);
+
+   var item = document.createElement('li');
+   item.className = 'app-briefing-status__step app-briefing-status__step--current';
+
+   var icon = document.createElement('span');
+   icon.className = 'app-briefing-status__icon';
+   icon.setAttribute('aria-hidden', 'true');
+
+   var state = document.createElement('span');
+   state.className = 'govuk-visually-hidden';
+   state.textContent = 'In progress: ';
+
+   var text = document.createElement('span');
+   text.textContent = message;
+
+   item.append(icon, state, text);
+   list.appendChild(item);
+}
+
+function startStatus(region, list) {
+   list.innerHTML = '';
+   region.hidden = false;
+}
+
+// The page's errors go in the layout's one error summary (_ErrorSummary.cshtml), marked up as its tag helper does it;
+// an error about a field links to it.
+function showErrorSummary(message, fieldId) {
+   var container = document.getElementById('error-summary');
+   container.innerHTML =
+      '<div class="govuk-error-summary" data-module="govuk-error-summary" tabindex="-1"><div role="alert">' +
+      '<h2 class="govuk-error-summary__title">There is a problem</h2>' +
+      '<div class="govuk-error-summary__body"><ul class="govuk-list govuk-error-summary__list"><li></li></ul></div></div></div>';
+
+   var item = container.querySelector('.govuk-error-summary__list li');
+   if (fieldId) {
+      var link = document.createElement('a');
+      link.href = '#' + fieldId;
+      link.textContent = message;
+      item.append(link);
+   } else {
+      item.textContent = message;
+   }
+   container.querySelector('.govuk-error-summary').focus();
+}
+
+function clearErrorSummary() {
+   document.getElementById('error-summary').innerHTML = '';
+}
+
 export function initBriefingProgress() {
    var form = document.getElementById('briefing-form');
-   if (!form || typeof window.EventSource === 'undefined') {
+   if (!form || window.EventSource === undefined) {
       return;
    }
 
+   var regenerateLink = document.getElementById('briefing-regenerate');
    var submitButton = document.getElementById('briefing-submit');
-   var clearButton = document.getElementById('briefing-clear');
+   var backLink = document.getElementById('briefing-back-link');
+   var generateSection = document.getElementById('briefing-generate');
+   var summarySection = document.getElementById('briefing-summary');
+   var summaryTitle = document.getElementById('briefing-summary-title');
+   var dateRow = document.getElementById('briefing-date-row');
+   var dateValue = document.getElementById('briefing-date');
+   var resultRegion = document.getElementById('briefing-result');
+   var sourcesRegion = document.getElementById('briefing-sources');
    var statusRegion = document.getElementById('briefing-status');
    var statusList = document.getElementById('briefing-status-list');
    var outputContainer = document.getElementById('briefing-output-container');
-   var warningContainer = document.getElementById('briefing-warning-container');
-   var webSearchContainer = document.getElementById('web-search-output-container');
-   var errorSummary = document.getElementById('briefing-error-summary');
-   var validationSummary = document.getElementById('briefing-validation-summary');
-   var statusTitle = document.getElementById('briefing-status-title');
+   var copyRegion = document.getElementById('briefing-copy');
+   var copyButton = document.getElementById('briefing-copy-button');
+   var copyStatus = document.getElementById('briefing-copy-status');
    var webSearchOffer = document.getElementById('web-search-offer');
    var webSearchYes = document.getElementById('web-search-yes');
-   var webSearchNo = document.getElementById('web-search-no');
+   var webSearchStatus = document.getElementById('web-search-status');
+   var webSearchStatusList = document.getElementById('web-search-status-list');
+   var webSearchContainer = document.getElementById('web-search-output-container');
+   var webSearchOutput = document.getElementById('web-search-output');
+   var webSearchTitle = document.getElementById('web-search-title');
+   var webSearchSources = document.getElementById('web-search-sources');
+   var disclaimer = document.getElementById('AcceptDisclaimer');
+   var disclaimerGroup = document.getElementById('briefing-disclaimer-group');
+   var disclaimerFieldset = disclaimerGroup.querySelector('fieldset');
+   var disclaimerMessage = 'Confirm you understand you need to apply professional judgement when using content generated by AI';
+   var urnOrTrn = form.querySelector('[name="UrnOrTrn"]').value;
 
    // The briefing the web search uses as evidence, as the server sent it.
    var pendingWebSearch = null;
+   var isGenerating = false;
+
+   // Generate is only disabled while a summary is generating, so it can't be run twice at once. It isn't greyed out
+   // until the disclaimer is ticked (GOV.UK advises against disabled buttons): without the tick it says why instead.
+   function updateSubmitButton() {
+      setDisabled(submitButton, isGenerating);
+   }
 
    function hideWebSearchOffer() {
       pendingWebSearch = null;
       webSearchOffer.hidden = true;
    }
 
+   // Before a summary: the disclaimer and Generate. While generating and after: the summary.
+   function showGenerate() {
+      summarySection.hidden = true;
+      generateSection.hidden = false;
+      backLink.hidden = false;
+   }
+
+   function showSummary() {
+      generateSection.hidden = true;
+      backLink.hidden = true;
+      summarySection.hidden = false;
+   }
+
+   function showResult(isShown) {
+      resultRegion.hidden = !isShown;
+      dateRow.hidden = !isShown;
+      sourcesRegion.hidden = !isShown;
+   }
+
+   function clearWebSearch() {
+      webSearchOutput.innerHTML = '';
+      webSearchContainer.hidden = true;
+      webSearchSources.hidden = true;
+   }
+
    function clearBriefing() {
       outputContainer.innerHTML = '';
-      webSearchContainer.innerHTML = '';
-      warningContainer.innerHTML = '';
-   }
-
-   clearButton.addEventListener('click', function () {
-      clearBriefing();
-      clearButton.hidden = true;
+      copyStatus.textContent = '';
+      webSearchStatus.hidden = true;
+      clearWebSearch();
       hideWebSearchOffer();
-      form.querySelector('[name="Input.SchoolUrnOrTrustTrn"]')?.focus();
-   });
-
-   // Each progress message is one step: the newest is in progress (spinner), every earlier one is done (tick).
-   function completeCurrentStep() {
-      var current = statusList.querySelector('.app-briefing-status__step--current');
-      if (!current) {
-         return;
-      }
-      current.classList.remove('app-briefing-status__step--current');
-      current.classList.add('app-briefing-status__step--done');
-      current.querySelector('.govuk-visually-hidden').textContent = 'Done: ';
+      showResult(false);
    }
 
-   function stopCurrentStep() {
-      var current = statusList.querySelector('.app-briefing-status__step--current');
-      if (current) {
-         current.classList.remove('app-briefing-status__step--current');
-         current.querySelector('.govuk-visually-hidden').textContent = 'Stopped: ';
-      }
-   }
-
-   function addStep(message) {
-      completeCurrentStep();
-
-      var item = document.createElement('li');
-      item.className = 'app-briefing-status__step app-briefing-status__step--current';
-
-      var icon = document.createElement('span');
-      icon.className = 'app-briefing-status__icon';
-      icon.setAttribute('aria-hidden', 'true');
-
-      var state = document.createElement('span');
-      state.className = 'govuk-visually-hidden';
-      state.textContent = 'In progress: ';
-
-      var text = document.createElement('span');
-      text.textContent = message;
-
-      item.append(icon, state, text);
-      statusList.appendChild(item);
-   }
-
-   function startStatus(title) {
-      statusTitle.textContent = title;
-      statusList.innerHTML = '';
-      statusRegion.hidden = false;
-   }
-
-   function showErrorSummary(message) {
-      errorSummary.innerHTML =
-         '<div class="govuk-error-summary" data-module="govuk-error-summary" aria-labelledby="briefing-error-title" role="alert" tabindex="-1">' +
-         '<h2 class="govuk-error-summary__title" id="briefing-error-title">There is a problem</h2>' +
-         '<div class="govuk-error-summary__body"><ul class="govuk-list govuk-error-summary__list"><li></li></ul></div></div>';
-      errorSummary.querySelector('.govuk-error-summary__list li').textContent = message;
-      errorSummary.querySelector('.govuk-error-summary').focus();
-      stopCurrentStep();
-   }
-
-   // The warning goes in its own container, so the progress and web search offer sit between it and the briefing.
+   // The briefing goes in the blue panel between the two AI warnings, both already on the page.
    function renderBriefing(html) {
-      clearBriefing();
       var output = document.createElement('div');
       output.className = 'briefing-output';
       output.innerHTML = html;
-      outputContainer.appendChild(output);
-      var warning = document.getElementById('briefing-check-warning');
-      if (warning) {
-         warningContainer.appendChild(warning.content.cloneNode(true));
-      }
+      outputContainer.replaceChildren(output);
+      dateValue.textContent = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      copyRegion.hidden = false;
+      showResult(true);
    }
 
-   // The web search findings are shown apart from the briefing, below it: take the reader to them.
+   // The web search findings go under the briefing in the same panel, as Further context: take the reader to them.
    function renderWebSearchFindings(html) {
       var findings = document.createElement('div');
-      findings.className = 'briefing-output app-web-search-output';
+      findings.className = 'briefing-output';
       findings.innerHTML = html;
-      webSearchContainer.replaceChildren(findings);
+      webSearchOutput.replaceChildren(findings);
+      webSearchContainer.hidden = false;
+      webSearchSources.hidden = false;
 
-      var heading = findings.querySelector('h2');
-      if (heading) {
-         heading.setAttribute('tabindex', '-1');
-         heading.focus();
-         heading.scrollIntoView({ block: 'start' });
+      webSearchTitle.focus();
+      webSearchTitle.scrollIntoView({ block: 'start' });
+   }
+
+   // Copies what the panel shows - the summary, and the further context once there is some - with its headings and
+   // lists, and as plain text for apps that only take text.
+   copyButton.addEventListener('click', async function () {
+      if (!outputContainer.querySelector('.briefing-output')) {
+         return;
       }
-   }
 
-   function focusBriefing() {
-      var heading = outputContainer.querySelector('.briefing-output h1, .briefing-output h2');
-      heading?.setAttribute('tabindex', '-1');
-      heading?.focus();
-   }
+      var copied = document.createElement('div');
+      copied.append(outputContainer.cloneNode(true));
+      if (!webSearchContainer.hidden) {
+         copied.append(webSearchContainer.cloneNode(true));
+      }
 
-   webSearchNo.addEventListener('click', function () {
-      hideWebSearchOffer();
-      focusBriefing();
+      // innerText only follows the layout of an element on the page, so the copy is measured there, out of sight.
+      copied.className = 'govuk-visually-hidden';
+      document.body.append(copied);
+      var text = copied.innerText;
+      copied.remove();
+
+      try {
+         if (window.ClipboardItem && navigator.clipboard.write) {
+            await navigator.clipboard.write([new ClipboardItem({
+               'text/html': new Blob([copied.innerHTML], { type: 'text/html' }),
+               'text/plain': new Blob([text], { type: 'text/plain' })
+            })]);
+         } else {
+            await navigator.clipboard.writeText(text);
+         }
+         copyStatus.textContent = 'Summary copied';
+      } catch (error) {
+         console.error(error);
+         copyStatus.textContent = 'The summary could not be copied. Select the text and copy it instead.';
+      }
    });
 
    webSearchYes.addEventListener('click', async function () {
@@ -141,11 +230,17 @@ export function initBriefingProgress() {
       }
 
       hideWebSearchOffer();
-      errorSummary.innerHTML = '';
-      submitButton.disabled = true;
-      submitButton.setAttribute('aria-disabled', 'true');
-      startStatus('Searching the web...');
-      addStep('Searching local and national news for ' + request.schoolOrTrustName + '...');
+      clearErrorSummary();
+      startStatus(webSearchStatus, webSearchStatusList);
+      addStep(webSearchStatusList, 'Searching local and national news for ' + request.schoolOrTrustName + '...');
+
+      function showWebSearchError(message) {
+         stopCurrentStep(webSearchStatusList);
+         webSearchStatus.hidden = true;
+         showErrorSummary(message);
+         pendingWebSearch = request;
+         webSearchOffer.hidden = false;
+      }
 
       try {
          var token = form.querySelector('input[name="__RequestVerificationToken"]');
@@ -160,128 +255,84 @@ export function initBriefingProgress() {
          var result = await response.json().catch(function () { return {}; });
 
          if (!response.ok || typeof result.html !== 'string') {
-            showErrorSummary(result.error || 'Sorry, something went wrong searching the web. Your briefing is unchanged - please try again.');
-            pendingWebSearch = request;
-            webSearchOffer.hidden = false;
+            showWebSearchError(result.error || 'Sorry, something went wrong searching the web. Your summary is unchanged - please try again.');
             return;
          }
 
-         completeCurrentStep();
-         statusRegion.hidden = true;
+         completeCurrentStep(webSearchStatusList);
+         webSearchStatus.hidden = true;
          renderWebSearchFindings(result.html);
       } catch (error) {
-         // A network failure: the briefing on the page is untouched, so the person can simply try again.
+         // A network failure: the summary on the page is untouched, so the person can simply try again.
          console.error(error);
-         showErrorSummary('Sorry, something went wrong searching the web. Your briefing is unchanged - please try again.');
-         pendingWebSearch = request;
-         webSearchOffer.hidden = false;
-      } finally {
-         submitButton.disabled = false;
-         submitButton.removeAttribute('aria-disabled');
+         showWebSearchError('Sorry, something went wrong searching the web. Your summary is unchanged - please try again.');
       }
    });
 
-    // Clear any stale validation messages from a previous submission attempt, so that the user can see the new ones.
+   // Clear any stale validation messages from a previous attempt, so that the user can see the new ones - including
+   // the server's: the error summary and the checkbox's error message.
    function clearStaleValidation() {
-      errorSummary.innerHTML = '';
-      validationSummary.innerHTML = '';
-
-      form.querySelectorAll('[data-valmsg-for]').forEach(function (span) {
-         span.textContent = '';
-      });
-      form.querySelectorAll('.govuk-form-group--error').forEach(function (group) {
-         group.classList.remove('govuk-form-group--error');
-      });
-      form.querySelectorAll('.govuk-input--error').forEach(function (input) {
-         input.classList.remove('govuk-input--error');
-      });
+      clearErrorSummary();
+      disclaimerGroup.classList.remove('govuk-form-group--error');
+      document.getElementById('AcceptDisclaimer-error')?.remove();
+      disclaimerFieldset.removeAttribute('aria-describedby');
    }
 
-    // Validate the form fields and display any validation errors.
-   function validate(fields) {
-      var errors = fields.filter(function (field) {
-         return !field.field.value.trim();
-      });
-
-      errors.forEach(function (error) {
-         var group = error.field.closest('.govuk-form-group');
-         if (group) {
-            group.classList.add('govuk-form-group--error');
-         }
-         error.field.classList.add('govuk-input--error');
-         var messageSpan = form.querySelector('[data-valmsg-for="' + error.field.name + '"]');
-         if (messageSpan) {
-            messageSpan.textContent = error.message;
-         }
-      });
-
-      if (errors.length === 0) {
+   // The disclaimer must be accepted before a summary is generated - the same check the server makes without
+   // JavaScript. The error is marked up as the tag helper does it.
+   function validateDisclaimer() {
+      if (disclaimer.checked) {
          return true;
       }
 
-      validationSummary.innerHTML =
-         '<div class="govuk-error-summary" aria-labelledby="error-summary-title" role="alert" tabindex="-1" data-module="govuk-error-summary">' +
-         '<h2 class="govuk-error-summary__title" id="error-summary-title">There is a problem</h2>' +
-         '<div class="govuk-error-summary__body"><ul class="govuk-list govuk-error-summary__list"></ul></div></div>';
-      var list = validationSummary.querySelector('.govuk-error-summary__list');
-      errors.forEach(function (error) {
-         var item = document.createElement('li');
-         var link = document.createElement('a');
-         link.href = '#' + error.field.id;
-         link.textContent = error.message;
-         item.appendChild(link);
-         list.appendChild(item);
-      });
-      validationSummary.querySelector('.govuk-error-summary').focus();
+      var error = document.createElement('p');
+      error.id = 'AcceptDisclaimer-error';
+      error.className = 'govuk-error-message';
+      error.innerHTML = '<span class="govuk-visually-hidden">Error:</span> ';
+      error.append(disclaimerMessage);
+      disclaimerFieldset.querySelector('.govuk-checkboxes').before(error);
+      disclaimerGroup.classList.add('govuk-form-group--error');
+      disclaimerFieldset.setAttribute('aria-describedby', 'AcceptDisclaimer-error');
 
+      showErrorSummary(disclaimerMessage, 'AcceptDisclaimer');
       return false;
    }
 
-   form.addEventListener('submit', function (event) {
-      event.preventDefault();
-
-      var urnField = form.querySelector('[name="Input.SchoolUrnOrTrustTrn"]');
-      var nameField = form.querySelector('[name="Input.SchoolOrTrustName"]');
-
-      clearStaleValidation();
-
-      var isValid = validate([
-         { field: urnField, message: 'Enter the school URN or trust TRN' },
-         { field: nameField, message: 'Enter the school or trust name' }
-      ]);
-      if (!isValid) {
+   // Generates the summary, streaming its progress in; Re-generate runs the same again.
+   function generate() {
+      if (isGenerating) {
          return;
       }
 
+      isGenerating = true;
+      updateSubmitButton();
+      clearStaleValidation();
       clearBriefing();
-      clearButton.hidden = true;
-      hideWebSearchOffer();
-      startStatus('Generating briefing...');
-      submitButton.disabled = true;
-      submitButton.setAttribute('aria-disabled', 'true');
+      showSummary();
+      startStatus(statusRegion, statusList);
+      summaryTitle.focus();
 
-      var query = new URLSearchParams({
-         handler: 'Stream',
-         schoolUrnOrTrustTrn: urnField.value.trim(),
-         schoolOrTrustName: nameField.value.trim()
-      });
-
+      var query = new URLSearchParams({ handler: 'Stream', urnOrTrn: urnOrTrn });
       var source = new EventSource(window.location.pathname + '?' + query.toString());
       var offer = null;
 
       function finish() {
          source.close();
-         submitButton.disabled = false;
-         submitButton.removeAttribute('aria-disabled');
+         isGenerating = false;
+         updateSubmitButton();
       }
 
+      // The summary failed: back to the disclaimer, so the person can try again.
       function showError(message) {
+         stopCurrentStep(statusList);
+         statusRegion.hidden = true;
+         showGenerate();
          showErrorSummary(message);
          finish();
       }
 
       source.addEventListener('progress', function (e) {
-         addStep(e.data);
+         addStep(statusList, e.data);
       });
 
       // Arrives just before "complete": the briefing to send back if the person asks for a web search.
@@ -290,17 +341,17 @@ export function initBriefingProgress() {
       });
 
       source.addEventListener('complete', function (e) {
-         renderBriefing(e.data);
-         clearButton.hidden = false;
+         completeCurrentStep(statusList);
          statusRegion.hidden = true;
+         renderBriefing(e.data);
          finish();
 
-         // The offer sits below the briefing, so start the reader at the briefing, not the offer.
+         // The offer sits below the summary, so start the reader at the summary, not the offer.
          if (offer) {
             pendingWebSearch = offer;
             webSearchOffer.hidden = false;
-            focusBriefing();
          }
+         summaryTitle.focus();
       });
 
       source.addEventListener('error-message', function (e) {
@@ -311,7 +362,22 @@ export function initBriefingProgress() {
          if (source.readyState === EventSource.CLOSED) {
             return;
          }
-         showError('Sorry, something went wrong generating this briefing. Please try again.');
+         showError('Sorry, something went wrong generating this summary. Please try again.');
       };
+   }
+
+   form.addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      clearStaleValidation();
+      if (validateDisclaimer()) {
+         generate();
+      }
+   });
+
+   // The link goes back to the disclaimer without JavaScript; with it, the summary is generated again straight away.
+   regenerateLink.addEventListener('click', function (event) {
+      event.preventDefault();
+      generate();
    });
 }

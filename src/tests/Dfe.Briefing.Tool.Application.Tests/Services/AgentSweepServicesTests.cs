@@ -19,8 +19,12 @@ public sealed class AgentSweepServicesTests
     private readonly IAgentRuntimeService _agentRuntime = Substitute.For<IAgentRuntimeService>();
     private readonly IAgentFactory _agentFactory = Substitute.For<IAgentFactory>();
 
+    // A Sunday, and the Monday after it, in UTC.
+    private static readonly DateTimeOffset Sunday = new(2026, 11, 1, 1, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Monday = Sunday.AddDays(1);
+
     private AgentSweepService CreateSweep(bool orphanSweepEnabled = true, bool versionSweepEnabled = true,
-        int? keepLatestVersions = 3, int orphanMinimumAgeSeconds = 7200)
+        int? keepLatestVersions = 3, int orphanMinimumAgeSeconds = 7200, DayOfWeek? versionSweepDay = null, DateTimeOffset? now = null)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -32,11 +36,55 @@ public sealed class AgentSweepServicesTests
         {
             OrphanAgentSweepEnabled = orphanSweepEnabled,
             OrphanAgentMinimumAge = orphanMinimumAgeSeconds,
-            AgentVersionSweepEnabled = versionSweepEnabled
+            AgentVersionSweepEnabled = versionSweepEnabled,
+            AgentVersionSweepDay = versionSweepDay
         };
 
-        return new AgentSweepService(_agentRuntime, _agentFactory, configuration, options, TimeProvider.System,
+        var timeProvider = Substitute.For<TimeProvider>();
+        timeProvider.GetUtcNow().Returns(now ?? Sunday);
+
+        return new AgentSweepService(_agentRuntime, _agentFactory, configuration, options, timeProvider,
             NullLogger<AgentSweepService>.Instance);
+    }
+
+    [Fact]
+    public async Task AgentSweep_OnTheVersionSweepDay_RunsBothSweeps()
+    {
+        await CreateSweep(versionSweepDay: DayOfWeek.Sunday, now: Sunday).RunAsync(cancellationToken);
+
+        await _agentRuntime.Received(1).DeleteOrphanedEphemeralAgentsAsync(TimeSpan.FromHours(2), cancellationToken);
+        await _agentFactory.ReceivedWithAnyArgs(BriefingAgents.All.Length).PruneVersionsAsync(default!, default, cancellationToken);
+    }
+
+    [Fact]
+    public async Task AgentSweep_OnAnotherDay_OnlyDeletesOrphans()
+    {
+        await CreateSweep(versionSweepDay: DayOfWeek.Sunday, now: Monday).RunAsync(cancellationToken);
+
+        await _agentRuntime.Received(1).DeleteOrphanedEphemeralAgentsAsync(TimeSpan.FromHours(2), cancellationToken);
+        await _agentFactory.DidNotReceiveWithAnyArgs().PruneVersionsAsync(default!, default, cancellationToken);
+    }
+
+    [Theory]
+    [MemberData(nameof(EveryDay))]
+    public async Task AgentSweep_WithoutAVersionSweepDay_PrunesVersionsEveryDay(DateTimeOffset now)
+    {
+        await CreateSweep(versionSweepDay: null, now: now).RunAsync(cancellationToken);
+
+        await _agentFactory.ReceivedWithAnyArgs(BriefingAgents.All.Length).PruneVersionsAsync(default!, default, cancellationToken);
+    }
+
+    public static TheoryData<DateTimeOffset> EveryDay => [.. Enumerable.Range(0, 7).Select(days => Sunday.AddDays(days))];
+
+    [Fact]
+    public async Task AgentSweep_UsesTheUtcDay_NotTheLocalOne()
+    {
+        // 23:30 on Saturday in UTC is already Sunday an hour ahead, but the sweep runs on UTC's day.
+        var saturdayNightUtc = new DateTimeOffset(2026, 10, 31, 23, 30, 0, TimeSpan.Zero).ToOffset(TimeSpan.FromHours(1));
+
+        await CreateSweep(versionSweepDay: DayOfWeek.Sunday, now: saturdayNightUtc).RunAsync(cancellationToken);
+
+        await _agentFactory.DidNotReceiveWithAnyArgs().PruneVersionsAsync(default!, default, cancellationToken);
     }
 
     [Fact]

@@ -1,0 +1,30 @@
+@using Microsoft.AspNetCore.Mvc.ModelBinding
+@*
+    The one error summary every page uses, at the top of the page: each of the page's errors, linked to its field
+    (an error added for a property, such as UrnOrTrn) or not (one added for the page, with an empty key). Scripts
+    show their own errors in the same place - see showErrorSummary in briefing.js.
+*@
+@{
+    var errors = ViewData.ModelState
+        .SelectMany(state => (state.Value?.Errors ?? Enumerable.Empty<ModelError>()).Select(error => (Field: state.Key, error.ErrorMessage)))
+        .ToList();
+}
+
+<div id="error-summary">
+    @if (errors.Count > 0)
+    {
+        <govuk-error-summary>
+            @foreach (var (field, message) in errors)
+            {
+                if (field.Length == 0)
+                {
+                    <govuk-error-summary-item>@message</govuk-error-summary-item>
+                }
+                else
+                {
+                    <govuk-error-summary-item href="#@field.Replace(".", "_", StringComparison.Ordinal)">@message</govuk-error-summary-item>
+                }
+            }
+        </govuk-error-summary>
+    }
+</div>

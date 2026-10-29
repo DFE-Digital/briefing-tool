@@ -11,11 +11,9 @@ internal static class CommandNames
 /// <summary>Configuration keys and the files the gate reads.</summary>
 internal static class Settings
 {
-    public const string BriefingAppSettingsFile = "briefing.appsettings.json";
     public const string AppSettingsFile = "appsettings.json";
     public const string TestCasesDirectoryKey = "AiAgents:Evaluation:ReleaseGate:TestCasesDirectory";
     public const string RefusalPhrasesKey = "AiAgents:Evaluation:ReleaseGate:RefusalPhrases";
-    public const string ApplicationInsightsConnectionStringKey = "APPLICATIONINSIGHTS_CONNECTION_STRING";
     public const string PreparedCasesFolder = "briefing-release-gate";
 }
 
@@ -76,7 +74,6 @@ internal static class Outcomes
 /// </summary>
 internal static class Telemetry
 {
-    public const string ApplicationNameKey = "AiAgents:ApplicationName";
     public const string RoleInstance = "release-gate";
 
     // A folder name from a GUID: digits only, no hyphens.

@@ -10,6 +10,9 @@ namespace Dfe.Briefing.Tool.Application.Services.Base;
 /// <param name="logger">The logger used for job logging.</param>
 internal abstract partial class BaseBackgroundDailyJob(TimeProvider timeProvider, ILogger logger) : BackgroundService
 {
+    /// <summary>The clock the job runs by, for a job that also needs today's date or day.</summary>
+    protected TimeProvider TimeProvider { get; } = timeProvider;
+
     /// <summary>
     /// Name of the job, used in logging and diagnostics.
     /// </summary>
@@ -33,8 +36,8 @@ internal abstract partial class BaseBackgroundDailyJob(TimeProvider timeProvider
         {
             while (true)
             {
-                var delay = UntilNext(RunAt, timeProvider.GetUtcNow());
-                await Task.Delay(delay, timeProvider, stoppingToken);
+                var delay = UntilNext(RunAt, TimeProvider.GetUtcNow());
+                await Task.Delay(delay, TimeProvider, stoppingToken);
                 await RunAsync(stoppingToken);
             }
         }

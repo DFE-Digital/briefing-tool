@@ -13,7 +13,15 @@ namespace Dfe.Briefing.Tool.Web.Sanitization;
 /// </summary>
 public static partial class CitationReferenceFormatter
 {
-    public static string CollectReferences(string markdown)
+    /// <summary>The id prefix of the briefing's reference anchors, e.g. "reference-1".</summary>
+    public const string DefaultReferenceIdPrefix = "reference";
+
+    /// <param name="markdown">The agent's Markdown.</param>
+    /// <param name="referenceIdPrefix">
+    /// The prefix of the reference anchors' ids. Two documents on one page, such as the briefing and the web search
+    /// findings under it, each need their own, so a citation never jumps to the other's reference with the same number.
+    /// </param>
+    public static string CollectReferences(string markdown, string referenceIdPrefix = DefaultReferenceIdPrefix)
     {
         var references = new List<string>();
         var numberByKey = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -39,8 +47,8 @@ public static partial class CitationReferenceFormatter
         if (references.Count == 0)
             return WebAddresses.WithSchemes(markdown);
 
-        var items = references.Select((reference, index) => $"""<li id="reference-{index + 1}">{reference}</li>""");
-        return $"{WebAddresses.WithSchemes(GroupCitations(withMarkers))}\n\n## References\n\n<ol>\n{string.Join('\n', items)}\n</ol>\n";
+        var items = references.Select((reference, index) => $"""<li id="{referenceIdPrefix}-{index + 1}">{reference}</li>""");
+        return $"{WebAddresses.WithSchemes(GroupCitations(withMarkers, referenceIdPrefix))}\n\n## References\n\n<ol>\n{string.Join('\n', items)}\n</ol>\n";
     }
 
     // Placeholders for a citation's reference number, so citations side by side can be found and grouped.
@@ -50,11 +58,11 @@ public static partial class CitationReferenceFormatter
     // Citations written next to each other - "[A] [B]", "[A], [B]" or "[A] ([B])" - become one bracketed group,
     // "(11, 12)", rather than "11 12" or "11 (12)"; a single citation becomes "(11)", and a repeat within a group is
     // shown once.
-    private static string GroupCitations(string text)
+    private static string GroupCitations(string text, string referenceIdPrefix)
         => CitationGroupRegex().Replace(text, group =>
         {
             var numbers = MarkerRegex().Matches(group.Value).Select(marker => int.Parse(marker.Groups["n"].Value, System.Globalization.CultureInfo.InvariantCulture)).Distinct();
-            return "(" + string.Join(", ", numbers.Select(n => $"""<a href="#reference-{n}">{n}</a>""")) + ")";
+            return "(" + string.Join(", ", numbers.Select(n => $"""<a href="#{referenceIdPrefix}-{n}">{n}</a>""")) + ")";
         });
 
     // One citation, or a bracketed run of them, then any more separated by spaces, commas or semicolons.

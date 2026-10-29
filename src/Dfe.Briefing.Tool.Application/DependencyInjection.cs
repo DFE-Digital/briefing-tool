@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<IBriefingOrchestrator, BriefingOrchestrator>();
         services.AddScoped<IBriefingBuilder, BriefingBuilder>();
         services.AddScoped<IBriefingEvidenceProvider, BriefingEvidenceProvider>();
+        services.AddScoped<IBriefingSubjectFinder, BriefingSubjectFinder>();
 
         return services;
     }

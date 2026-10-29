@@ -11,9 +11,17 @@ Generates school and trust briefings for ministers from DfE records, using AI ag
 
 ## Set up
 
-Settings are in `src/Dfe.Briefing.Tool.Web/appsettings.json`. Put secrets in user secrets locally (right-click
-**Dfe.Briefing.Tool.Web**, **Manage User Secrets**), or environment variables elsewhere, e.g.
-`AiAgents__Authentication__ClientSecret`. The console tool uses the same settings and secrets.
+| File | Holds |
+| --- | --- |
+| `src/Dfe.Briefing.Tool.Infrastructure/appsettings.shared.json` | Shared by both apps: how the agents run (`AiAgents`), evidence limits, Application Insights |
+| `src/Dfe.Briefing.Tool.Web/appsettings.json` | Web app only: sign-in, agent sweep, logging, page links |
+| `src/Dfe.Briefing.Tool.ReleaseGate/appsettings.json` | Console tool only: evaluation and release gate, logging |
+
+Each app loads the shared file first, then its own, which can override any shared value. To give an app its own copy
+later, move the values into its `appsettings.json`.
+
+Put secrets in user secrets locally (right-click **Dfe.Briefing.Tool.Web**, **Manage User Secrets**), or environment
+variables elsewhere, e.g. `AiAgents__Authentication__ClientSecret`. The console tool uses the same secrets.
 
 | Setting | Needed for |
 | --- | --- |
@@ -49,10 +57,21 @@ With no console to ask in (e.g. in a pipeline), `dotnet run` runs the gate.
 
 | What builds up | Cleaned up by |
 | --- | --- |
-| Orphaned temporary agents (e.g. a web search agent a crash left behind) | **Orphan agent sweep**, part of the daily agent sweep in the web app |
-| Old versions of each agent (a new one on every prompt, model or guardrail change) | **Agent version sweep**, part of the daily agent sweep in the web app; and the library, whenever a new version is created |
+| Orphaned temporary agents (e.g. a web search agent a crash left behind) | **Orphan agent sweep**, part of the agent sweep in the web app, every day |
+| Old versions of each agent (a new one on every prompt, model or guardrail change) | **Agent version sweep**, part of the agent sweep in the web app, weekly; and the library, whenever a new version is created |
 
-The daily agent sweep runs at `Briefing:AgentSweepTime`: the orphan agent sweep first, then the agent version sweep.
+The agent sweep runs every day at `Briefing:AgentSweepTime`: the orphan agent sweep first, then - on
+`Briefing:AgentVersionSweepDay` - the agent version sweep. They differ because their agents do:
+
+- **Orphan agent sweep, every day.** Every run deletes its own temporary agent when it finishes, even when it fails, so one
+  is only left behind when the app stops mid-run (a deployment, restart or crash). The sweep is a single list call when
+  there's nothing to delete, and only deletes agents older than `Briefing:OrphanAgentMinimumAge`, so never one in use.
+- **Agent version sweep, weekly.** A new version is only made when an agent's prompt, model, tools or guardrail changes -
+  in practice, a deployment - so pruning every day almost always finds nothing. Old versions from a busy week wait for the
+  sweep day; the app always uses the version that matches the current agent.
+
+Each sweep logs what it did ("Orphan agent sweep deleted 0 orphaned agents", "Agent version sweep pruned 5 agents to their latest 2 versions"),
+so the schedule can be checked in Application Insights: an orphan sweep that deletes nothing for weeks could be weekly too.
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
@@ -61,7 +80,8 @@ The daily agent sweep runs at `Briefing:AgentSweepTime`: the orphan agent sweep 
 | `Briefing:OrphanAgentMinimumAge` | `7200` | Seconds a temporary agent must be old before it's deleted. At least `AiAgents:RunTimeout` plus 90; less is refused and logged as an error |
 | `AiAgents:RunTimeout` | `1800` | Seconds one agent run may take (library default 300). The orphan agent sweep needs it |
 | `Briefing:AgentVersionSweepEnabled` | `true` | Runs the agent version sweep |
-| `AiAgents:KeepLatestVersions` | `3` | Versions kept per agent |
+| `Briefing:AgentVersionSweepDay` | `Sunday` in the web app; none in code | The day of the week (UTC) the agent version sweep runs on. Without one, it runs every day |
+| `AiAgents:KeepLatestVersions` | `2` | Versions kept per agent |
 | `AiAgents:ProtectedVersions` | none | Versions never deleted, e.g. `{ "synthesis-agent": [ "4" ] }` |
 
 > **Note:**

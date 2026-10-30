@@ -70,13 +70,7 @@
                 }
             </div>
 
-            @* The web search findings, under the briefing in the same panel - see renderWebSearchFindings in briefing.js. *@
-            <div id="web-search-output-container" class="app-web-search-output" hidden>
-                <h2 class="govuk-heading-m" id="web-search-title" tabindex="-1">Further context</h2>
-                <div id="web-search-output"></div>
-            </div>
-
-            @* Shown by briefing.js: copying needs JavaScript. It copies the briefing and the further context. *@
+            @* Shown by briefing.js: copying needs JavaScript. *@
             <p class="govuk-body govuk-!-margin-bottom-0" id="briefing-copy" hidden>
                 <button type="button" class="app-link-button govuk-link" id="briefing-copy-button">Copy this summary to clipboard</button>
                 <output id="briefing-copy-status" class="govuk-!-margin-left-2"></output>
@@ -86,15 +80,21 @@
         <partial name="_BriefingCheckWarning" />
     </div>
 
-    @* Offered at the end of a summary: the web search only runs if the person chooses it - see briefing.js. *@
-    <div id="web-search-offer" class="govuk-!-margin-top-6" hidden>
+    @* Offered at the end of a summary: the web search only runs if the person chooses it. briefing.js runs it in place;
+       without JavaScript, the form sends the briefing back to run it, as nothing is kept on the server. *@
+    <form method="post" asp-page-handler="MoreInformation" novalidate id="web-search-offer" class="govuk-!-margin-top-6" hidden="@(!Model.CanSearchWeb)">
+        <input type="hidden" name="Type" value="@Model.Type" />
+        <input type="hidden" name="UrnOrTrn" value="@subject.UrnOrTrn" />
+        <input type="hidden" name="Briefing" value="@Model.Briefing" />
+        <input type="hidden" name="City" value="@Model.City" />
+
         <h2 class="govuk-heading-s" id="web-search-offer-title" tabindex="-1">Would you like to see more information?</h2>
         <p class="govuk-body">
             The Briefing Tool can also search for information about this @Model.SubjectNoun online. These will be
             separate results from the last search.
         </p>
-        <govuk-button type="button" id="web-search-yes">Generate</govuk-button>
-    </div>
+        <govuk-button type="submit" id="web-search-yes">Generate</govuk-button>
+    </form>
 
     @* Progress while the web search runs, below the offer it replaces. *@
     <div id="web-search-status" class="app-briefing-status" hidden>
@@ -106,6 +106,28 @@
         </h2>
         <ul id="web-search-status-list" class="govuk-list app-briefing-status__list" role="log" aria-live="polite"></ul>
     </div>
+
+    @* The web search findings, in a panel of their own under the summary's last AI warning - see
+       renderWebSearchFindings in briefing.js. *@
+    <section id="web-search-result" class="app-briefing-panel app-web-search-output" aria-labelledby="web-search-title"
+             hidden="@(Model.WebSearchOutput is null)">
+        <h2 class="govuk-heading-s" id="web-search-title" tabindex="-1">Further context</h2>
+
+        <div id="web-search-output">
+            @if (Model.WebSearchOutput is not null)
+            {
+                <div class="briefing-output">
+                    @Html.Raw(Model.WebSearchOutput)
+                </div>
+            }
+        </div>
+
+        @* Shown by briefing.js: copying needs JavaScript. *@
+        <p class="govuk-body govuk-!-margin-bottom-0" id="web-search-copy" hidden>
+            <button type="button" class="app-link-button govuk-link" id="web-search-copy-button">Copy this summary to clipboard</button>
+            <output id="web-search-copy-status" class="govuk-!-margin-left-2"></output>
+        </p>
+    </section>
 
     <div id="briefing-sources" hidden="@(!hasBriefing)">
         <partial name="_InformationSources" model="Model" />

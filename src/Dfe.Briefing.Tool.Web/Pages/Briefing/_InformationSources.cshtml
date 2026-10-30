@@ -30,8 +30,8 @@
             <li>All information was taken from Get information about schools@(onDate)</li>
         </ul>
 
-        @* Shown by briefing.js once the web search has run. *@
-        <div id="web-search-sources" hidden>
+        @* Shown once the web search has run: by briefing.js, or by the page without JavaScript. *@
+        <div id="web-search-sources" hidden="@(Model.WebSearchOutput is null)">
             <h3 class="govuk-heading-s">Further context</h3>
             <ul class="govuk-list govuk-list--bullet">
                 <li>The website was taken from Get information about schools@(onDate)</li>

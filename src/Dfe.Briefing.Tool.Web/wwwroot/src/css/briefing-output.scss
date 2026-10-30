@@ -89,17 +89,34 @@
   }
 }
 
-// Web search findings, under the briefing in the same panel as Further context. Its sections (Website, then News and
+// Web search findings, in their own Further context panel under the summary's. Its sections (Website, then News and
 // media coverage) are numbered, as in the designs; the numbers aren't in the Markdown, so copying it stays clean.
+// Its headings are all the panel heading's size, and each section's text is set in under its numbered heading.
 .app-web-search-output {
-  margin-top: govuk-spacing(6);
-  padding-top: govuk-spacing(4);
-  border-top: 2px solid govuk-colour("mid-grey");
   counter-reset: app-web-search-section;
 
-  .briefing-output h3::before {
-    counter-increment: app-web-search-section;
-    content: counter(app-web-search-section) ". ";
+  .briefing-output {
+    h2,
+    h3 {
+      @include govuk-font(19, $weight: bold);
+      margin-top: 0;
+      @include govuk-responsive-margin(2, "bottom");
+    }
+
+    h2 {
+      @include govuk-responsive-margin(4, "bottom");
+    }
+
+    h3::before {
+      counter-increment: app-web-search-section;
+      content: counter(app-web-search-section) ". ";
+    }
+
+    p,
+    ul,
+    ol {
+      margin-left: govuk-spacing(4);
+    }
   }
 }
 
@@ -210,7 +227,7 @@
   color: govuk-colour("white");
 }
 
-// The light blue panels on the generate and summary pages: the AI disclaimer, and the summary itself.
+// The light blue panels on the generate and summary pages: the AI disclaimer, the summary and its further context.
 $app-panel-colour: govuk-tint(govuk-colour("blue"), 80%);
 
 .app-disclaimer {

@@ -79,6 +79,36 @@ function clearErrorSummary() {
    document.getElementById('error-summary').innerHTML = '';
 }
 
+// Copies what an output shows, with its headings and lists, and as plain text for apps that only take text.
+async function copyOutput(output, status, copiedMessage) {
+   if (!output.querySelector('.briefing-output')) {
+      return;
+   }
+
+   // innerText only follows the layout of an element on the page, so the copy is measured there, out of sight.
+   var copied = output.cloneNode(true);
+   copied.removeAttribute('id');
+   copied.className = 'govuk-visually-hidden';
+   document.body.append(copied);
+   var text = copied.innerText;
+   copied.remove();
+
+   try {
+      if (window.ClipboardItem && navigator.clipboard.write) {
+         await navigator.clipboard.write([new ClipboardItem({
+            'text/html': new Blob([copied.innerHTML], { type: 'text/html' }),
+            'text/plain': new Blob([text], { type: 'text/plain' })
+         })]);
+      } else {
+         await navigator.clipboard.writeText(text);
+      }
+      status.textContent = copiedMessage;
+   } catch (error) {
+      console.error(error);
+      status.textContent = 'This could not be copied. Select the text and copy it instead.';
+   }
+}
+
 export function initBriefingProgress() {
    var form = document.getElementById('briefing-form');
    if (!form || window.EventSource === undefined) {
@@ -91,8 +121,6 @@ export function initBriefingProgress() {
    var generateSection = document.getElementById('briefing-generate');
    var summarySection = document.getElementById('briefing-summary');
    var summaryTitle = document.getElementById('briefing-summary-title');
-   var dateRow = document.getElementById('briefing-date-row');
-   var dateValue = document.getElementById('briefing-date');
    var resultRegion = document.getElementById('briefing-result');
    var sourcesRegion = document.getElementById('briefing-sources');
    var statusRegion = document.getElementById('briefing-status');
@@ -102,11 +130,13 @@ export function initBriefingProgress() {
    var copyButton = document.getElementById('briefing-copy-button');
    var copyStatus = document.getElementById('briefing-copy-status');
    var webSearchOffer = document.getElementById('web-search-offer');
-   var webSearchYes = document.getElementById('web-search-yes');
    var webSearchStatus = document.getElementById('web-search-status');
    var webSearchStatusList = document.getElementById('web-search-status-list');
-   var webSearchContainer = document.getElementById('web-search-output-container');
+   var webSearchResult = document.getElementById('web-search-result');
    var webSearchOutput = document.getElementById('web-search-output');
+   var webSearchCopy = document.getElementById('web-search-copy');
+   var webSearchCopyButton = document.getElementById('web-search-copy-button');
+   var webSearchCopyStatus = document.getElementById('web-search-copy-status');
    var webSearchTitle = document.getElementById('web-search-title');
    var webSearchSources = document.getElementById('web-search-sources');
    var disclaimer = document.getElementById('AcceptDisclaimer');
@@ -147,13 +177,13 @@ export function initBriefingProgress() {
 
    function showResult(isShown) {
       resultRegion.hidden = !isShown;
-      dateRow.hidden = !isShown;
       sourcesRegion.hidden = !isShown;
    }
 
    function clearWebSearch() {
       webSearchOutput.innerHTML = '';
-      webSearchContainer.hidden = true;
+      webSearchCopyStatus.textContent = '';
+      webSearchResult.hidden = true;
       webSearchSources.hidden = true;
    }
 
@@ -172,64 +202,44 @@ export function initBriefingProgress() {
       output.className = 'briefing-output';
       output.innerHTML = html;
       outputContainer.replaceChildren(output);
-      dateValue.textContent = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
       copyRegion.hidden = false;
       showResult(true);
    }
 
-   // The web search findings go under the briefing in the same panel, as Further context: take the reader to them.
+   // The web search findings go in their own Further context section under the summary: take the reader to them.
    function renderWebSearchFindings(html) {
       var findings = document.createElement('div');
       findings.className = 'briefing-output';
       findings.innerHTML = html;
       webSearchOutput.replaceChildren(findings);
-      webSearchContainer.hidden = false;
+      webSearchCopy.hidden = false;
+      webSearchResult.hidden = false;
       webSearchSources.hidden = false;
 
       webSearchTitle.focus();
       webSearchTitle.scrollIntoView({ block: 'start' });
    }
 
-   // Copies what the panel shows - the summary, and the further context once there is some - with its headings and
-   // lists, and as plain text for apps that only take text.
-   copyButton.addEventListener('click', async function () {
-      if (!outputContainer.querySelector('.briefing-output')) {
-         return;
-      }
-
-      var copied = document.createElement('div');
-      copied.append(outputContainer.cloneNode(true));
-      if (!webSearchContainer.hidden) {
-         copied.append(webSearchContainer.cloneNode(true));
-      }
-
-      // innerText only follows the layout of an element on the page, so the copy is measured there, out of sight.
-      copied.className = 'govuk-visually-hidden';
-      document.body.append(copied);
-      var text = copied.innerText;
-      copied.remove();
-
-      try {
-         if (window.ClipboardItem && navigator.clipboard.write) {
-            await navigator.clipboard.write([new ClipboardItem({
-               'text/html': new Blob([copied.innerHTML], { type: 'text/html' }),
-               'text/plain': new Blob([text], { type: 'text/plain' })
-            })]);
-         } else {
-            await navigator.clipboard.writeText(text);
-         }
-         copyStatus.textContent = 'Summary copied';
-      } catch (error) {
-         console.error(error);
-         copyStatus.textContent = 'The summary could not be copied. Select the text and copy it instead.';
-      }
+   // Each section copies only its own output: the summary, or its further context.
+   copyButton.addEventListener('click', function () {
+      copyOutput(outputContainer, copyStatus, 'Summary copied');
    });
 
-   webSearchYes.addEventListener('click', async function () {
+   webSearchCopyButton.addEventListener('click', function () {
+      copyOutput(webSearchOutput, webSearchCopyStatus, 'Further context copied');
+   });
+
+   // Copying needs JavaScript, so a summary or further context already on the page gets its copy link now.
+   copyRegion.hidden = !outputContainer.querySelector('.briefing-output');
+   webSearchCopy.hidden = !webSearchOutput.querySelector('.briefing-output');
+
+   // Without a briefing streamed in here, the offer's form sends back the one the page was given, as without JavaScript.
+   webSearchOffer.addEventListener('submit', async function (event) {
       var request = pendingWebSearch;
       if (!request) {
          return;
       }
+      event.preventDefault();
 
       hideWebSearchOffer();
       clearErrorSummary();

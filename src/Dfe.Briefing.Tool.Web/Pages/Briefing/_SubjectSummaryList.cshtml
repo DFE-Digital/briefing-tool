@@ -25,9 +25,9 @@
     @if (summary is not null)
     {
         @* Without JavaScript, Re-generate goes back to the disclaimer to generate again; briefing.js runs it straight away. *@
-        <govuk-summary-list-row id="briefing-date-row" hidden="@(summary.GeneratedAt is null)">
+        <govuk-summary-list-row>
             <govuk-summary-list-row-key>Date of last summary</govuk-summary-list-row-key>
-            <govuk-summary-list-row-value><span id="briefing-date">@summary.GeneratedAt?.ToString("d MMMM yyyy")</span></govuk-summary-list-row-value>
+            <govuk-summary-list-row-value>@summary.SummaryDate.ToString("d MMMM yyyy")</govuk-summary-list-row-value>
             <govuk-summary-list-row-actions>
                 <govuk-summary-list-row-action href="@Url.Page("Summary", new { type = subjectPage.Type, urnOrTrn = subject.UrnOrTrn })" id="briefing-regenerate"
                                                visually-hidden-text="the summary">Re-generate</govuk-summary-list-row-action>

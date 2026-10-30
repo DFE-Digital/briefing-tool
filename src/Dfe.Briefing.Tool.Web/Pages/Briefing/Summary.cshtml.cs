@@ -11,7 +11,8 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
 {
     /// <summary>
     /// The last step: the person accepts the AI disclaimer and generates the Briefing Tool summary of the school or trust
-    /// they confirmed. The briefing streams in through <see cref="OnGetStreamAsync"/>; <see cref="OnPostAsync"/> is the
+    /// they confirmed. The briefing streams in through <see cref="OnGetStreamAsync"/>, and the web search runs through
+    /// <see cref="OnPostWebSearchAsync"/>; <see cref="OnPostAsync"/> and <see cref="OnPostMoreInformationAsync"/> are the
     /// same without JavaScript.
     /// </summary>
     public class SummaryModel(IBriefingOrchestrator briefingOrchestrator, IBriefingSubjectFinder subjectFinder,
@@ -24,8 +25,24 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
 
         public string? BriefingOutput { get; private set; }
 
-        /// <summary>When <see cref="BriefingOutput"/> was generated, shown as the date of the last summary.</summary>
-        public DateTime? GeneratedAt { get; private set; }
+        /// <summary>
+        /// Without JavaScript, the briefing's Markdown, kept in the web search offer's form so the web search can use it as
+        /// evidence: nothing is kept on the server between requests.
+        /// </summary>
+        [BindProperty]
+        public string? Briefing { get; set; }
+
+        /// <summary>Without JavaScript, the city the briefing found, kept in the offer's form with the briefing.</summary>
+        [BindProperty]
+        public string? City { get; set; }
+
+        /// <summary>Whether the briefing can be searched for more information, so the web search is offered.</summary>
+        public bool CanSearchWeb { get; private set; }
+
+        public string? WebSearchOutput { get; private set; }
+
+        /// <summary>Shown as the date of the last summary: today's, as the summary is generated when the page is shown.</summary>
+        public DateTime SummaryDate { get; } = DateTime.Now;
 
         public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
             => await LoadSubjectAsync(cancellationToken) ? Page() : RedirectToStart();
@@ -45,7 +62,7 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
             {
                 var result = await briefingOrchestrator.GetBriefing(Subject!.ToParameters(), cancellationToken: cancellationToken);
                 BriefingOutput = BriefingHtmlSanitizer.Sanitize(result.Output);
-                GeneratedAt = DateTime.Now;
+                OfferWebSearch(result.Output, result.City);
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
@@ -118,10 +135,9 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
         public async Task<IActionResult> OnPostWebSearchAsync([FromBody] WebSearchRequest? request, CancellationToken cancellationToken)
         {
             if (request is null || string.IsNullOrWhiteSpace(request.SchoolUrnOrTrustTrn) || string.IsNullOrWhiteSpace(request.SchoolOrTrustName)
-                || string.IsNullOrWhiteSpace(request.Briefing) || request.Briefing.Length > MaxBriefingCharacters
-                || !briefingOrchestrator.CanAddWebSearchFindings(request.Briefing))
+                || !CanBeSearched(request.Briefing))
             {
-                return BadRequest(new { error = "This summary can't be searched for more information. Generate it again and try once more." });
+                return BadRequest(new { error = BriefingNotSearchable });
             }
 
             try
@@ -138,12 +154,60 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 logger.LogError(ex, "Failed to search the web for {SchoolOrTrustName}", request.SchoolOrTrustName);
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { error = "Sorry, something went wrong searching the web. Your summary is unchanged - please try again." });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { error = WebSearchFailed });
             }
         }
 
-        // The web search findings sit under the briefing in one panel, so their references need ids of their own.
+        /// <summary>
+        /// The web search without JavaScript: the offer's form sends back the briefing, which is shown again with the web
+        /// search findings under it.
+        /// </summary>
+        public async Task<IActionResult> OnPostMoreInformationAsync(CancellationToken cancellationToken)
+        {
+            if (!await LoadSubjectAsync(cancellationToken))
+                return RedirectToStart();
+
+            if (!CanBeSearched(Briefing))
+            {
+                ModelState.AddModelError(string.Empty, BriefingNotSearchable);
+                return Page();
+            }
+
+            BriefingOutput = BriefingHtmlSanitizer.Sanitize(Briefing);
+            try
+            {
+                var result = await briefingOrchestrator.GetWebSearchFindings(Subject!.ToParameters(), Briefing!, City, Subject.Website, cancellationToken);
+                WebSearchOutput = BriefingHtmlSanitizer.Sanitize(result.Output, WebSearchReferenceIdPrefix) ?? string.Empty;
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                logger.LogError(ex, "Failed to search the web for {SchoolOrTrustName}", Subject!.Name);
+                ModelState.AddModelError(string.Empty, WebSearchFailed);
+                OfferWebSearch(Briefing, City);
+            }
+
+            return Page();
+        }
+
+        private const string BriefingNotSearchable = "This summary can't be searched for more information. Generate it again and try once more.";
+        private const string WebSearchFailed = "Sorry, something went wrong searching the web. Your summary is unchanged - please try again.";
+
+        private bool CanBeSearched(string? briefing)
+            => !string.IsNullOrWhiteSpace(briefing) && briefing.Length <= MaxBriefingCharacters
+               && briefingOrchestrator.CanAddWebSearchFindings(briefing);
+
+        // Without JavaScript, the offer's form keeps the briefing and its city for the web search.
+        private void OfferWebSearch(string? briefing, string? city)
+        {
+            if (briefing is null || !briefingOrchestrator.CanAddWebSearchFindings(briefing))
+                return;
+
+            Briefing = briefing;
+            City = city;
+            CanSearchWeb = true;
+        }
+
+        // The web search findings are on the same page as the briefing, so their references need ids of their own.
         private const string WebSearchReferenceIdPrefix = "web-reference";
 
         // A briefing is well under this; the limit stops an oversized request being sent to the web search agent.

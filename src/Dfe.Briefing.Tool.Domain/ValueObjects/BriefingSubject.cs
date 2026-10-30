@@ -9,5 +9,5 @@ namespace Dfe.Briefing.Tool.Domain.ValueObjects;
 /// <param name="RecordDate">When the record was last updated at its source, Get information about schools, if it says.</param>
 public record BriefingSubject(string UrnOrTrn, string Name, bool IsTrust, string? Region, string? Website = null, DateOnly? RecordDate = null)
 {
-    public BriefingParameters ToParameters() => new(UrnOrTrn, Name);
+    public BriefingParameters ToParameters() => new(UrnOrTrn, Name, IsTrust);
 }

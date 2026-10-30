@@ -90,7 +90,7 @@ internal static class ExportCopilotStudioCommand
         var name = ReadText(subject, TestCaseFields.SubjectName) ?? throw new InvalidDataException(TestCaseErrors.SubjectNeeds(relativePath, TestCaseFields.SubjectName));
         var urnOrTrn = ReadText(subject, TestCaseFields.SubjectUrnOrTrn) ?? throw new InvalidDataException(TestCaseErrors.SubjectNeeds(relativePath, TestCaseFields.SubjectUrnOrTrn));
 
-        var identifier = new BriefingParameters(urnOrTrn, name).IsTrust ? "TRN" : "URN";
+        var identifier = BriefingParameters.FromReference(urnOrTrn, name).IsTrust ? "TRN" : "URN";
         return $"{name} ({identifier} {urnOrTrn})";
     }
 

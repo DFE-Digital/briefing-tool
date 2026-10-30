@@ -181,11 +181,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.5" /> 
     <PackageReference Include="Azure.Identity" Version="1.21.0" ExcludeAssets="compile" />
     <PackageReference Include="GovUk.Frontend.AspNetCore" Version="5.1.0" />
     <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
-    <PackageReference Include="Markdig" Version="1.5.0" />
+    <PackageReference Include="Markdig" Version="1.5.1" />
     <PackageReference Include="Microsoft.Identity.Web" Version="4.16.1" />
     <!-- Overrides the vulnerable 10.0.10 that Microsoft.Identity.Web.TokenCache 4.16.0 brings in (GHSA-846f-f764-76mx). -->
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />

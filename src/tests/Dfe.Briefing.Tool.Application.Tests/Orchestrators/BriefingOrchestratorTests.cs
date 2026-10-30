@@ -116,7 +116,7 @@ public sealed class BriefingOrchestratorTests
         _contextRetriever.GetContextAsync(EvidenceCategory.Establishment, Arg.Any<string>(), Arg.Any<int>(), Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new ContextResult("No Establishment information found.", HasEvidence: false)));
 
-        var parameters = new BriefingParameters("123456", "Test Academy");
+        var parameters = new BriefingParameters("123456", "Test Academy", IsTrust: false);
 
         var result = await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
 
@@ -133,7 +133,7 @@ public sealed class BriefingOrchestratorTests
         _contextRetriever.GetContextAsync(EvidenceCategory.Trust, Arg.Any<string>(), Arg.Any<int>(), Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new ContextResult("No Trust information found.", HasEvidence: false)));
 
-        var parameters = new BriefingParameters("TR12345", "Test Trust");
+        var parameters = new BriefingParameters("TR12345", "Test Trust", IsTrust: true);
 
         var result = await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
 
@@ -147,7 +147,7 @@ public sealed class BriefingOrchestratorTests
         var sut = CreateSut();
         SetUpParallelFailure(d => DefinitionsAre(d, EstablishmentName), new InvalidOperationException("establishment-agent failed"));
 
-        var parameters = new BriefingParameters("123456", "Test Academy");
+        var parameters = new BriefingParameters("123456", "Test Academy", IsTrust: false);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => sut.GetBriefing(parameters, cancellationToken: cancellationToken));
     }
@@ -170,7 +170,7 @@ public sealed class BriefingOrchestratorTests
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<AgentResult>>([Result(RecastConcernsName, "recast-output", 10), Result(TrustName, "trust-output", 10)]));
 
-        var parameters = new BriefingParameters("123456", "Test Academy");
+        var parameters = new BriefingParameters("123456", "Test Academy", IsTrust: false);
 
         await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
 
@@ -196,7 +196,7 @@ public sealed class BriefingOrchestratorTests
         SetUpParallelResult(d => DefinitionsAre(d, EstablishmentName), Result(EstablishmentName, "establishment-output", 10));
         SetUpParallelResult(d => DefinitionsAre(d, RecastConcernsName), Result(RecastConcernsName, "recast-output", 10));
 
-        var parameters = new BriefingParameters("123456", "Test Academy");
+        var parameters = new BriefingParameters("123456", "Test Academy", IsTrust: false);
 
         var result = await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
 
@@ -212,7 +212,7 @@ public sealed class BriefingOrchestratorTests
         _agentService.RunAsync(Arg.Is<AgentDefinition>(d => d.Name == SynthesisName), Arg.Any<string>(), Arg.Any<AgentEvidence?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(Result(SynthesisName, "# Test Academy\n\n## School summary\n\nRated Good.\n\n## More background information\n\n1. Website\n", 10)));
 
-        var result = await sut.GetBriefing(new BriefingParameters("123456", "Test Academy"), cancellationToken: cancellationToken);
+        var result = await sut.GetBriefing(new BriefingParameters("123456", "Test Academy", IsTrust: false), cancellationToken: cancellationToken);
 
         await _agentRuntime.DidNotReceiveWithAnyArgs().RunEphemeralAsync(default!, default!, cancellationToken: cancellationToken);
         Assert.DoesNotContain("More background information", result.Output, StringComparison.Ordinal);
@@ -235,7 +235,7 @@ public sealed class BriefingOrchestratorTests
         SetUpWebSearchResult(Result(WebSearchName, "- 20 August 2026: Record results. [The Star](https://www.thestar.co.uk/a-1)", 10));
         const string briefing = "# Test Academy\n\n## School summary\n\nRated Good. [Test Academy 123456 Academy converter]";
 
-        await sut.GetWebSearchFindings(new BriefingParameters("123456", "Test Academy"), briefing, "Coventry", website: null, cancellationToken);
+        await sut.GetWebSearchFindings(new BriefingParameters("123456", "Test Academy", IsTrust: false), briefing, "Coventry", website: null, cancellationToken);
 
         await _agentRuntime.Received(1).RunEphemeralAsync(
             Arg.Any<AgentSpec>(), Arg.Is<string>(prompt => prompt.Contains("Coventry", StringComparison.Ordinal)), Arg.Any<ToolCallResolver?>(),
@@ -250,7 +250,7 @@ public sealed class BriefingOrchestratorTests
         SetUpWebSearchResult(Result(WebSearchName, "## Web search findings\n\n- 20 August 2026: Record results. [The Star](https://www.thestar.co.uk/a-1)", 15));
         const string briefing = "# Test Academy\n\n## School summary\n\nRated Good.\n\n## Financial health\n\n- Not available.\n";
 
-        var result = await sut.GetWebSearchFindings(new BriefingParameters("123456", "Test Academy"), briefing, city: null, website: null, cancellationToken);
+        var result = await sut.GetWebSearchFindings(new BriefingParameters("123456", "Test Academy", IsTrust: false), briefing, city: null, website: null, cancellationToken);
 
         Assert.Equal("## More background information\n\n### News and media coverage\n\n- 20 August 2026: Record results. [The Star](https://www.thestar.co.uk/a-1)\n", result.Output);
         Assert.Equal(15, result.TotalTokens);
@@ -266,7 +266,7 @@ public sealed class BriefingOrchestratorTests
             Result(EstablishmentName, "# Test Academy\n\nSome findings.\n{{city: Coventry}}", 10));
         SetUpParallelResult(d => DefinitionsAre(d, RecastConcernsName, TrustName), Result(RecastConcernsName, "recast-output", 10), Result(TrustName, "trust-output", 10));
 
-        var parameters = new BriefingParameters("123456", "Test Academy");
+        var parameters = new BriefingParameters("123456", "Test Academy", IsTrust: false);
 
         await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
 
@@ -285,7 +285,7 @@ public sealed class BriefingOrchestratorTests
             Result(EstablishmentName, "## About the trust\n\nEstablishment findings.\n{{city: Coventry}}", 10),
             Result(RecastConcernsName, "recast-output", 10));
 
-        var parameters = new BriefingParameters("TR12345", "Test Trust");
+        var parameters = new BriefingParameters("TR12345", "Test Trust", IsTrust: true);
 
         await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
 
@@ -303,7 +303,7 @@ public sealed class BriefingOrchestratorTests
             Result(EstablishmentName, "# Test Academy\n\nSome findings.\n{{city: Coventry}}", 10));
         SetUpParallelResult(d => DefinitionsAre(d, RecastConcernsName, TrustName), Result(RecastConcernsName, "recast-output", 10), Result(TrustName, "trust-output", 10));
 
-        var result = await sut.GetBriefing(new BriefingParameters("123456", "Test Academy"), cancellationToken: cancellationToken);
+        var result = await sut.GetBriefing(new BriefingParameters("123456", "Test Academy", IsTrust: false), cancellationToken: cancellationToken);
 
         Assert.Equal("Coventry", result.City);
     }
@@ -314,7 +314,7 @@ public sealed class BriefingOrchestratorTests
         var sut = CreateSut();
         SetUpDefaultSpecialistResults();
 
-        var parameters = new BriefingParameters("123456", "Test Academy");
+        var parameters = new BriefingParameters("123456", "Test Academy", IsTrust: false);
 
         await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
 
@@ -329,7 +329,7 @@ public sealed class BriefingOrchestratorTests
         var sut = CreateSut();
         SetUpDefaultSpecialistResults();
 
-        var parameters = new BriefingParameters("123456", "Test Academy");
+        var parameters = new BriefingParameters("123456", "Test Academy", IsTrust: false);
 
         await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
 
@@ -353,7 +353,7 @@ public sealed class BriefingOrchestratorTests
         _agentService.RunAsync(Arg.Is<AgentDefinition>(d => d.Name == SynthesisName), Arg.Any<string>(), Arg.Any<AgentEvidence?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(Result(SynthesisName, "final-briefing", 25)));
 
-        var result = await sut.GetBriefing(new BriefingParameters("123456", "Test Academy"), cancellationToken: cancellationToken);
+        var result = await sut.GetBriefing(new BriefingParameters("123456", "Test Academy", IsTrust: false), cancellationToken: cancellationToken);
 
         Assert.Equal(195, result.TotalTokens);
     }
@@ -368,7 +368,7 @@ public sealed class BriefingOrchestratorTests
             Result(TrustName, "trust-output", 10),
             Result(RiseConcernsName, "rise-output", 10));
 
-        var parameters = new BriefingParameters("123456", "Test Academy");
+        var parameters = new BriefingParameters("123456", "Test Academy", IsTrust: false);
 
         var result = await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
 

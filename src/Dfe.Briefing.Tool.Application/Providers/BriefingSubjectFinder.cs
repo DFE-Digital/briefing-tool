@@ -34,13 +34,11 @@ internal sealed partial class BriefingSubjectFinder(IContextRetriever contextRet
     // The evidence writes dates as yyyy-mm-dd; GIAS's own exports use dd-mm-yyyy.
     private static readonly string[] DateFormats = ["yyyy-MM-dd", "dd-MM-yyyy", "dd/MM/yyyy"];
 
-    public async Task<BriefingSubject?> FindAsync(string urnOrTrn, CancellationToken cancellationToken)
+    public async Task<BriefingSubject?> FindAsync(string urnOrTrn, bool isTrust, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(urnOrTrn);
 
         var reference = urnOrTrn.Trim().ToUpperInvariant();
-        var isTrust = new BriefingParameters(reference, reference).IsTrust;
-
         var record = isTrust
             ? await contextRetriever.GetContextAsync(EvidenceCategory.Trust, MatchAll, 1, $"trust_reference_number eq {reference}", cancellationToken)
             : await contextRetriever.GetContextAsync(EvidenceCategory.Establishment, MatchAll, 1, $"establishment_urn eq {reference}", cancellationToken);
@@ -52,16 +50,13 @@ internal sealed partial class BriefingSubjectFinder(IContextRetriever contextRet
     {
         ArgumentNullException.ThrowIfNull(text);
 
-        // A URN or TRN says what it is, so it finds a school or a trust whichever the person chose to search for.
+        // Only the chosen kind is searched: a trust's TRN, whole or its start, or a school's URN. Anything else is a name.
         var reference = WhitespaceRegex().Replace(text, string.Empty).ToUpperInvariant();
-        if (ReferenceRegex().IsMatch(reference))
-            return await FindAsync(reference, cancellationToken) is { } subject ? [subject] : [];
+        if ((isTrust ? TrnRegex() : UrnRegex()).IsMatch(reference))
+            return await FindAsync(reference, isTrust, cancellationToken) is { } subject ? [subject] : [];
 
-        if (PartialUrnRegex().IsMatch(reference))
-            return await SearchByReferenceStartAsync(reference, isTrust: false, cancellationToken);
-
-        if (PartialTrnRegex().IsMatch(reference))
-            return await SearchByReferenceStartAsync(reference, isTrust: true, cancellationToken);
+        if ((isTrust ? PartialTrnRegex() : PartialUrnRegex()).IsMatch(reference))
+            return await SearchByReferenceStartAsync(reference, isTrust, cancellationToken);
 
         var query = PrefixQuery(text);
         if (query is null)
@@ -72,9 +67,13 @@ internal sealed partial class BriefingSubjectFinder(IContextRetriever contextRet
         return ReadRecords(records, isTrust);
     }
 
-    // The start of a URN or TRN, e.g. "1234" or "TR001": every reference from 123400 to 123499, or TR00100 to TR00199.
-    // References are all the same length, so as text they sort in number order. The field names are written out, as
-    // the filter quotes every value put into it.
+   /// <summary>
+   /// Searches for trust reference numbers or establishment URNs that start with the specified value.
+   /// </summary>
+   /// <param name="start">Leading characters of the reference number to match.</param>
+   /// <param name="isTrust">Indicates whether to search trust reference numbers; otherwise searches establishment URNs.</param>
+   /// <param name="cancellationToken">Token used to cancel the asynchronous operation.</param>
+   /// <returns>A task that represents the asynchronous operation and contains a read-only list of matching briefing subjects.</returns>
     private async Task<IReadOnlyList<BriefingSubject>> SearchByReferenceStartAsync(string start, bool isTrust, CancellationToken cancellationToken)
     {
         var length = isTrust ? TrnLength : UrnLength;
@@ -163,14 +162,18 @@ internal sealed partial class BriefingSubjectFinder(IContextRetriever contextRet
     [GeneratedRegex(@"[\p{L}\p{N}]+", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex WordRegex();
 
-    [GeneratedRegex(@"^(?:\d{6}|TR\d{5})$")]
-    private static partial Regex ReferenceRegex();
+    [GeneratedRegex(@"^\d{6}$")]
+    private static partial Regex UrnRegex();
 
-    // The first digits of a URN, or TR and the first digits of a TRN: enough to narrow it down, but not the whole.
-    [GeneratedRegex(@"^\d{3,5}$")]
+    [GeneratedRegex(@"^TR\d{5}$")]
+    private static partial Regex TrnRegex();
+
+    // The start of a URN or TRN, at least 4 characters as the Find page asks for (e.g. "1234" or "TR00"): enough to
+    // narrow it down, but not the whole.
+    [GeneratedRegex(@"^\d{4,5}$")]
     private static partial Regex PartialUrnRegex();
 
-    [GeneratedRegex(@"^TR\d{1,4}$")]
+    [GeneratedRegex(@"^TR\d{2,4}$")]
     private static partial Regex PartialTrnRegex();
 
     [GeneratedRegex(@"\s+")]

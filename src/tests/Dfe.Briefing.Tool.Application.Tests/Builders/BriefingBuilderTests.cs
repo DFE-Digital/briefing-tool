@@ -15,7 +15,7 @@ public sealed class BriefingBuilderTests
 {
     private static readonly AgentDefinition Establishment = new(AgentNames.Establishment, SystemPromptKey.Establishment);
     private static readonly AgentDefinition Trust = new(AgentNames.Trust, SystemPromptKey.Trust);
-    private static readonly BriefingParameters Subject = new("123456", "Test Academy");
+    private static readonly BriefingParameters Subject = new("123456", "Test Academy", IsTrust: false);
 
     private readonly IPromptProvider _promptProvider = Substitute.For<IPromptProvider>();
     private readonly IPromptTemplateBuilder _promptBuilder = Substitute.For<IPromptTemplateBuilder>();
@@ -29,7 +29,7 @@ public sealed class BriefingBuilderTests
     [Fact]
     public void BuildNoEvidenceResult_ForTrustAgent_ReturnsNoTrustInformationFoundMessage()
     {
-        var result = _sut.BuildNoEvidenceResult(Trust, new BriefingParameters("TR12345", "Test Trust"));
+        var result = _sut.BuildNoEvidenceResult(Trust, new BriefingParameters("TR12345", "Test Trust", IsTrust: true));
 
         Assert.Contains("No trust information found.", result.Output, StringComparison.Ordinal);
         Assert.Equal(0, result.TotalTokens);
@@ -38,7 +38,7 @@ public sealed class BriefingBuilderTests
     [Fact]
     public void BuildNoEvidenceResult_ForEstablishmentAgent_ReturnsNoSchoolOrAcademyFoundMessage()
     {
-        var result = _sut.BuildNoEvidenceResult(Establishment, new BriefingParameters("123456", "Test Academy"));
+        var result = _sut.BuildNoEvidenceResult(Establishment, new BriefingParameters("123456", "Test Academy", IsTrust: false));
 
         Assert.Contains("No school or academy found.", result.Output, StringComparison.Ordinal);
         Assert.Equal(0, result.TotalTokens);
@@ -47,7 +47,7 @@ public sealed class BriefingBuilderTests
     [Fact]
     public void BuildNoEvidenceResult_StartsWithAMarkdownHeadingOfTheSubjectName()
     {
-        var result = _sut.BuildNoEvidenceResult(Establishment, new BriefingParameters("123456", "Smith & Jones Academy"));
+        var result = _sut.BuildNoEvidenceResult(Establishment, new BriefingParameters("123456", "Smith & Jones Academy", IsTrust: false));
 
         Assert.StartsWith("# Smith & Jones Academy", result.Output, StringComparison.Ordinal);
     }
@@ -66,7 +66,7 @@ public sealed class BriefingBuilderTests
     [Fact]
     public void BuildWebSearchInstruction_WithNoCity_OmitsTheLocationHint()
     {
-        var instruction = _sut.BuildWebSearchInstruction(new BriefingParameters("123456", "Test Academy"), city: null);
+        var instruction = _sut.BuildWebSearchInstruction(new BriefingParameters("123456", "Test Academy", IsTrust: false), city: null);
 
         Assert.DoesNotContain("located in or near", instruction, StringComparison.Ordinal);
         Assert.Contains("Test Academy", instruction, StringComparison.Ordinal);
@@ -76,7 +76,7 @@ public sealed class BriefingBuilderTests
     [Fact]
     public void BuildWebSearchInstruction_WithACity_IncludesTheLocationHint()
     {
-        var instruction = _sut.BuildWebSearchInstruction(new BriefingParameters("123456", "Test Academy"), city: "Coventry");
+        var instruction = _sut.BuildWebSearchInstruction(new BriefingParameters("123456", "Test Academy", IsTrust: false), city: "Coventry");
 
         Assert.Contains("located in or near Coventry", instruction, StringComparison.Ordinal);
     }
@@ -84,7 +84,7 @@ public sealed class BriefingBuilderTests
     [Fact]
     public void BuildWebSearchInstruction_AsksForLocalAuthorityAndLocalNewsFirst()
     {
-        var instruction = _sut.BuildWebSearchInstruction(new BriefingParameters("123456", "Test Academy"), city: "Coventry");
+        var instruction = _sut.BuildWebSearchInstruction(new BriefingParameters("123456", "Test Academy", IsTrust: false), city: "Coventry");
 
         Assert.Contains("local authority", instruction, StringComparison.Ordinal);
         Assert.Contains("local news", instruction, StringComparison.OrdinalIgnoreCase);
@@ -180,7 +180,7 @@ public sealed class BriefingBuilderTests
     {
         _promptBuilder.Build(UserPromptType.Synthesis, Arg.Any<IReadOnlyDictionary<string, string>>()).Returns("synthesis-prompt");
 
-        var prompt = _sut.BuildSynthesisPrompt(new BriefingParameters("123456", "Test Academy"),
+        var prompt = _sut.BuildSynthesisPrompt(new BriefingParameters("123456", "Test Academy", IsTrust: false),
             [Result(AgentNames.Establishment, "establishment-output"), Result(AgentNames.RiseConcerns, "rise-output")]);
 
         Assert.Equal("synthesis-prompt", prompt);
@@ -194,7 +194,7 @@ public sealed class BriefingBuilderTests
     [Fact]
     public void BuildSubjectInstruction_IncludesTheSchoolOrTrustNameAndUrnOrTrn()
     {
-        var instruction = _sut.BuildSubjectInstruction(new BriefingParameters("123456", "Test Academy"));
+        var instruction = _sut.BuildSubjectInstruction(new BriefingParameters("123456", "Test Academy", IsTrust: false));
 
         Assert.Contains("Test Academy", instruction, StringComparison.Ordinal);
         Assert.Contains("123456", instruction, StringComparison.Ordinal);

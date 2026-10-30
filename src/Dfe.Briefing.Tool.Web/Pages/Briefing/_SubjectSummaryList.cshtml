@@ -29,7 +29,7 @@
             <govuk-summary-list-row-key>Date of last summary</govuk-summary-list-row-key>
             <govuk-summary-list-row-value><span id="briefing-date">@summary.GeneratedAt?.ToString("d MMMM yyyy")</span></govuk-summary-list-row-value>
             <govuk-summary-list-row-actions>
-                <govuk-summary-list-row-action href="@Url.Page("Summary", new { urnOrTrn = subject.UrnOrTrn })" id="briefing-regenerate"
+                <govuk-summary-list-row-action href="@Url.Page("Summary", new { type = subjectPage.Type, urnOrTrn = subject.UrnOrTrn })" id="briefing-regenerate"
                                                visually-hidden-text="the summary">Re-generate</govuk-summary-list-row-action>
             </govuk-summary-list-row-actions>
         </govuk-summary-list-row>

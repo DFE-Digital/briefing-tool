@@ -2,7 +2,9 @@ namespace Dfe.Briefing.Tool.Web.Constants;
 
 internal static class ErrorMessages
 {
-    public const string DataProtectionPathUndefined = "DataProtection:Path is undefined or empty";
+    public const string DataProtectionPathUndefined =
+            "DataProtection:Path is undefined or empty. Set it to a folder every instance of the app shares, so they all " +
+            "use the same keys for sign-in and form cookies.";
     public const string DataProtectionPathNotWritable = "DataProtection path '{0}' cannot be written to";
     public const string PageNotFound = "Page not found";
     public const string NotImplemented = "Not implemented";

@@ -20,8 +20,8 @@ public sealed class BriefingEvidenceProviderTests
     private static readonly AgentDefinition RiseConcerns = new(AgentNames.RiseConcerns, SystemPromptKey.RiseConcerns);
     private static readonly AgentDefinition RecastConcerns = new(AgentNames.RecastConcerns, SystemPromptKey.RecastConcerns);
 
-    private static readonly BriefingParameters School = new("123456", "Test Academy");
-    private static readonly BriefingParameters TrustSubject = new("TR01234", "Test Trust");
+    private static readonly BriefingParameters School = new("123456", "Test Academy", IsTrust: false);
+    private static readonly BriefingParameters TrustSubject = new("TR01234", "Test Trust", IsTrust: true);
 
     private readonly CancellationToken _cancellationToken = TestContext.Current.CancellationToken;
     private readonly IContextRetriever _contextRetriever = Substitute.For<IContextRetriever>();
@@ -53,7 +53,7 @@ public sealed class BriefingEvidenceProviderTests
     [InlineData(" tr01234 ")]
     public async Task Trust_IsFoundByTrn_InTheIndexsCase(string typedTrn)
     {
-        await _sut.GetEvidenceAsync(Trust, new BriefingParameters(typedTrn, "Test Trust"), subjectEvidence: null, _cancellationToken);
+        await _sut.GetEvidenceAsync(Trust, new BriefingParameters(typedTrn, "Test Trust", IsTrust: true), subjectEvidence: null, _cancellationToken);
 
         await ReceivedFilteredSearch(EvidenceCategory.Trust, "trust_reference_number eq 'TR01234'");
     }

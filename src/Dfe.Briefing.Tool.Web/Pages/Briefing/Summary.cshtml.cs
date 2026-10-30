@@ -79,7 +79,7 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
             // The name comes from the record, not the browser, so the briefing is always of the school or trust confirmed.
             if (!await LoadSubjectAsync(cancellationToken))
             {
-                await WriteEventAsync("error-message", "This school or trust can't be found. Go back and search for it again.", cancellationToken);
+                await WriteEventAsync("error-message", $"This {SubjectNoun} can't be found. Go back and search for it again.", cancellationToken);
                 return;
             }
 
@@ -126,11 +126,12 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
 
             try
             {
-                // The website comes from the school's or trust's record, not the browser.
+                // The website comes from the school's or trust's record, not the browser. The type is the one chosen,
+                // passed on in the page's URL.
                 UrnOrTrn = request.SchoolUrnOrTrustTrn;
                 var website = await LoadSubjectAsync(cancellationToken) ? Subject!.Website : null;
 
-                var parameters = new BriefingParameters(request.SchoolUrnOrTrustTrn, request.SchoolOrTrustName);
+                var parameters = new BriefingParameters(request.SchoolUrnOrTrustTrn, request.SchoolOrTrustName, IsTrust);
                 var result = await briefingOrchestrator.GetWebSearchFindings(parameters, request.Briefing, request.City, website, cancellationToken);
                 return new JsonResult(new { html = BriefingHtmlSanitizer.Sanitize(result.Output, WebSearchReferenceIdPrefix) ?? string.Empty });
             }

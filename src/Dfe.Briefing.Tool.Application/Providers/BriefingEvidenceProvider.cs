@@ -61,7 +61,13 @@ internal partial class BriefingEvidenceProvider(IContextRetriever contextRetriev
 
     private static Task<ContextResult> NoEvidence(string message) => Task.FromResult(new ContextResult(message, HasEvidence: false));
 
-    // Search evidence labels each value with its field, one per line, e.g. "trust_name: EXAMPLE TRUST".
+    /// <summary>
+    /// Reads a field value from evidence text using the first capture group in a regular expression.
+    /// </summary>
+    /// <param name="evidence">The evidence to read from.</param>
+    /// <param name="fieldLine">The regular expression used to extract the field value.</param>
+    /// <returns>The trimmed value captured by the first group in <paramref name="fieldLine"/>, or <see langword="null"/> when
+    /// evidence is missing, has no evidence, or the captured value is empty.</returns>
     private static string? ReadField(ContextResult? evidence, Regex fieldLine)
     {
         if (evidence is not { HasEvidence: true })

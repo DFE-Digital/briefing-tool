@@ -44,13 +44,13 @@ public sealed class BriefingSubjectFinderTests
     {
         IndexReturns(SchoolRecord);
 
-        var school = await _sut.FindAsync(" 900001 ", _cancellationToken);
+        var school = await _sut.FindAsync(" 900001 ", isTrust: false, _cancellationToken);
 
         await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.Establishment, "*", 1,
             Arg.Is<ODataFilter>(f => f.ToString() == "establishment_urn eq '900001'"), Arg.Any<CancellationToken>());
         Assert.Equal(new BriefingSubject("900001", "Exampleton Primary School", IsTrust: false, Region: "South East",
             Website: "www.exampleton-primary.example.org", RecordDate: new DateOnly(2026, 10, 15)), school);
-        Assert.Equal(new BriefingParameters("900001", "Exampleton Primary School"), school!.ToParameters());
+        Assert.Equal(new BriefingParameters("900001", "Exampleton Primary School", IsTrust: false), school!.ToParameters());
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class BriefingSubjectFinderTests
     {
         IndexReturns(TrustRecord);
 
-        var trust = await _sut.FindAsync("tr09002", _cancellationToken);
+        var trust = await _sut.FindAsync("tr09002", isTrust: true, _cancellationToken);
 
         await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.Trust, "*", 1,
             Arg.Is<ODataFilter>(f => f.ToString() == "trust_reference_number eq 'TR09002'"), Arg.Any<CancellationToken>());
@@ -72,7 +72,7 @@ public sealed class BriefingSubjectFinderTests
     {
         IndexReturns($"[Evidence 1]\nestablishment_name: Exampleton School\n{dateLine}");
 
-        var school = await _sut.FindAsync("900001", _cancellationToken);
+        var school = await _sut.FindAsync("900001", isTrust: false, _cancellationToken);
 
         Assert.Equal(new DateOnly(2026, 10, 15), school!.RecordDate);
     }
@@ -82,7 +82,7 @@ public sealed class BriefingSubjectFinderTests
     {
         IndexReturns("[Evidence 1]\nestablishment_name: Exampleton School\nlast_changed_date: unknown");
 
-        Assert.Null((await _sut.FindAsync("900001", _cancellationToken))!.RecordDate);
+        Assert.Null((await _sut.FindAsync("900001", isTrust: false, _cancellationToken))!.RecordDate);
     }
 
     [Fact]
@@ -127,19 +127,36 @@ public sealed class BriefingSubjectFinderTests
     }
 
     [Fact]
-    public async Task Search_ForATrnOnTheSchoolSearch_FindsTheTrust()
+    public async Task Search_ForAWholeTrn_FindsThatTrust()
     {
         IndexReturns(TrustRecord);
 
-        var found = await _sut.SearchAsync("tr 09002", isTrust: false, _cancellationToken);
+        var trusts = await _sut.SearchAsync("tr 09002", isTrust: true, _cancellationToken);
 
-        Assert.True(Assert.Single(found).IsTrust);
+        await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.Trust, "*", 1,
+            Arg.Is<ODataFilter>(f => f.ToString() == "trust_reference_number eq 'TR09002'"), Arg.Any<CancellationToken>());
+        Assert.True(Assert.Single(trusts).IsTrust);
+    }
+
+    [Theory]
+    [InlineData("TR09002", false, "establishment_index", "TR09002*")]
+    [InlineData("900001", true, "trust_index", "900001*")]
+    [InlineData("tr001", false, "establishment_index", "tr001*")]
+    [InlineData("1234", true, "trust_index", "1234*")]
+    public async Task Search_ForAReferenceOfTheOtherType_IsANameSearchOfTheChosenType(string typed, bool isTrust, string index, string query)
+    {
+        IndexReturns(string.Empty, hasEvidence: false);
+
+        await _sut.SearchAsync(typed, isTrust, _cancellationToken);
+
+        await _contextRetriever.Received(1).GetContextAsync(index, query, BriefingSubjectFinder.MaxSearchResults,
+            Arg.Is<ODataFilter>(f => f.IsEmpty), Arg.Any<CancellationToken>());
     }
 
     [Theory]
     [InlineData("1234", false, "establishment_index", "establishment_urn ge '123400' and establishment_urn le '123499'")]
-    [InlineData("900", true, "establishment_index", "establishment_urn ge '900000' and establishment_urn le '900999'")]
-    [InlineData("tr001", false, "trust_index", "trust_reference_number ge 'TR00100' and trust_reference_number le 'TR00199'")]
+    [InlineData("90012", false, "establishment_index", "establishment_urn ge '900120' and establishment_urn le '900129'")]
+    [InlineData("tr001", true, "trust_index", "trust_reference_number ge 'TR00100' and trust_reference_number le 'TR00199'")]
     public async Task Search_ForTheStartOfAReference_FindsEveryReferenceStartingWithIt(string typed, bool isTrust, string index, string filter)
     {
         IndexReturns(string.Empty, hasEvidence: false);
@@ -173,7 +190,7 @@ public sealed class BriefingSubjectFinderTests
     {
         IndexReturns(string.Empty, hasEvidence: false);
 
-        Assert.Null(await _sut.FindAsync("900001", _cancellationToken));
+        Assert.Null(await _sut.FindAsync("900001", isTrust: false, _cancellationToken));
     }
 
     [Fact]
@@ -181,7 +198,7 @@ public sealed class BriefingSubjectFinderTests
     {
         IndexReturns("[Evidence 1]\nestablishment_urn: 900001");
 
-        Assert.Null(await _sut.FindAsync("900001", _cancellationToken));
+        Assert.Null(await _sut.FindAsync("900001", isTrust: false, _cancellationToken));
     }
 
     [Theory]
@@ -192,7 +209,7 @@ public sealed class BriefingSubjectFinderTests
     {
         IndexReturns(record);
 
-        var school = await _sut.FindAsync("900001", _cancellationToken);
+        var school = await _sut.FindAsync("900001", isTrust: false, _cancellationToken);
 
         Assert.NotNull(school);
         Assert.Equal("Exampleton School", school.Name);

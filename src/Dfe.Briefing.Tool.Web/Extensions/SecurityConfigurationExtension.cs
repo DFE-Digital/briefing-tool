@@ -8,6 +8,9 @@ public static class SecurityConfigurationExtension
     private const string LocalWebSocket = "ws://localhost:*";
     private const string LocalSecureWebSocket = "wss://localhost:*";
 
+    // Visual Studio's Browser Link, which first connects over plain HTTP to its own port, allowed in Development only.
+    private const string LocalHttp = "http://localhost:*";
+
     /// <summary>
     /// Add API key based authentication
     /// </summary>
@@ -56,10 +59,11 @@ public static class SecurityConfigurationExtension
                     {
                         // dotnet watch's browser-refresh script (and Visual Studio's own live-reload
                         // equivalent) opens a websocket back to the dev server for hot reload
-                        // notifications - CSP has no "same-origin websocket" shorthand, so this has
-                        // to be spelled out explicitly, and only for Development; never allow
-                        // arbitrary ws/wss origins once this is actually deployed.
-                        connectSrc.From(LocalWebSocket).From(LocalSecureWebSocket);
+                        // notifications, and Browser Link negotiates over HTTP with Visual Studio's
+                        // own port before its websocket - CSP has no "same-origin websocket" or "any
+                        // local port" shorthand, so this has to be spelled out explicitly, and only for
+                        // Development; never allow these origins once this is actually deployed.
+                        connectSrc.From(LocalWebSocket).From(LocalSecureWebSocket).From(LocalHttp);
                     }
                 })
                 .AddPermissionsPolicy(builder =>

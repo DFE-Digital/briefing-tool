@@ -51,7 +51,7 @@ internal static class TestCasePreparer
 
         var subject = testCase[TestCaseFields.Subject]?.AsObject()
             ?? throw new InvalidDataException($"{relativePath} needs a \"{TestCaseFields.Subject}\" with the school or trust's \"{TestCaseFields.SubjectName}\" and \"{TestCaseFields.SubjectUrnOrTrn}\".");
-        var parameters = new BriefingParameters(
+        var parameters = BriefingParameters.FromReference(
             subject[TestCaseFields.SubjectUrnOrTrn]?.GetValue<string>() ?? throw new InvalidDataException(TestCaseErrors.SubjectNeeds(relativePath, TestCaseFields.SubjectUrnOrTrn)),
             subject[TestCaseFields.SubjectName]?.GetValue<string>() ?? throw new InvalidDataException(TestCaseErrors.SubjectNeeds(relativePath, TestCaseFields.SubjectName)));
         testCase.Remove(TestCaseFields.Subject);

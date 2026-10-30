@@ -3,8 +3,9 @@
 // match reads "Name (URN 123456)", and the page looks up the reference at its end. Without JavaScript, or if a search
 // fails, the person can still enter the name, URN or TRN and continue.
 
-// Wait this long after the last key press before searching, so typing a name isn't a search per letter.
-var SEARCH_DELAY_MS = 250;
+// Wait this long after the last key press before searching, so a search only starts once the person pauses, not for
+// each letter of a name they're still typing.
+var SEARCH_DELAY_MS = 500;
 
 function escapeHtml(text) {
    var element = document.createElement('span');
@@ -35,9 +36,9 @@ export function initSubjectAutocomplete() {
    }
 
    var input = container.querySelector('#UrnOrTrn');
-   var searchUrl = container.getAttribute('data-search-url');
-   var minimumLength = Number(container.getAttribute('data-minimum-length'));
-   var subject = container.getAttribute('data-subject');
+   var searchUrl = container.dataset.searchUrl;
+   var minimumLength = Number(container.dataset.minimumLength);
+   var subject = container.dataset.subject;
 
    var timer = null;
    var request = null;

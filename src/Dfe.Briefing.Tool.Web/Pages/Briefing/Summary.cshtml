@@ -7,7 +7,7 @@
 }
 
 @section BeforeMain {
-    <govuk-back-link href="@Url.BackLink(Url.Page("Confirm", new { urnOrTrn = subject.UrnOrTrn }))" id="briefing-back-link" hidden="@hasBriefing">Back</govuk-back-link>
+    <govuk-back-link href="@Url.BackLink(Url.Page("Confirm", new { type = Model.Type, urnOrTrn = subject.UrnOrTrn }))" id="briefing-back-link" hidden="@hasBriefing">Back</govuk-back-link>
 }
 
 <section id="briefing-generate" aria-labelledby="briefing-generate-title" hidden="@hasBriefing">
@@ -16,6 +16,7 @@
     <partial name="_SubjectSummaryList" model="new SubjectSummaryListModel(Model)" />
 
     <form method="post" novalidate id="briefing-form">
+        <input type="hidden" name="Type" value="@Model.Type" />
         <input type="hidden" name="UrnOrTrn" value="@subject.UrnOrTrn" />
 
         <govuk-checkboxes for="AcceptDisclaimer" id="briefing-disclaimer-group" class="app-disclaimer">

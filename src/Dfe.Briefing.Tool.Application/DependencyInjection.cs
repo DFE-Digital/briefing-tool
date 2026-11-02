@@ -7,7 +7,6 @@ using Dfe.Briefing.Tool.Application.Providers;
 using Dfe.Briefing.Tool.Application.Providers.Interfaces;
 using Dfe.Briefing.Tool.Application.Services;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using GovUK.Dfe.AI.Agents.ValueObjects;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -27,7 +26,6 @@ public static class DependencyInjection
                 $"{BriefingOptions.SectionName}:{nameof(BriefingOptions.OrphanAgentMinimumAge)} must be more than zero.")
             .ValidateOnStart();
         services.AddSingleton(provider => provider.GetRequiredService<IOptions<BriefingOptions>>().Value);
-        services.AddSingleton<IReadOnlyCollection<AgentDefinition>>(BriefingAgents.All);
         services.AddScoped<IBriefingOrchestrator, BriefingOrchestrator>();
         services.AddScoped<IBriefingBuilder, BriefingBuilder>();
         services.AddScoped<IBriefingEvidenceProvider, BriefingEvidenceProvider>();

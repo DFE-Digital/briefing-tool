@@ -1,0 +1,20 @@
+{
+  "subject": {
+    "name": "Example Brook Special School",
+    "urnOrTrn": "900003"
+  },
+  "records": {
+    "school": "[Evidence 1]\nestablishment_name: Example Brook Special School\nestablishment_urn: 900003\nestablishment_type: Community special school\nphase_of_education: Not applicable\nestablishment_age_range: 3 to 19\nlocal_authority_name: Exampleshire\nassociated_trust_name: \nlinked_to_diocese: Not applicable\nschool_capacity: 120\nnumber_on_roll: 118\nofsted_all_inspections: [{\"inspection_date\": \"2024-06-05\", \"overall_effectiveness\": \"Outstanding\", \"safeguarding_effective\": \"Yes\"}]"
+  },
+  "mustMention": [
+    "Outstanding",
+    "5 June 2024",
+    "118"
+  ],
+  "mustNotMention": [
+    "Attainment 8",
+    "Requires improvement",
+    "Example Learning Trust"
+  ],
+  "group": "special"
+}

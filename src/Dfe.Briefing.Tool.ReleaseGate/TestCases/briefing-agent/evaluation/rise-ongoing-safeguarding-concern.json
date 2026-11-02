@@ -1,0 +1,16 @@
+{
+  "subject": {
+    "name": "Exampleton Primary School",
+    "urnOrTrn": "900001"
+  },
+  "records": {
+    "riseConcerns": "[Evidence 1]\nschool: Exampleton Primary School (URN 900001)\nconcern_date: 2024-01-15\nconcern_type: Safeguarding\nsummary: Safeguarding concern raised about record keeping for pupil absence.\nstatus: Open\nsupport: Regional adviser visit arranged.\n\n[Evidence 2]\nschool: Exampleton Primary School (URN 900001)\nconcern_date: 2022-05-10\nconcern_type: Finance\nsummary: Deficit budget reported.\nstatus: Closed\noutcome: Recovery plan completed."
+  },
+  "mustMention": [
+    "15 January 2024",
+    "Safeguarding",
+    "10 May 2022"
+  ],
+  "mustNotMention": [],
+  "group": "school"
+}

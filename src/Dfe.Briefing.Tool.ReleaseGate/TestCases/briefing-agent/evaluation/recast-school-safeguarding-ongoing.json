@@ -1,0 +1,15 @@
+{
+  "subject": {
+    "name": "Exampleton Primary School",
+    "urnOrTrn": "900001"
+  },
+  "records": {
+    "recastConcerns": "[Evidence 1]\nschool: Exampleton Primary School (URN 900001)\nconcern_date: 2025-04-07\nconcern: Safeguarding - single central record incomplete at an unannounced visit.\nstatus: Ongoing\nsupport: Follow-up visit planned for June 2025."
+  },
+  "mustMention": [
+    "7 April 2025",
+    "single central record",
+    "Ongoing"
+  ],
+  "mustNotMention": []
+}

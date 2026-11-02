@@ -1,7 +1,6 @@
 using System.Text.Json.Nodes;
 using Dfe.Briefing.Tool.Application.Builders.Interfaces;
 using Dfe.Briefing.Tool.Application.Helpers;
-using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
 using Dfe.Briefing.Tool.ReleaseGate.Constants;
 using GovUK.Dfe.AI.Agents.ValueObjects;
@@ -10,7 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Dfe.Briefing.Tool.ReleaseGate;
 
 /// <summary>
-/// Prepares the test cases for the release gate by adding the prompts and evidence that the agents would normally build in the app, so that the gate can run them without needing to run the app.
+/// Prepares the test cases for the release gate by adding the prompt and evidence the app would build from each case's
+/// records, so that the gate can run them without needing to run the app.
 /// </summary>
 internal static class TestCasePreparer
 { 
@@ -32,11 +32,10 @@ internal static class TestCasePreparer
         foreach (var file in Directory.Exists(source) ? Directory.GetFiles(source, TestCaseFields.FilePattern, SearchOption.AllDirectories) : [])
         {
             var relativePath = Path.GetRelativePath(source, file);
-            var agentName = relativePath.Split(Path.DirectorySeparatorChar)[0];
             var testCase = JsonNode.Parse(await File.ReadAllTextAsync(file, cancellationToken))?.AsObject()
                 ?? throw new InvalidDataException(TestCaseErrors.Empty(relativePath));
 
-            Prepare(testCase, agentName, briefingBuilder, relativePath);
+            Prepare(testCase, briefingBuilder, relativePath);
 
             var prepared = Path.Combine(preparedDirectory, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(prepared)!);
@@ -44,37 +43,44 @@ internal static class TestCasePreparer
         }
     }
 
-    private static void Prepare(JsonObject testCase, string agentName, IBriefingBuilder briefingBuilder, string relativePath)
+    // A case gives the records the app would find, labelled by set; the app's own builder turns them into the prompt and
+    // evidence, so the gate tests exactly what the app sends.
+    private static void Prepare(JsonObject testCase, IBriefingBuilder briefingBuilder, string relativePath)
     {
-        if (testCase.ContainsKey(TestCaseFields.Prompt))
-            throw new InvalidDataException($"{relativePath} has a \"{TestCaseFields.Prompt}\". Give its \"{TestCaseFields.Subject}\" instead: prompts are built by the app, so the gate tests the ones it sends.");
+        if (testCase.ContainsKey(TestCaseFields.Prompt) || testCase.ContainsKey(TestCaseFields.Evidence))
+            throw new InvalidDataException($"{relativePath} has a \"{TestCaseFields.Prompt}\" or \"{TestCaseFields.Evidence}\". Give its \"{TestCaseFields.Subject}\" and \"{TestCaseFields.Records}\" instead: the gate builds them as the app does.");
 
         var subject = testCase[TestCaseFields.Subject]?.AsObject()
             ?? throw new InvalidDataException($"{relativePath} needs a \"{TestCaseFields.Subject}\" with the school or trust's \"{TestCaseFields.SubjectName}\" and \"{TestCaseFields.SubjectUrnOrTrn}\".");
         var parameters = BriefingParameters.FromReference(
             subject[TestCaseFields.SubjectUrnOrTrn]?.GetValue<string>() ?? throw new InvalidDataException(TestCaseErrors.SubjectNeeds(relativePath, TestCaseFields.SubjectUrnOrTrn)),
             subject[TestCaseFields.SubjectName]?.GetValue<string>() ?? throw new InvalidDataException(TestCaseErrors.SubjectNeeds(relativePath, TestCaseFields.SubjectName)));
+
+        var records = ReadRecords(testCase[TestCaseFields.Records]?.AsObject()
+            ?? throw new InvalidDataException(TestCaseErrors.RecordsNeeded(relativePath)), parameters.IsTrust, relativePath);
         testCase.Remove(TestCaseFields.Subject);
+        testCase.Remove(TestCaseFields.Records);
 
-        if (agentName != AgentNames.Synthesis)
-        {
-            testCase[TestCaseFields.Prompt] = briefingBuilder.BuildSubjectInstruction(parameters);
-            return;
-        }
+        testCase[TestCaseFields.Prompt] = briefingBuilder.BuildBriefingPrompt(parameters);
+        testCase[TestCaseFields.Evidence] = briefingBuilder.BuildBriefingEvidence(parameters, records).Text;
+    }
 
-        // The Synthesis agent is given the other agents' outputs in its prompt, as in the app. They're also the case's
-        // evidence, which is what the judge scores groundedness against.
-        var outputs = testCase[TestCaseFields.SpecialistOutputs]?.AsArray()
-            ?? throw new InvalidDataException($"{relativePath} needs \"{TestCaseFields.SpecialistOutputs}\": the other agents' answers to combine.");
-        var specialistResults = outputs.Select(output => new AgentResult
-        {
-            AgentName = output?[TestCaseFields.SpecialistAgent]?.GetValue<string>()
-                ?? throw new InvalidDataException($"{relativePath}: each specialist output needs an \"{TestCaseFields.SpecialistAgent}\"."),
-            Output = output[TestCaseFields.SpecialistOutput]?.GetValue<string>() ?? string.Empty
-        }).ToList();
-        testCase.Remove(TestCaseFields.SpecialistOutputs);
+    // A school's case gives "school" and, if it's in a trust, "trust"; a trust's gives "trust" and "academies". Either
+    // can give "riseConcerns" and "recastConcerns". A set it leaves out has no records, as when a search finds none.
+    private static BriefingRecords ReadRecords(JsonObject records, bool isTrust, string relativePath)
+    {
+        string[] allowed = isTrust
+            ? [TestCaseFields.TrustRecords, TestCaseFields.AcademyRecords, TestCaseFields.RiseConcerns, TestCaseFields.RecastConcerns]
+            : [TestCaseFields.SchoolRecords, TestCaseFields.TrustRecords, TestCaseFields.RiseConcerns, TestCaseFields.RecastConcerns];
+        if (records.Select(record => record.Key).FirstOrDefault(key => !allowed.Contains(key)) is { } unknown)
+            throw new InvalidDataException(TestCaseErrors.UnknownRecords(relativePath, unknown, allowed));
 
-        testCase[TestCaseFields.Prompt] = briefingBuilder.BuildSynthesisPrompt(parameters, specialistResults);
-        testCase[TestCaseFields.Evidence] = briefingBuilder.CompileContext(specialistResults);
+        ContextResult Set(string key) => records[key]?.GetValue<string>() is { Length: > 0 } text
+            ? new ContextResult(text, HasEvidence: true)
+            : new ContextResult(string.Empty, HasEvidence: false);
+
+        return isTrust
+            ? new BriefingRecords(Set(TestCaseFields.TrustRecords), Set(TestCaseFields.AcademyRecords), Set(TestCaseFields.RiseConcerns), Set(TestCaseFields.RecastConcerns))
+            : new BriefingRecords(Set(TestCaseFields.SchoolRecords), Set(TestCaseFields.TrustRecords), Set(TestCaseFields.RiseConcerns), Set(TestCaseFields.RecastConcerns));
     }
 }

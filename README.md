@@ -9,6 +9,22 @@ Generates school and trust briefings for ministers from DfE records, using AI ag
 | `Dfe.Briefing.Tool.Infrastructure` | Registers the agents, shared by the web app and the console tool |
 | `Dfe.Briefing.Tool.ReleaseGate` | Console tool: release gate, Copilot Studio export, agent clean-up |
 
+## How a briefing is made
+
+| Step | By | What happens |
+| --- | --- | --- |
+| 1 | Code | Finds the school's record by its URN, or the trust's by its TRN |
+| 2 | Code | At the same time: the school's trust (or the trust's academies), found by the exact name in that record, and its Rise and Recast concerns |
+| 3 | Code | Puts the four sets of records together, each labelled, numbering the records 1, 2, 3... across them, with the trust or academy records last as they're cut first when the evidence is too long (`BriefingBuilder.BuildBriefingEvidence`) |
+| 4 | `briefing-agent` | Writes the whole briefing in one run, citing each fact's record, and gives the town for a later web search |
+| 5 | Code | Removes empty sections; the web app adds the References and the AI warnings |
+| 6 | `web-search-agent` | Only if the person asks for more information after reading it: a temporary agent with web search near the town, given the briefing so it looks only for what's missing |
+
+The searches are code, not agents: they're quick, predictable and cost nothing. One agent writes the briefing from the
+records themselves, so each fact goes straight from its record into the briefing with its citation. The web search agent
+is the only one with internet access, and the only one reading untrusted web pages, so it's kept apart and runs only
+when asked.
+
 ## Set up
 
 | File | Holds |
@@ -88,7 +104,7 @@ so the schedule can be checked in Application Insights: an orphan sweep that del
 | `Briefing:AgentVersionSweepEnabled` | `true` | Runs the agent version sweep |
 | `Briefing:AgentVersionSweepDay` | `Sunday` in the web app; none in code | The day of the week (UTC) the agent version sweep runs on. Without one, it runs every day |
 | `AiAgents:KeepLatestVersions` | `2` | Versions kept per agent |
-| `AiAgents:ProtectedVersions` | none | Versions never deleted, e.g. `{ "synthesis-agent": [ "4" ] }` |
+| `AiAgents:ProtectedVersions` | none | Versions never deleted, e.g. `{ "briefing-agent": [ "4" ] }` |
 
 > **Note:**
 >
@@ -117,8 +133,8 @@ test case runs.
 
 ### Test cases
 
-One JSON file per case under `TestCases/<agent>/`. Prompts are never in a case: the gate builds them with the app's
-`BriefingBuilder`, so it tests exactly what the app sends.
+One JSON file per case under `TestCases/briefing-agent/`. A case gives the records the app's searches would find; the
+gate builds the prompt and evidence from them with the app's `BriefingBuilder`, so it tests exactly what the app sends.
 
 | Folder | Passes when |
 | --- | --- |
@@ -128,19 +144,24 @@ One JSON file per case under `TestCases/<agent>/`. Prompts are never in a case: 
 ```json
 {
   "subject": { "name": "Exampleton Primary School", "urnOrTrn": "900001" },
-  "evidence": "[Evidence 1]\nestablishment_name: Exampleton Primary School\n...",
+  "records": {
+    "school": "[Evidence 1]\nestablishment_name: Exampleton Primary School\n...",
+    "riseConcerns": "[Evidence 1]\nconcern_date: 2024-01-15\n..."
+  },
   "mustMention": [ "Requires improvement", "14 March 2023" ],
   "mustNotMention": [ "202324" ],
   "group": "primary"
 }
 ```
 
-Synthesis cases give `specialistOutputs` (the other agents' answers) instead of `evidence`.
+`records` holds one set per search: `school` and `trust` (its trust) for a school; `trust` and `academies` for a trust;
+and `riseConcerns` and `recastConcerns` for either. Leave out a set the search would find nothing for. Each set numbers
+its records from 1, as a search does; the gate numbers them on across the sets, as the app does.
 
 | Tip | Why |
 | --- | --- |
 | Use made-up records | Real ones can hold concerns that mustn't be in the repository |
-| Give each agent several scored cases | One case's score decides the result on its own, and the judge's scores vary |
+| Give several scored cases for each kind of record | One case's score decides the result on its own, and the judge's scores vary |
 | Check `mustNotMention` doesn't match inside a word in the evidence | Checks ignore case and match inside words ("Recast" is in "forecast") |
 | Copy a passing `evaluation-reports/<agent>.json` into `Baselines/` | Later runs fail if a score falls by more than `Tolerance` |
 

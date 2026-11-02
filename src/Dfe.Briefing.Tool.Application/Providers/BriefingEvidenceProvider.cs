@@ -10,47 +10,88 @@ using GovUK.Dfe.AI.Agents.ValueObjects;
 namespace Dfe.Briefing.Tool.Application.Providers;
 
 /// <summary>
-/// Provides evidence for briefing agents by retrieving context from various sources based on the agent definition and briefing parameters.
+/// Finds the records a briefing is written from, by searching each index with the exact values from the school's or
+/// trust's own record wherever it can.
 /// </summary>
 /// <param name="contextRetriever">The context retriever.</param>
 /// <param name="options">The briefing options.</param>
 internal partial class BriefingEvidenceProvider(IContextRetriever contextRetriever, BriefingOptions options) : IBriefingEvidenceProvider
 {
     private const string MatchAll = "*";
+    private const string SchoolRecordName = "the school's record";
+    private const string TrustRecordName = "the trust's record";
+    private const string SchoolsTrustRecordName = "its trust's record";
+    private const string AcademyRecordsName = "its academies' records";
+    private const string RiseConcernsName = "Rise concerns";
+    private const string RecastConcernsName = "Recast concerns";
 
-    public Task<ContextResult> GetEvidenceAsync(AgentDefinition definition, BriefingParameters parameters, ContextResult? subjectEvidence,
-        CancellationToken cancellationToken)
+    public async Task<BriefingRecords?> GetRecordsAsync(BriefingParameters parameters, IProgress<string>? progress, CancellationToken cancellationToken)
     {
-        var urnOrTrn = parameters.SchoolUrnOrTrustTrn.Trim();
+        ArgumentNullException.ThrowIfNull(parameters);
 
-        return definition.Name switch
-        {
-            AgentNames.Establishment when parameters.IsTrust => SearchAcademiesOfTrustAsync(subjectEvidence, cancellationToken),
-            AgentNames.Establishment => SearchAsync(EvidenceCategory.Establishment, MatchAll, $"establishment_urn eq {urnOrTrn}", cancellationToken),
+        var reference = parameters.SchoolUrnOrTrustTrn.Trim().ToUpperInvariant();
+        var subjectRecord = parameters.IsTrust ? TrustRecordName : SchoolRecordName;
+        progress?.Report($"Collecting {subjectRecord}...");
+        var subject = parameters.IsTrust
+            ? await SearchAsync(EvidenceCategory.Trust, MatchAll, $"trust_reference_number eq {reference}", cancellationToken)
+            : await SearchAsync(EvidenceCategory.Establishment, MatchAll, $"establishment_urn eq {reference}", cancellationToken);
+        if (!subject.HasEvidence)
+            return null;
+        progress?.Report(Collected(subjectRecord, subject));
 
-            AgentNames.Trust when parameters.IsTrust => SearchAsync(EvidenceCategory.Trust, MatchAll,
-                $"trust_reference_number eq {urnOrTrn.ToUpperInvariant()}", cancellationToken),
-            AgentNames.Trust => SearchTrustOfSchoolAsync(subjectEvidence, cancellationToken),
+        var relatedRecords = parameters.IsTrust ? AcademyRecordsName : SchoolsTrustRecordName;
+        progress?.Report($"Collecting {relatedRecords}, {RiseConcernsName} and {RecastConcernsName}...");
+        var concernsQuery = ConcernsQuery(parameters.SchoolOrTrustName, reference);
+        var related = parameters.IsTrust
+            ? ReportedAsync(relatedRecords, "No academy records found", SearchAcademiesOfTrustAsync(subject, cancellationToken), progress)
+            : ReportedAsync(relatedRecords, "No trust record found", SearchTrustOfSchoolAsync(subject, cancellationToken), progress);
+        var riseConcerns = ReportedAsync(RiseConcernsName, $"No {RiseConcernsName} found",
+            SearchAsync(EvidenceCategory.RiseConcerns, concernsQuery, default, cancellationToken), progress);
+        var recastConcerns = ReportedAsync(RecastConcernsName, $"No {RecastConcernsName} found",
+            SearchAsync(EvidenceCategory.RecastConcerns, concernsQuery, default, cancellationToken), progress);
+        await Task.WhenAll(related, riseConcerns, recastConcerns);
 
-            // Nothing in the concerns indexes is filterable, so these can only be found by their text.
-            AgentNames.RiseConcerns => SearchAsync(EvidenceCategory.RiseConcerns, $"{parameters.SchoolOrTrustName} {urnOrTrn}", default, cancellationToken),
-            AgentNames.RecastConcerns => SearchAsync(EvidenceCategory.RecastConcerns, $"{parameters.SchoolOrTrustName} {urnOrTrn}", default, cancellationToken),
-
-            _ => throw new InvalidOperationException(string.Format(ErrorMessages.NoEvidenceQueryConfigured, definition.Name))
-        };
+        return new BriefingRecords(subject, await related, await riseConcerns, await recastConcerns);
     }
+
+    /// <summary>
+    /// Builds a query string from a normalized name and a reference token.
+    /// </summary>
+    /// <param name="name">Name text to normalize by replacing phrase breaks with spaces and trimming surrounding whitespace.</param>
+    /// <param name="reference">Reference text appended after the quoted name.</param>
+    /// <returns>A string containing the normalized name in double quotes followed by a space and the reference text.</returns>
+    private static string ConcernsQuery(string name, string reference)
+        => $"\"{PhraseBreakingRegex().Replace(name, " ").Trim()}\" {reference}";
+
+    [GeneratedRegex(@"[""\\]", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex PhraseBreakingRegex(); 
+    private static async Task<ContextResult> ReportedAsync(string name, string noneFound, Task<ContextResult> search, IProgress<string>? progress)
+    {
+        var result = await search;
+        progress?.Report(result.HasEvidence ? Collected(name, result) : noneFound);
+        return result;
+    }
+
+    // With the number of records, when the search says where each came from.
+    private static string Collected(string name, ContextResult result) => result.Sources.Count switch
+    {
+        0 => $"Collected {name}",
+        1 => $"Collected {name} (1 record)",
+        var count => $"Collected {name} ({count} records)"
+    };
+
     /// <summary>
     /// Searches for the trust that a school belongs to, using the school's evidence to find the trust name.
     /// </summary>
     /// <param name="schoolEvidence">The evidence for the school.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The evidence for the trust.</returns>
-    private Task<ContextResult> SearchTrustOfSchoolAsync(ContextResult? schoolEvidence, CancellationToken cancellationToken)
+    private Task<ContextResult> SearchTrustOfSchoolAsync(ContextResult schoolEvidence, CancellationToken cancellationToken)
         => ReadField(schoolEvidence, AssociatedTrustNameRegex()) is { } trustName
             ? SearchAsync(EvidenceCategory.Trust, MatchAll, $"trust_name eq {trustName}", cancellationToken)
             : NoEvidence("This school is not part of a trust.");
 
-    private Task<ContextResult> SearchAcademiesOfTrustAsync(ContextResult? trustEvidence, CancellationToken cancellationToken)
+    private Task<ContextResult> SearchAcademiesOfTrustAsync(ContextResult trustEvidence, CancellationToken cancellationToken)
         => ReadField(trustEvidence, TrustNameRegex()) is { } trustName
             ? contextRetriever.GetContextAsync(EvidenceCategory.Establishment, MatchAll, options.MaxAcademiesPerTrust,
                 $"associated_trust_name eq {trustName}", cancellationToken)

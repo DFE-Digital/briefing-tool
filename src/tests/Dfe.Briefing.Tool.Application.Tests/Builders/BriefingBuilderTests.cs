@@ -1,8 +1,7 @@
 using Dfe.Briefing.Tool.Application.Builders;
+using Dfe.Briefing.Tool.Application.Providers;
 using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
-using Dfe.Briefing.Tool.Application.Extensions;
-using GovUK.Dfe.AI.Agents.Extensions;
 using GovUK.Dfe.AI.Agents.Prompts.Interfaces;
 using GovUK.Dfe.AI.Agents.Tools;
 using GovUK.Dfe.AI.Agents.ValueObjects;
@@ -13,8 +12,6 @@ namespace Dfe.Briefing.Tool.Application.Tests.Builders;
 
 public sealed class BriefingBuilderTests
 {
-    private static readonly AgentDefinition Establishment = new(AgentNames.Establishment, SystemPromptKey.Establishment);
-    private static readonly AgentDefinition Trust = new(AgentNames.Trust, SystemPromptKey.Trust);
     private static readonly BriefingParameters Subject = new("123456", "Test Academy", IsTrust: false);
 
     private readonly IPromptProvider _promptProvider = Substitute.For<IPromptProvider>();
@@ -27,18 +24,18 @@ public sealed class BriefingBuilderTests
         => new() { AgentName = agentName, Output = output, TotalTokens = 10 };
 
     [Fact]
-    public void BuildNoEvidenceResult_ForTrustAgent_ReturnsNoTrustInformationFoundMessage()
+    public void BuildNoEvidenceResult_ForATrust_ReturnsNoTrustInformationFoundMessage()
     {
-        var result = _sut.BuildNoEvidenceResult(Trust, new BriefingParameters("TR12345", "Test Trust", IsTrust: true));
+        var result = _sut.BuildNoEvidenceResult(new BriefingParameters("TR12345", "Test Trust", IsTrust: true));
 
         Assert.Contains("No trust information found.", result.Output, StringComparison.Ordinal);
         Assert.Equal(0, result.TotalTokens);
     }
 
     [Fact]
-    public void BuildNoEvidenceResult_ForEstablishmentAgent_ReturnsNoSchoolOrAcademyFoundMessage()
+    public void BuildNoEvidenceResult_ForASchool_ReturnsNoSchoolOrAcademyFoundMessage()
     {
-        var result = _sut.BuildNoEvidenceResult(Establishment, new BriefingParameters("123456", "Test Academy", IsTrust: false));
+        var result = _sut.BuildNoEvidenceResult(new BriefingParameters("123456", "Test Academy", IsTrust: false));
 
         Assert.Contains("No school or academy found.", result.Output, StringComparison.Ordinal);
         Assert.Equal(0, result.TotalTokens);
@@ -47,20 +44,9 @@ public sealed class BriefingBuilderTests
     [Fact]
     public void BuildNoEvidenceResult_StartsWithAMarkdownHeadingOfTheSubjectName()
     {
-        var result = _sut.BuildNoEvidenceResult(Establishment, new BriefingParameters("123456", "Smith & Jones Academy", IsTrust: false));
+        var result = _sut.BuildNoEvidenceResult(new BriefingParameters("123456", "Smith & Jones Academy", IsTrust: false));
 
         Assert.StartsWith("# Smith & Jones Academy", result.Output, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void CompileContext_JoinsEachResult_WithItsDisplayNameAndOutput()
-    {
-        var context = _sut.CompileContext([Result(AgentNames.Establishment, "establishment-output"), Result(AgentNames.Trust, "trust-output")]);
-
-        Assert.Contains($"AGENT: {AgentNames.Establishment.ToDisplayName()}", context, StringComparison.Ordinal);
-        Assert.Contains("establishment-output", context, StringComparison.Ordinal);
-        Assert.Contains($"AGENT: {AgentNames.Trust.ToDisplayName()}", context, StringComparison.Ordinal);
-        Assert.Contains("trust-output", context, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -175,28 +161,57 @@ public sealed class BriefingBuilderTests
         Assert.Equal(briefing.Contains("## Concerns", StringComparison.Ordinal), result.Contains("## Concerns and support\n\nNone found.", StringComparison.Ordinal));
     }
 
-    [Fact]
-    public void BuildSynthesisPrompt_FillsTheSynthesisTemplate_WithTheSubjectAndEachAgentsOutput()
+    [Theory]
+    [InlineData("123456", false, "school")]
+    [InlineData("TR12345", true, "trust")]
+    public void BuildBriefingPrompt_FillsTheBriefingTemplate_WithTheSubjectAndItsType(string urnOrTrn, bool isTrust, string subjectType)
     {
-        _promptBuilder.Build(UserPromptType.Synthesis, Arg.Any<IReadOnlyDictionary<string, string>>()).Returns("synthesis-prompt");
+        _promptBuilder.Build(UserPromptType.Briefing, Arg.Any<IReadOnlyDictionary<string, string>>()).Returns("briefing-prompt");
 
-        var prompt = _sut.BuildSynthesisPrompt(new BriefingParameters("123456", "Test Academy", IsTrust: false),
-            [Result(AgentNames.Establishment, "establishment-output"), Result(AgentNames.RiseConcerns, "rise-output")]);
+        var prompt = _sut.BuildBriefingPrompt(new BriefingParameters(urnOrTrn, "Test", isTrust));
 
-        Assert.Equal("synthesis-prompt", prompt);
-        _promptBuilder.Received(1).Build(UserPromptType.Synthesis, Arg.Is<IReadOnlyDictionary<string, string>>(values =>
-            values["SchoolOrTrustName"] == "Test Academy"
-            && values["SchoolUrnOrTrustTrn"] == "123456"
-            && values["Context"].Contains("establishment-output") && values["Context"].Contains("rise-output")
-            && values["IncludedSections"] == $"{AgentNames.Establishment.ToDisplayName()}, {AgentNames.RiseConcerns.ToDisplayName()}"));
+        Assert.Equal("briefing-prompt", prompt);
+        _promptBuilder.Received(1).Build(UserPromptType.Briefing, Arg.Is<IReadOnlyDictionary<string, string>>(values =>
+            values["SchoolOrTrustName"] == "Test" && values["SchoolUrnOrTrustTrn"] == urnOrTrn && values["SubjectType"] == subjectType));
+    }
+
+
+    [Fact]
+    public void BuildBriefingEvidence_LabelsEachSet_AndNumbersTheRecordsAndTheirSourcesOnAcrossThem()
+    {
+        var school = new ContextResult("--- establishment_index Evidence 1 ---\nestablishment_name: Test Academy", HasEvidence: true)
+        {
+            Sources = [new EvidenceSource(1, "Test Academy", new Uri("https://test.example.org/"))]
+        };
+        var trust = new ContextResult("[Evidence 1]\ntrust_name: Test Trust", HasEvidence: true);
+        var rise = new ContextResult("--- rise_concerns_index Evidence 1 ---\nsummary: A\n\n--- rise_concerns_index Evidence 2 ---\nsummary: B", HasEvidence: true)
+        {
+            Sources = [new EvidenceSource(1, "Concern A"), new EvidenceSource(2, "Concern B")]
+        };
+        var recast = new ContextResult("No match.", HasEvidence: false);
+
+        var evidence = _sut.BuildBriefingEvidence(Subject, new BriefingRecords(school, trust, rise, recast));
+
+        Assert.Equal(
+            "=== School record ===\n\n--- establishment_index Evidence 1 ---\nestablishment_name: Test Academy\n\n" +
+            "=== Rise concerns ===\n\n--- rise_concerns_index Evidence 2 ---\nsummary: A\n\n--- rise_concerns_index Evidence 3 ---\nsummary: B\n\n" +
+            "=== Recast concerns ===\n\nNo match.\n\n" +
+            "=== Its trust's record ===\n\n[Evidence 4]\ntrust_name: Test Trust",
+            evidence.Text);
+        Assert.Equal(
+            [new EvidenceSource(1, "Test Academy", new Uri("https://test.example.org/")), new EvidenceSource(2, "Concern A"), new EvidenceSource(3, "Concern B")],
+            evidence.Sources);
     }
 
     [Fact]
-    public void BuildSubjectInstruction_IncludesTheSchoolOrTrustNameAndUrnOrTrn()
+    public void BuildBriefingEvidence_ForATrust_PutsItsOwnRecordFirst_AndItsAcademiesLast_AsTheyreCutFirstWhenTooLong()
     {
-        var instruction = _sut.BuildSubjectInstruction(new BriefingParameters("123456", "Test Academy", IsTrust: false));
+        var none = new ContextResult(string.Empty, HasEvidence: false);
+        var trust = new ContextResult("[Evidence 1]\ntrust_name: Test Trust", HasEvidence: true);
 
-        Assert.Contains("Test Academy", instruction, StringComparison.Ordinal);
-        Assert.Contains("123456", instruction, StringComparison.Ordinal);
+        var evidence = _sut.BuildBriefingEvidence(new BriefingParameters("TR12345", "Test Trust", IsTrust: true), new BriefingRecords(trust, none, none, none));
+
+        Assert.StartsWith("=== Trust record ===\n\n[Evidence 1]\ntrust_name: Test Trust\n\n=== Rise concerns ===", evidence.Text, StringComparison.Ordinal);
+        Assert.EndsWith("=== Its academies' records ===\n\nNo records were found.", evidence.Text, StringComparison.Ordinal);
     }
 }

@@ -8,8 +8,8 @@ namespace Dfe.Briefing.Tool.Web.Sanitization;
 /// their own Markdown links - either can cite the same source more than once in one document. This
 /// collects each distinct source (a citation by its text, a link by its URL) into a numbered
 /// "References" list once, replacing every inline occurrence with a small link to its entry, so the same
-/// source is never spelled out twice. A reference with a web address shows the full address, so a reader
-/// can see exactly which page the information came from before following it.
+/// source is never spelled out twice. A reference with a web address is one link named after its source,
+/// e.g. "The Star", or the site's name, e.g. "thestar.co.uk", when the source gives no better name.
 /// </summary>
 public static partial class CitationReferenceFormatter
 {
@@ -117,19 +117,28 @@ public static partial class CitationReferenceFormatter
 
         // A school or trust record combines several sources, so it has no single page to link to - the library cites
         // it by the start of its text instead. Label it as the record it is; any link the library attached to it is
-        // the school's or trust's own website, so it's labelled as that, not as the source.
+        // the school's or trust's own website, so the label links there.
         if (isSearchCitation && DescribeRecord(name) is { } record)
-            return url is null ? record : $"""{record}. Website: <a href="{WebAddresses.WithScheme(url)}">{WebAddresses.WithScheme(url)}</a>""";
+            return url is null ? record : Link(url, record);
 
         if (url is null)
             return name;
 
-        // An address without a scheme would be treated as a page within this app, not the source's own site.
-        url = WebAddresses.WithScheme(url);
-
-        var link = $"""<a href="{url}">{url}</a>""";
-        return name.Length == 0 || WebAddresses.IsAddress(name) || GenericLinkTextRegex().IsMatch(name) ? link : $"{name}: {link}";
+        // A name that says nothing about the source (an address, or "source"/"here") is replaced by the site's name.
+        var text = name.Length == 0 || WebAddresses.IsAddress(name) || GenericLinkTextRegex().IsMatch(name) ? SiteName(url) : name;
+        return Link(url, text);
     }
+
+    // Each reference is one link, its text naming the source; the address is in the link, not shown beside it. An
+    // address without a scheme would be treated as a page within this app, not the source's own site.
+    private static string Link(string url, string text)
+        => $"""<a href="{WebAddresses.WithScheme(url)}">{text}</a>""";
+
+    // "https://www.thestar.co.uk/news/a-1" is "thestar.co.uk".
+    private static string SiteName(string url)
+        => Uri.TryCreate(WebAddresses.WithScheme(url), UriKind.Absolute, out var address) && address.Host.Length > 0
+            ? (address.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? address.Host[4..] : address.Host)
+            : url;
 
     // A record's citation text is its first field values, e.g. "Eckington School 149825 Academy converter…" or
     // "CHORUS EDUCATION TRUST TR01920 Multi-academy trust…" (see ContentFields in appsettings.json: the name comes
@@ -160,7 +169,7 @@ public static partial class CitationReferenceFormatter
     [GeneratedRegex(@"\[(?<text>[^\[\]]+)\](?:\((?<url>[^()]+)\))?")]
     private static partial Regex SourceRegex();
 
-    // The library renders a citation with a web address as an HTML link. When the Synthesis model copies that
+    // The library renders a citation with a web address as an HTML link. If a model copies such a rendered
     // citation, the library escapes its "<" (it treats any HTML a model writes as text), so the link arrives as
     // "&lt;a href="...">name&lt;/a>" - both forms are read here, so neither reaches the reader as raw tag text.
     [GeneratedRegex("""^(?:<|&lt;)a\s+href="(?<url>[^"]+)"[^>]*?(?:>|&gt;)(?<name>.*?)(?:<|&lt;)/a(?:>|&gt;)$""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]

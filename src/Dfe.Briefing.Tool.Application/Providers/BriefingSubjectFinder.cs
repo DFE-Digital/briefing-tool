@@ -16,7 +16,6 @@ internal sealed partial class BriefingSubjectFinder(IContextRetriever contextRet
 {
     private const string MatchAll = "*";
     private const string NotApplicable = "Not applicable";
-
     private const string UrnField = "establishment_urn";
     private const string TrnField = "trust_reference_number";
     private const int UrnLength = 6;

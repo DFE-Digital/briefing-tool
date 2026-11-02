@@ -29,9 +29,12 @@ internal static class TestCaseFields
     public const string SubjectUrnOrTrn = "urnOrTrn";
     public const string Prompt = "prompt";
     public const string Evidence = "evidence";
-    public const string SpecialistOutputs = "specialistOutputs";
-    public const string SpecialistAgent = "agent";
-    public const string SpecialistOutput = "output";
+    public const string Records = "records";
+    public const string SchoolRecords = "school";
+    public const string TrustRecords = "trust";
+    public const string AcademyRecords = "academies";
+    public const string RiseConcerns = "riseConcerns";
+    public const string RecastConcerns = "recastConcerns";
     public const string MustMention = "mustMention";
     public const string MustNotMention = "mustNotMention";
 
@@ -100,4 +103,10 @@ internal static class TestCaseErrors
     public static string Empty(string relativePath) => $"{relativePath} is empty.";
 
     public static string SubjectNeeds(string relativePath, string field) => $"{relativePath}: subject needs \"{field}\".";
+
+    public static string RecordsNeeded(string relativePath)
+        => $"{relativePath} needs \"{TestCaseFields.Records}\": the records the briefing is written from, by set.";
+
+    public static string UnknownRecords(string relativePath, string set, IEnumerable<string> allowed)
+        => $"{relativePath}: \"{set}\" isn't a set of records for this subject. Use {string.Join(", ", allowed.Select(name => $"\"{name}\""))}.";
 }

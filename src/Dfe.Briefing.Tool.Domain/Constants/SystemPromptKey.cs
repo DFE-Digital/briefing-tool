@@ -2,15 +2,11 @@ namespace Dfe.Briefing.Tool.Domain.Constants;
 
 public static class SystemPromptKey
 {
-    public const string Synthesis = "Synthesis";
-    public const string Establishment = "Establishment";
-    public const string RiseConcerns = "RiseConcerns";
-    public const string RecastConcerns = "RecastConcerns";
-    public const string Trust = "Trust";
+    public const string Briefing = "Briefing";
     public const string WebSearch = "WebSearch";
 }
 
 public static class UserPromptType
 {
-    public const string Synthesis = "Synthesis";
+    public const string Briefing = "Briefing";
 }

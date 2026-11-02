@@ -1,0 +1,23 @@
+{
+  "subject": {
+    "name": "Example Valley Academy",
+    "urnOrTrn": "900002"
+  },
+  "records": {
+    "school": "[Evidence 1]\nestablishment_name: Example Valley Academy\nestablishment_urn: 900002\nestablishment_type: Academy sponsor led\nphase_of_education: Secondary\nestablishment_age_range: 11 to 18\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1200\nnumber_on_roll: 1104\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\", \"overall_effectiveness\": \"Good\", \"sixth_form_provision\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"academic_year\": \"202324\", \"attainment_8_score\": \"46.2\", \"ebacc_average_point_score\": \"4.05\", \"grade_5_or_above_english_and_maths\": \"44%\", \"national_attainment_8_score\": \"45.9\"}"
+  },
+  "mustMention": [
+    "Good",
+    "28 November 2022",
+    "46.2",
+    "44%",
+    "2023/24"
+  ],
+  "mustNotMention": [
+    "46.2%",
+    "4.05%",
+    "202324",
+    "Requires improvement"
+  ],
+  "group": "secondary"
+}

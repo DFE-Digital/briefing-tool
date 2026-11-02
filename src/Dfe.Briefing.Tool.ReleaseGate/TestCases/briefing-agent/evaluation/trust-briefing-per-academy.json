@@ -1,0 +1,30 @@
+{
+  "subject": {
+    "name": "Example Learning Trust",
+    "urnOrTrn": "TR09001"
+  },
+  "records": {
+    "trust": "[Evidence 1]\ntrust_name: Example Learning Trust\ntrust_reference_number: TR09001\ntrust_type: Multi-academy trust\ndate_established: 2014-09-01\ntrust_address: 1 Example Road, Exampleton, EX1 1AA\nnumber_in_trust: 2\ntrust_governance: Chief executive: Alex Example\narea_concerns: Pupil place sufficiency - secondary: shortfall of places forecast from 2026\n\n[Evidence 2]\ntrust_name: Example Learning Trust\ntrust_reference_number: TR09001\nacademy_attendance: [{\"academy\": \"Exampleton Primary School\", \"academic_year\": \"202324\", \"overall_absence\": \"6.1%\", \"persistent_absence\": \"17.0%\"}, {\"academy\": \"Example Valley Academy\", \"academic_year\": \"202324\", \"overall_absence\": \"8.4%\", \"persistent_absence\": \"24.9%\"}]",
+    "academies": "[Evidence 1]\nestablishment_name: Exampleton Primary School\nestablishment_urn: 900001\nphase_of_education: Primary\nassociated_trust_name: Example Learning Trust\nschool_capacity: 420\nnumber_on_roll: 431\nofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"overall_effectiveness\": \"Requires improvement\"}]\n\n[Evidence 2]\nestablishment_name: Example Valley Academy\nestablishment_urn: 900002\nphase_of_education: Secondary\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1200\nnumber_on_roll: 1104\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\", \"overall_effectiveness\": \"Good\"}]",
+    "recastConcerns": "[Evidence 1]\ntrust: Example Learning Trust (TR09001)\nacademy: Example Valley Academy\nconcern_date: 2025-03-03\nconcern: Falling roll affecting financial viability.\nstatus: Ongoing"
+  },
+  "mustMention": [
+    "# Example Learning Trust",
+    "## Trust overview",
+    "## School summary",
+    "### Key issues",
+    "### Recast concerns",
+    "Exampleton Primary School",
+    "Example Valley Academy",
+    "## Attendance",
+    "8.4%",
+    "shortfall",
+    "Alex Example"
+  ],
+  "mustNotMention": [
+    "More background information",
+    "Information not available",
+    "Whole trust: overall absence",
+    "{{city:"
+  ]
+}

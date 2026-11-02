@@ -1,0 +1,17 @@
+{
+  "subject": {
+    "name": "Example Valley Academy",
+    "urnOrTrn": "900002"
+  },
+  "records": {
+    "riseConcerns": "[Evidence 1]\nschool: A different school (URN 900099)\nconcern_date: 2023-02-01\nconcern_type: Governance\nsummary: Governance review requested.\nstatus: Open"
+  },
+  "mustMention": [
+    "No Rise concerns were found"
+  ],
+  "mustNotMention": [
+    "Governance review",
+    "900099"
+  ],
+  "group": "school"
+}

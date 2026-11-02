@@ -5,14 +5,13 @@ namespace Dfe.Briefing.Tool.Application.Providers;
 
 public static class BriefingAgents
 {
-    public static readonly AgentDefinition[] All =
-    [
-        new(AgentNames.Establishment, SystemPromptKey.Establishment) { Validate = ValidateMarkdownOutput},
-        new(AgentNames.Trust, SystemPromptKey.Trust) { Validate = ValidateMarkdownOutput },
-        new(AgentNames.RiseConcerns, SystemPromptKey.RiseConcerns) { Validate = ValidateMarkdownOutput },
-        new(AgentNames.RecastConcerns, SystemPromptKey.RecastConcerns) { Validate = ValidateMarkdownOutput },
-        new(AgentNames.Synthesis, SystemPromptKey.Synthesis) { Validate = ValidateMarkdownOutput, RequiredCitations = false }
-    ];
+    /// <summary>
+    /// Writes the whole briefing in one run from the school's or trust's records, citing each fact's record. The web
+    /// search agent is built per run (see BriefingBuilder.BuildWebSearchAgentSpec), so it isn't listed here.
+    /// </summary>
+    public static readonly AgentDefinition Briefing = new(AgentNames.Briefing, SystemPromptKey.Briefing) { Validate = ValidateMarkdownOutput };
+
+    public static readonly AgentDefinition[] All = [Briefing];
 
     public static string? ValidateMarkdownOutput(AgentResult result)
     {

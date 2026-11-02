@@ -6,11 +6,10 @@ namespace Dfe.Briefing.Tool.Application.Builders.Interfaces;
 
 public interface IBriefingBuilder
 {
-    AIResult BuildNoEvidenceResult(AgentDefinition establihsmentOrTrustAgent, BriefingParameters parameters);
-    string CompileContext(IReadOnlyCollection<AgentResult> results);
+    AIResult BuildNoEvidenceResult(BriefingParameters parameters);
+    string BuildBriefingPrompt(BriefingParameters parameters);
+    AgentEvidence BuildBriefingEvidence(BriefingParameters parameters, BriefingRecords records);
     string BuildWebSearchInstruction(BriefingParameters parameters, string? city);
-    string BuildSubjectInstruction(BriefingParameters parameters);
-    string BuildSynthesisPrompt(BriefingParameters parameters, IReadOnlyCollection<AgentResult> specialistResults);
     AgentSpec BuildWebSearchAgentSpec(IReadOnlyList<AgentTool> tools);
     string BuildWebSearchEvidence(string briefing);
     string BuildNewsFindings(AgentResult webSearchResult, BriefingParameters parameters, string? website);

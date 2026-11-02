@@ -1,0 +1,17 @@
+{
+  "subject": {
+    "name": "Example Brook Special School",
+    "urnOrTrn": "900003"
+  },
+  "records": {
+    "riseConcerns": "[Evidence 1]\nschool: Example Brook Special School (URN 900003)\nconcern_date: 2024-09-16\nconcern_type: Support\nsummary: School asked for support with a new curriculum for pupils with complex needs.\nstatus: Closed\noutcome: Specialist adviser visits completed in the autumn term."
+  },
+  "mustMention": [
+    "16 September 2024",
+    "curriculum",
+    "Specialist adviser"
+  ],
+  "mustNotMention": [
+    "Ongoing"
+  ]
+}

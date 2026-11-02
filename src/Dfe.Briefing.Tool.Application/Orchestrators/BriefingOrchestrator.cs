@@ -28,7 +28,7 @@ public class BriefingOrchestrator(IBriefingEvidenceProvider evidenceProvider, IA
         if (records is null)
             return briefingBuilder.BuildNoEvidenceResult(parameters);
 
-        progress?.Report("Writing the briefing summary...");
+        progress?.Report("Writing the summary...");
         var result = await agentService.RunAsync(BriefingAgents.Briefing, briefingBuilder.BuildBriefingPrompt(parameters),
             briefingBuilder.BuildBriefingEvidence(parameters, records), cancellationToken);
 

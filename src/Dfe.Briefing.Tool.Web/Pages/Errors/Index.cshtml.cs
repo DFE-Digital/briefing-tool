@@ -1,7 +1,6 @@
 using Dfe.Briefing.Tool.Web.Constants;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Diagnostics;
 
 namespace Dfe.Briefing.Tool.Web.Pages.Errors;
 
@@ -25,7 +24,7 @@ public class IndexModel(ILogger<IndexModel> logger) : PageModel
 
     private void ManageErrors(int? statusCode)
     {
-        RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+        RequestId = HttpContext.TraceIdentifier;
         if (!statusCode.HasValue)
         {
             ManageUnhandledErrors();

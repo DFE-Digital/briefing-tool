@@ -25,7 +25,12 @@ public static class ApplicationInsightExtension
         // Read here as well, for a host built without its defaults (the release gate).
         builder.Logging.ClearProviders();
         builder.Logging.AddConfiguration(builder.Configuration.GetSection(TelemetrySettings.LoggingSection));
-        builder.Logging.AddSimpleConsole(console => console.SingleLine = true);
+        // Scopes carry a request's correlation ID onto each of its log lines.
+        builder.Logging.AddSimpleConsole(console =>
+        {
+            console.SingleLine = true;
+            console.IncludeScopes = true;
+        });
 
         var connectionString = builder.Configuration[TelemetrySettings.ConnectionStringKey];
         if (string.IsNullOrWhiteSpace(connectionString))
@@ -37,7 +42,11 @@ public static class ApplicationInsightExtension
             .ConfigureResource(resource => resource.AddService(applicationName, serviceInstanceId: roleInstance))
             .WithTracing(tracing => tracing.AddSource(AgentTelemetry.SourceName))
             .WithMetrics(metrics => metrics.AddMeter(AgentTelemetry.SourceName))
-            .WithLogging(configureBuilder: null, configureOptions: logs => logs.IncludeFormattedMessage = true)
+            .WithLogging(configureBuilder: null, configureOptions: logs =>
+            {
+                logs.IncludeFormattedMessage = true;
+                logs.IncludeScopes = true;
+            })
             .UseAzureMonitorExporter(options => options.ConnectionString = connectionString);
 
         return true;

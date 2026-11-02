@@ -1,5 +1,6 @@
 using Dfe.Briefing.Tool.Infrastructure.Extensions;
 using Dfe.Briefing.Tool.Web.Extensions;
+using Dfe.Briefing.Tool.Web.Middleware;
 using GovUk.Frontend.AspNetCore; 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,7 +8,10 @@ builder.Configuration.AddSharedSettings();
 
 builder.AddInfrastructure();
 
-var app = builder.Build(); 
+var app = builder.Build();
+
+// First, so every log of the request - the error page's too - carries its correlation ID.
+app.UseMiddleware<CorrelationIdMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -89,7 +89,8 @@ jobs:
           azure-aca-name: ${{ secrets.ACA_CONTAINERAPP_NAME }}
           azure-aca-resource-group: ${{ secrets.ACA_RESOURCE_GROUP }}
           azure-acr-name: ${{ secrets.ACR_NAME }}
-          annotate-release: true
+          # The action annotates only on "yes" (its default is "no"), in App Insights <ACA_RESOURCE_GROUP>-insights
+          annotate-release: 'yes'
           image-name: ${{ needs.set-env.outputs.image-name }}
         env:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID || '' }}

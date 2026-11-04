@@ -32,18 +32,24 @@ internal abstract partial class BaseBackgroundDailyJob(TimeProvider timeProvider
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        try
+        while (!stoppingToken.IsCancellationRequested)
         {
-            while (true)
+            try
             {
                 var delay = UntilNext(RunAt, TimeProvider.GetUtcNow());
                 await Task.Delay(delay, TimeProvider, stoppingToken);
                 await RunAsync(stoppingToken);
             }
-        }
-        catch (Exception ex) when (stoppingToken.IsCancellationRequested)
-        {
-            LogRunFailed(logger, ex, Name);
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                // The app is stopping, as on every deployment or restart: not a failure.
+                return;
+            }
+            catch (Exception ex)
+            {
+                // Logged rather than thrown, which would stop the app; the next day's run tries again.
+                LogRunFailed(logger, ex, Name);
+            }
         }
     }
 

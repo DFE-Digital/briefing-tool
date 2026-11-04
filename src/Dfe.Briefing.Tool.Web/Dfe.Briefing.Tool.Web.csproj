@@ -181,6 +181,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Encrypts the data protection keys at rest with a Key Vault key (DataProtection:KeyVaultKey). -->
+    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.5" />
+    <!-- Microsoft.Identity.Web.Certificate (via Microsoft.Identity.Web) also pulls in Azure.Identity
+         transitively, and newer Azure.Core versions duplicate its credential types (e.g.
+         DefaultAzureCredential) under the same namespace - referencing both makes that type
+         ambiguous (CS0433). Excluding Azure.Identity's compile assets here resolves it to the
+         Azure.Core copy at compile time while leaving the runtime assembly untouched. -->
     <PackageReference Include="Azure.Identity" Version="1.21.0" ExcludeAssets="compile" />
     <PackageReference Include="GovUk.Frontend.AspNetCore" Version="5.1.0" />
     <PackageReference Include="HtmlSanitizer" Version="10.0.1120" />

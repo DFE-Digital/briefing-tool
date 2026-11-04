@@ -174,7 +174,9 @@
     display: flex;
     align-items: center;
     gap: govuk-spacing(2);
-    color: govuk-colour("mid-grey");
+    // Quieter than the current step, but still readable: mid-grey on the light-grey panel is about 1.9:1, under
+    // WCAG AA's 4.5:1 for text, where GOV.UK's secondary text colour is about 6.5:1.
+    color: $govuk-secondary-text-colour;
   }
 }
 

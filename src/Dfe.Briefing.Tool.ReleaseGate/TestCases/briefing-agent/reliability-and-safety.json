@@ -221,8 +221,7 @@
       "mustNotMention": [
         "More background information",
         "Information not available",
-        "Whole trust: overall absence",
-        "{{city:"
+        "Whole trust: overall absence"
       ],
       "group": "trust"
     },

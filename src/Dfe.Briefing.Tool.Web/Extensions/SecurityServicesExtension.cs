@@ -1,4 +1,5 @@
-﻿using Dfe.Briefing.Tool.Web.Constants;
+﻿using Azure.Identity;
+using Dfe.Briefing.Tool.Web.Constants;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
@@ -122,5 +123,20 @@ public static class SecurityServicesExtension
         }
 
         dp.PersistKeysToFileSystem(keyDirectory);
+
+        // Whoever can read the shared folder could otherwise read the keys and forge or decrypt the cookies, so they're
+        // encrypted at rest with a Key Vault key. Only local development may keep them unencrypted.
+        var keyVaultKey = builder.Configuration.GetValue<string>("DataProtection:KeyVaultKey");
+        if (string.IsNullOrWhiteSpace(keyVaultKey))
+        {
+            if (!builder.Environment.IsDevelopment())
+            {
+                throw new InvalidOperationException(ErrorMessages.DataProtectionKeyVaultKeyUndefined);
+            }
+
+            return;
+        }
+
+        dp.ProtectKeysWithAzureKeyVault(new Uri(keyVaultKey), new DefaultAzureCredential());
     }
 }

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>6527a5d4-93b7-4b0c-bd1a-bdffed4bff00</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dfe.Briefing.Tool.Infrastructure\Dfe.Briefing.Tool.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The gate tests the agents exactly as the web app runs them: the shared settings (appsettings.shared.json, copied
+         from Infrastructure) and the web app's prompt files. The prompts stay in the web app (edit them there); they're
+         only copied into the gate's output, so they're hidden here. -->
+    <None Include="..\Dfe.Briefing.Tool.Web\Prompts\**\*.md" Link="Prompts\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestCases\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Baselines\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dfe.Briefing.Tool.ReleaseGate.Tests" />
+  </ItemGroup>
+
+</Project>

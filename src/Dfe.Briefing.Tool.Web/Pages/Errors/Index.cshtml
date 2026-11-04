@@ -5,7 +5,6 @@
   ViewData["Title"] = !string.IsNullOrEmpty(Model.ErrorMessage) ? Model.ErrorMessage : "Error";
 }
 
-<div class="govuk-grid-column-two-thirds govuk-!-padding-0">
   <h1 class="govuk-heading-l" id="error-heading">@Model.ErrorMessage</h1>
   @if (Model.IsPageNotFound)
     {
@@ -26,4 +25,6 @@
         If this problem continues, contact the system administrator at
         <a href="mailto:@_configuration["SupportEmail"]?subject=Briefing%20tool:%20support%20query" class="govuk-link">@_configuration["SupportEmail"]</a>.
     </p>
-</div>
+    <p class="govuk-body" id="error-reference">
+        Quote this reference: <strong>@Model.RequestId</strong>
+    </p>

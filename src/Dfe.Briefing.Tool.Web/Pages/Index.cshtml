@@ -1,94 +1,31 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "Generate a briefing";
-    var urnInvalid = ViewData.ModelState["Input.SchoolUrnOrTrustTrn"]?.Errors.Count > 0;
-    var nameInvalid = ViewData.ModelState["Input.SchoolOrTrustName"]?.Errors.Count > 0;
+    ViewData["Title"] = "Generate an AI summary of an establishment";
 }
 
-<partial name="_ValidationSummary" />
+<h1 class="govuk-heading-xl">Get an AI summary of a school or trust</h1>
 
-<div id="briefing-error-summary">
-    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
-    {
-        <div class="govuk-error-summary" data-module="govuk-error-summary" aria-labelledby="briefing-error-title" role="alert" tabindex="-1">
-            <h2 class="govuk-error-summary__title" id="briefing-error-title">There is a problem</h2>
-            <div class="govuk-error-summary__body">
-                <ul class="govuk-list govuk-error-summary__list">
-                    <li>@Model.ErrorMessage</li>
-                </ul>
-            </div>
-        </div>
-    }
-</div>
+<p class="govuk-body">Use this service create a summary of a school or trust's:</p>
+<ul class="govuk-list govuk-list--bullet">
+    <li>attendance</li>
+    <li>Ofsted ratings</li>
+    <li>performance</li>
+    <li>comparison against national averages</li>
+    <li>SEND and free school meal provision</li>
+</ul>
 
-<h1 class="govuk-heading-xl">Generate a briefing</h1> 
-<govuk-details>
-    <govuk-details-summary>
-        <span class="govuk-details__summary-text">Instructions</span>
-    </govuk-details-summary>
-    <govuk-details-text>
-        <p class="govuk-body">
-            This tool uses AI to give an overview of the data Regions Group holds about a school or trust, including:
-            <ul>
-                <li>pupil numbers</li>
-                <li>trust make up</li>
-                <li>performance details</li>
-            </ul>
-        </p>
-        <p class="govuk-body">You must enter either a school's six digit URN or a trust's seven digit TRN, then its name. </p>
-        <p class="govuk-body">Click 'Search' when you're done.</p>
-    </govuk-details-text>
-</govuk-details>
-<div class="govuk-grid-row">
-    <div class="govuk-grid-column-one-third">
-        <form method="post" novalidate id="briefing-form">
-            <div class="govuk-form-group @(urnInvalid == true ? "govuk-form-group--error" : "")">
-                <label asp-for="Input.SchoolUrnOrTrustTrn" class="govuk-label">School URN or trust TRN</label>
-                <span asp-validation-for="Input.SchoolUrnOrTrustTrn" class="govuk-error-message"></span>
-                <input asp-for="Input.SchoolUrnOrTrustTrn" class="govuk-input" />
-            </div>
+<h2 class="govuk-heading-m">Before you start</h2>
+<p class="govuk-body">You will need:</p>
+<ul class="govuk-list govuk-list--bullet">
+    <li>the URN for summaries about schools</li>
+    <li>the TRN for summaries about trusts</li>
+    <li>the name of the school or trust</li>
+</ul>
 
-            <div class="govuk-form-group @(nameInvalid == true ? "govuk-form-group--error" : "")">
-                <label asp-for="Input.SchoolOrTrustName" class="govuk-label">School or trust name</label>
-                <span asp-validation-for="Input.SchoolOrTrustName" class="govuk-error-message"></span>
-                <input asp-for="Input.SchoolOrTrustName" class="govuk-input" />
-            </div>
+<h2 class="govuk-heading-m">You must check all AI generated content before you use it in your work</h2>
+<p class="govuk-body">
+    <a asp-page="/AiSummaries" class="govuk-link">Read more about AI-generated summaries and the data they use</a>
+</p>
 
-            <div class="govuk-form-group">
-                <div class="govuk-checkboxes" data-module="govuk-checkboxes">
-                    <div class="govuk-checkboxes__item">
-                        <input class="govuk-checkboxes__input" asp-for="Input.AllowWebSearch" type="checkbox" />
-                        <label class="govuk-label govuk-checkboxes__label" asp-for="Input.AllowWebSearch">
-                            Include a web search for current, publicly available information
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="govuk-button-group">
-                <button type="submit" class="govuk-button" data-module="govuk-button" id="briefing-submit">Search</button>
-                <button type="button" class="govuk-button govuk-button--secondary" data-module="govuk-button"
-                        id="briefing-clear" hidden="@(string.IsNullOrWhiteSpace(Model.BriefingOutput))">
-                    Clear briefing
-                </button>
-            </div>
-        </form>
-    </div>
- 
-    <div class="govuk-grid-column-two-thirds">
-        <div id="briefing-status" class="app-briefing-status" hidden>
-            <h2 class="govuk-heading-m">Generating briefing...</h2>
-            <ul id="briefing-status-list" class="govuk-list app-briefing-status__list" aria-live="polite" aria-atomic="true"></ul>
-        </div>
-
-        <div id="briefing-output-container">
-            @if (!string.IsNullOrWhiteSpace(Model.BriefingOutput))
-            {
-                <div class="briefing-output">
-                    @Html.Raw(Model.BriefingOutput)
-                </div>
-            }
-        </div>
-    </div>
-</div>
+<govuk-button-link href="@Url.Page("/Briefing/Type")" is-start-button="true">Start now</govuk-button-link>

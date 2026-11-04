@@ -1,450 +1,172 @@
+using Dfe.Briefing.Tool.Application.Builders;
+using Dfe.Briefing.Tool.Application.Builders.Interfaces;
 using Dfe.Briefing.Tool.Application.Orchestrators;
+using Dfe.Briefing.Tool.Application.Providers;
+using Dfe.Briefing.Tool.Application.Providers.Interfaces;
 using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
-using GovUK.Dfe.CoreLibs.AiAgents.Agents;
-using GovUK.Dfe.CoreLibs.AiAgents.Agents.Interfaces;
-using GovUK.Dfe.CoreLibs.AiAgents.Context.Interfaces;
-using GovUK.Dfe.CoreLibs.AiAgents.Factories.Interfaces;
-using GovUK.Dfe.CoreLibs.AiAgents.Orchestration;
-using GovUK.Dfe.CoreLibs.AiAgents.Prompts.Interfaces;
-using GovUK.Dfe.CoreLibs.AiAgents.ValueObjects;
+using GovUK.Dfe.AI.Agents.Prompts.Interfaces;
+using GovUK.Dfe.AI.Agents.Services.Interfaces;
+using GovUK.Dfe.AI.Agents.ValueObjects;
 using NSubstitute;
-using NSubstitute.ExceptionExtensions;
 using Xunit;
 
 namespace Dfe.Briefing.Tool.Application.Tests.Orchestrators;
 
 public sealed class BriefingOrchestratorTests
 {
-    private static readonly AgentDefinition Establishment = new("establishment-agent", SystemPromptType.Establishment, EvidenceCategory.Establishment, "{{SchoolOrTrustName}}");
-    private static readonly AgentDefinition Ofsted = new("ofsted-agent", SystemPromptType.Ofsted, EvidenceCategory.Ofsted, "{{SchoolOrTrustName}} Ofsted");
-    private static readonly AgentDefinition Trust = new("trust-agent", SystemPromptType.Trust, EvidenceCategory.Trust, "{{SchoolOrTrustName}} Trust");
-    private static readonly AgentDefinition RiseConcerns = new("rise-concerns-agent", SystemPromptType.RiseConcerns,
-        EvidenceCategory.RiseConcerns, "{{SchoolOrTrustName}} RISE concerns", IsManagedAgent: false);
-    private const string SynthesisAgentName = "briefing-synthesis-agent";
-    private const string WebSearchAgentName = "web-search-agent";
+    private static readonly BriefingParameters School = new("123456", "Test Academy", IsTrust: false);
+    private static readonly BriefingParameters Trust = new("TR12345", "Test Trust", IsTrust: true);
+
+    private static readonly BriefingRecords Records = new(
+        new ContextResult("[Evidence 1]\nestablishment_name: Test Academy", HasEvidence: true),
+        new ContextResult("This school is not part of a trust.", HasEvidence: false),
+        new ContextResult("[Evidence 1]\nsummary: Rise concern", HasEvidence: true),
+        new ContextResult(string.Empty, HasEvidence: false));
 
     private readonly CancellationToken cancellationToken = TestContext.Current.CancellationToken;
-    private readonly IAgentDefinitionProvider _definitionProvider = Substitute.For<IAgentDefinitionProvider>();
-    private readonly IContextRetriever _contextRetriever = Substitute.For<IContextRetriever>();
-    private readonly IPromptProvider _promptProvider = Substitute.For<IPromptProvider>();
+    private readonly IBriefingEvidenceProvider _evidenceProvider = Substitute.For<IBriefingEvidenceProvider>();
     private readonly IPromptTemplateBuilder _promptBuilder = Substitute.For<IPromptTemplateBuilder>();
-    private readonly IAgentFactory _agentFactory = Substitute.For<IAgentFactory>();
-    private readonly IAgentRunner _agentRunner = Substitute.For<IAgentRunner>();
-    private readonly IAgentRuntime _agentRuntime = Substitute.For<IAgentRuntime>();
+    private readonly IAgentService _agentService = Substitute.For<IAgentService>();
+    private readonly IAgentRuntimeService _agentRuntime = Substitute.For<IAgentRuntimeService>();
+    private readonly IPromptProvider _promptProvider = Substitute.For<IPromptProvider>();
+    private readonly IBriefingBuilder _briefingBuilder;
+    private readonly BriefingOrchestrator _sut;
 
-    private BriefingOrchestrator CreateSut(IReadOnlyCollection<AgentDefinition>? definitions = null)
+    public BriefingOrchestratorTests()
     {
-        _definitionProvider.GetAgentsDefinitions().Returns(definitions ?? [Establishment, Ofsted, Trust]);
+        _briefingBuilder = new BriefingBuilder(_promptProvider, _promptBuilder, TimeProvider.System);
+        _evidenceProvider.GetRecordsAsync(Arg.Any<BriefingParameters>(), Arg.Any<IProgress<string>?>(), Arg.Any<CancellationToken>()).Returns(Records);
+        _promptBuilder.Build(UserPromptType.Briefing, Arg.Any<IReadOnlyDictionary<string, string>>()).Returns("briefing-prompt");
+        _promptProvider.GetSystemPrompt(SystemPromptKey.WebSearch).Returns("web-search-system-prompt");
+        BriefingAgentReturns("# Test Academy\n\n## About the school\n\nRated Good. [Evidence 1]", 10);
 
-        _contextRetriever.GetContextAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new ContextResult("evidence", HasEvidence: true)));
-         
-        _agentFactory.GetOrCreateAsync(Arg.Any<AgentSpec>(), Arg.Any<CancellationToken>())
-            .Returns(callInfo => new AgentReference($"{callInfo.Arg<AgentSpec>().Name}-id", callInfo.Arg<AgentSpec>().Name));
-        _agentRuntime.ResolveAsync(Arg.Any<AgentReference>(), Arg.Any<CancellationToken>())
-            .Returns(callInfo => callInfo.Arg<AgentReference>());
-         
-        _agentRuntime.Orchestrator.Returns(new AgentOrchestrator(_agentRunner));
-
-        _promptProvider.GetSystemPrompt(Arg.Any<string>()).Returns("system-instructions");
-        _promptBuilder.Build(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, string>>()).Returns("synthesis-prompt");
-         
-        var specialistAgentRunner = new SpecialistAgentRunner(_agentFactory, _agentRunner, _agentRuntime, _promptProvider);
-
-        return new BriefingOrchestrator(_definitionProvider, _contextRetriever, _promptProvider, _promptBuilder, _agentRuntime,
-            specialistAgentRunner);
+        _sut = new BriefingOrchestrator(_evidenceProvider, _agentService, _agentRuntime, _briefingBuilder);
     }
 
-    private void SetUpAgentResult(string agentName, string output, long totalTokens = 10)
-        => _agentRunner.RunAsync(Arg.Is<AgentReference>(agent => agent.Name == agentName), Arg.Any<string>(), cancellationToken: Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new AgentResult(agentName, output, totalTokens)));
+    private void BriefingAgentReturns(string output, long totalTokens)
+        => _agentService.RunAsync(Arg.Any<AgentDefinition>(), Arg.Any<string>(), Arg.Any<AgentEvidence?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(Result(AgentNames.Briefing, output, totalTokens)));
 
-    private void SetUpAgentFailure(string agentName)
-        => _agentRunner.RunAsync(Arg.Is<AgentReference>(agent => agent.Name == agentName), Arg.Any<string>(), cancellationToken: Arg.Any<CancellationToken>())
-            .Throws(new InvalidOperationException($"{agentName} failed"));
- 
-    private AgentSpec? _capturedSynthesisSpec;
-    private string? _capturedWebSearchInstructions;
-    private string? _capturedWebSearchPrompt;
+    private void SetUpWebSearchResult(AgentResult result)
+        => _agentRuntime.RunEphemeralAsync(Arg.Any<AgentSpec>(), Arg.Any<string>(), Arg.Any<ToolCallResolver?>(),
+                Arg.Any<string?>(), Arg.Any<Func<AgentResult, string>?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(result));
 
-    private void SetUpSynthesisAgentResult(string output, long totalTokens = 10)
-        => _agentRuntime.RunEphemeralAsync(Arg.Is<AgentSpec>(spec => spec.Name == SynthesisAgentName), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(callInfo =>
-            {
-                _capturedSynthesisSpec = callInfo.Arg<AgentSpec>();
-                return Task.FromResult(new AgentResult(SynthesisAgentName, output, totalTokens));
-            });
+    private static AgentResult Result(string agentName, string output, long totalTokens)
+        => new() { AgentName = agentName, Output = output, TotalTokens = totalTokens };
 
-    private void SetUpWebSearchAgentResult(string output, long totalTokens = 10)
-        => _agentRuntime.RunEphemeralAsync(Arg.Is<AgentSpec>(spec => spec.Name == WebSearchAgentName), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(callInfo =>
-            {
-                _capturedWebSearchInstructions = callInfo.Arg<AgentSpec>().Instructions;
-                _capturedWebSearchPrompt = callInfo.ArgAt<string>(1);
-                return Task.FromResult(new AgentResult(WebSearchAgentName, output, totalTokens));
-            });
-
-    private void SetUpEphemeralSpecialistResult(string agentName, string output, long totalTokens = 10)
-        => _agentRuntime.RunEphemeralAsync(Arg.Is<AgentSpec>(spec => spec.Name == agentName), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new AgentResult(agentName, output, totalTokens)));
-
-    private void SetUpWebSearchAgentFailure()
-        => _agentRuntime.RunEphemeralAsync(Arg.Is<AgentSpec>(spec => spec.Name == WebSearchAgentName), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Throws(new InvalidOperationException("web search failed"));
-
-    [Fact]
-    public async Task GetBriefing_AlwaysRunsEstablishmentAndEverySpecialist()
+    [Theory]
+    [InlineData(false, "No school or academy found.")]
+    [InlineData(true, "No trust information found.")]
+    public async Task GetBriefing_WithNoRecordForTheSubject_SaysSo_WithoutRunningTheAgent(bool isTrust, string message)
     {
-        var sut = CreateSut();
-        SetUpAgentResult(Establishment.Name, "establishment-output");
-        SetUpAgentResult(Ofsted.Name, "ofsted-output");
-        SetUpAgentResult(Trust.Name, "trust-output");
-        SetUpSynthesisAgentResult("final-briefing");
+        _evidenceProvider.GetRecordsAsync(Arg.Any<BriefingParameters>(), Arg.Any<IProgress<string>?>(), Arg.Any<CancellationToken>()).Returns((BriefingRecords?)null);
 
-        var parameters = new BriefingParameters("123456", "Test Academy");
+        var result = await _sut.GetBriefing(isTrust ? Trust : School, cancellationToken: cancellationToken);
 
-        await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        await _agentRunner.Received(1).RunAsync(Arg.Is<AgentReference>(agent => agent.Name == Establishment.Name), Arg.Any<string>(), cancellationToken: Arg.Any<CancellationToken>());
-        await _agentRunner.Received(1).RunAsync(Arg.Is<AgentReference>(agent => agent.Name == Ofsted.Name), Arg.Any<string>(), cancellationToken: Arg.Any<CancellationToken>());
-        await _agentRunner.Received(1).RunAsync(Arg.Is<AgentReference>(agent => agent.Name == Trust.Name), Arg.Any<string>(), cancellationToken: Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task GetBriefing_CreatesOrResolvesEverySpecialistAgent_WithInstructionsFromItsOwnPromptType()
-    {
-        var sut = CreateSut();
-        SetUpAgentResult(Establishment.Name, "establishment-output");
-        SetUpAgentResult(Ofsted.Name, "ofsted-output");
-        SetUpAgentResult(Trust.Name, "trust-output");
-        SetUpSynthesisAgentResult("final-briefing");
-
-        var parameters = new BriefingParameters("123456", "Test Academy");
-
-        await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        await _agentFactory.Received(1).GetOrCreateAsync(Arg.Is<AgentSpec>(spec => spec.Name == Establishment.Name), Arg.Any<CancellationToken>());
-        await _agentFactory.Received(1).GetOrCreateAsync(Arg.Is<AgentSpec>(spec => spec.Name == Ofsted.Name), Arg.Any<CancellationToken>());
-        await _agentFactory.Received(1).GetOrCreateAsync(Arg.Is<AgentSpec>(spec => spec.Name == Trust.Name), Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task GetBriefing_FailedSpecialistAgent_DoesNotFailWholeBriefing()
-    {
-        var sut = CreateSut();
-        SetUpAgentResult(Establishment.Name, "establishment-output");
-        SetUpAgentFailure(Ofsted.Name);
-        SetUpAgentResult(Trust.Name, "trust-output");
-        SetUpSynthesisAgentResult("final-briefing");
-
-        var parameters = new BriefingParameters("123456", "Test Academy");
-
-        var result = await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        Assert.Equal("final-briefing", result.Output);
-        _promptBuilder.Received(1).Build(Arg.Any<string>(),
-            Arg.Is<IReadOnlyDictionary<string, string>>(d => d["Context"].Contains("could not be generated", StringComparison.OrdinalIgnoreCase)));
-    }
-
-    [Fact]
-    public async Task GetBriefing_FailedEstablishmentAgent_PropagatesFailure()
-    {
-        var sut = CreateSut();
-        SetUpAgentFailure(Establishment.Name);
-        SetUpAgentResult(Ofsted.Name, "ofsted-output");
-        SetUpAgentResult(Trust.Name, "trust-output");
-
-        var parameters = new BriefingParameters("123456", "Test Academy");
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.GetBriefing(parameters, cancellationToken: cancellationToken));
-    }
-
-    [Fact]
-    public async Task GetBriefing_UnresolvableSpecialistAgent_DoesNotFailWholeBriefing()
-    {
-        var sut = CreateSut();
-        SetUpAgentResult(Establishment.Name, "establishment-output");
-        _agentFactory.GetOrCreateAsync(Arg.Is<AgentSpec>(spec => spec.Name == Ofsted.Name), Arg.Any<CancellationToken>())
-            .Returns(Task.FromException<AgentReference>(new InvalidOperationException("Agent 'ofsted-agent' was not found.")));
-        SetUpAgentResult(Trust.Name, "trust-output");
-        SetUpSynthesisAgentResult("final-briefing");
-
-        var parameters = new BriefingParameters("123456", "Test Academy");
-
-        var result = await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        Assert.Equal("final-briefing", result.Output);
-        await _agentRunner.DidNotReceive().RunAsync(Arg.Is<AgentReference>(agent => agent.Name == Ofsted.Name), Arg.Any<string>(), cancellationToken: Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task GetBriefing_NoEstablishmentEvidence_ReturnsANoSchoolOrAcademyFoundResult_WithoutRunningAnyAgent()
-    {
-        var sut = CreateSut();
-        _contextRetriever.GetContextAsync(EvidenceCategory.Establishment, Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new ContextResult("No Establishment information found.", HasEvidence: false)));
-
-        var parameters = new BriefingParameters("123456", "Test Academy");
-
-        var result = await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        Assert.NotNull(result.Output);
-        Assert.Contains("No school or academy found.", result.Output, StringComparison.Ordinal);
+        Assert.Contains(message, result.Output, StringComparison.Ordinal);
         Assert.Equal(0, result.TotalTokens);
-        await _agentRunner.DidNotReceive().RunAsync(Arg.Any<AgentReference>(), Arg.Any<string>(), cancellationToken: Arg.Any<CancellationToken>());
-        await _agentRuntime.DidNotReceiveWithAnyArgs().RunEphemeralAsync(default!, default!, cancellationToken);
+        await _agentService.DidNotReceiveWithAnyArgs().RunAsync(default!, default!, cancellationToken: cancellationToken);
     }
 
     [Fact]
-    public async Task GetBriefing_NoTrustEvidence_ReturnsANoTrustInformationFoundResult_WithoutRunningAnyAgent()
+    public async Task GetBriefing_RunsTheBriefingAgentOnce_WithItsPrompt_AndAllTheRecordsAsEvidence()
     {
-        var sut = CreateSut();
-        _contextRetriever.GetContextAsync(EvidenceCategory.Trust, Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new ContextResult("No Trust information found.", HasEvidence: false)));
-         
-        var parameters = new BriefingParameters("TR12345", "Test Trust");
+        await _sut.GetBriefing(School, cancellationToken: cancellationToken);
 
-        var result = await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        Assert.NotNull(result.Output);
-        Assert.Contains("No trust information found.", result.Output, StringComparison.Ordinal);
-        await _agentRunner.DidNotReceive().RunAsync(Arg.Any<AgentReference>(), Arg.Any<string>(), cancellationToken: Arg.Any<CancellationToken>());
+        await _agentService.Received(1).RunAsync(BriefingAgents.Briefing, "briefing-prompt",
+            Arg.Is<AgentEvidence?>(evidence => evidence != null
+                && evidence.Text.Contains("=== School record ===", StringComparison.Ordinal)
+                && evidence.Text.Contains("establishment_name: Test Academy", StringComparison.Ordinal)
+                && evidence.Text.Contains("This school is not part of a trust.", StringComparison.Ordinal)
+                && evidence.Text.Contains("[Evidence 2]\nsummary: Rise concern", StringComparison.Ordinal)),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task GetBriefing_SumsTokensAcrossAllAgents()
+    public async Task GetBriefing_PassesItsProgressToTheSearches_ThenReportsWritingTheSummary()
     {
-        var sut = CreateSut();
-        SetUpAgentResult(Establishment.Name, "establishment-output", totalTokens: 100);
-        SetUpAgentResult(Ofsted.Name, "ofsted-output", totalTokens: 50);
-        SetUpAgentResult(Trust.Name, "trust-output", totalTokens: 20);
-        SetUpSynthesisAgentResult("final-briefing", totalTokens: 25);
+        var steps = new List<string>();
+        var progress = new SynchronousProgress(steps.Add);
 
-        var parameters = new BriefingParameters("123456", "Test Academy");
+        await _sut.GetBriefing(School, progress, cancellationToken);
 
-        var result = await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        Assert.Equal(195, result.TotalTokens);
+        await _evidenceProvider.Received(1).GetRecordsAsync(School, progress, Arg.Any<CancellationToken>());
+        Assert.Equal(["Writing the summary..."], steps);
     }
 
     [Fact]
-    public async Task GetBriefing_UsesHumanReadableDisplayNames_ForAgentSectionsInSynthesis()
+    public async Task GetBriefing_TakesTheCityMarkerOut_AndReturnsTheCity_ForALaterWebSearch()
     {
-        var sut = CreateSut();
-        SetUpAgentResult(Establishment.Name, "establishment-output");
-        SetUpAgentResult(Ofsted.Name, "ofsted-output");
-        SetUpAgentResult(Trust.Name, "trust-output");
-        SetUpSynthesisAgentResult("final-briefing");
+        BriefingAgentReturns("# Test Academy\n\n## About the school\n\nRated Good.\n{{city: Coventry}}", 10);
 
-        var parameters = new BriefingParameters("123456", "Test Academy");
+        var result = await _sut.GetBriefing(School, cancellationToken: cancellationToken);
 
-        await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        _promptBuilder.Received(1).Build(Arg.Any<string>(),
-            Arg.Is<IReadOnlyDictionary<string, string>>(d =>
-                d["Context"].Contains("AGENT: Establishment", StringComparison.Ordinal) &&
-                d["Context"].Contains("AGENT: Ofsted", StringComparison.Ordinal) &&
-                d["Context"].Contains("AGENT: Trust", StringComparison.Ordinal) &&
-                d["IncludedSections"].Contains("Establishment", StringComparison.Ordinal) &&
-                d["IncludedSections"].Contains("Ofsted", StringComparison.Ordinal) &&
-                d["IncludedSections"].Contains("Trust", StringComparison.Ordinal) &&
-                !d["IncludedSections"].Contains("-agent", StringComparison.Ordinal)));
+        Assert.Equal("Coventry", result.City);
+        Assert.DoesNotContain("city:", result.Output, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task GetBriefing_RunsSynthesisAsAnEphemeralAgent_RatherThanResolvingAProvisionedOne()
+    public async Task GetBriefing_RemovesAMoreBackgroundInformationSection_AndEmptySections_AndGivesTheAgentsTokens()
     {
-        var sut = CreateSut();
-        SetUpAgentResult(Establishment.Name, "establishment-output");
-        SetUpAgentResult(Ofsted.Name, "ofsted-output");
-        SetUpAgentResult(Trust.Name, "trust-output");
-        SetUpSynthesisAgentResult("final-briefing");
+        BriefingAgentReturns("# Test Academy\n\n## About the school\n\nRated Good.\n\n## Attendance\n\n## More background information\n\n1. Website\n", 25);
 
-        var parameters = new BriefingParameters("123456", "Test Academy");
+        var result = await _sut.GetBriefing(School, cancellationToken: cancellationToken);
 
-        await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
+        Assert.Equal("# Test Academy\n\n## About the school\n\nRated Good.\n\n", result.Output);
+        Assert.Equal(25, result.TotalTokens);
+        await _agentRuntime.DidNotReceiveWithAnyArgs().RunEphemeralAsync(default!, default!, cancellationToken: cancellationToken);
+        Assert.True(_sut.CanAddWebSearchFindings(result.Output));
+    }
+
+    [Fact]
+    public async Task GetBriefing_PropagatesAFailedRun()
+    {
+        _agentService.RunAsync(Arg.Any<AgentDefinition>(), Arg.Any<string>(), Arg.Any<AgentEvidence?>(), Arg.Any<CancellationToken>())
+            .Returns<Task<AgentResult>>(_ => throw new InvalidOperationException("briefing-agent failed"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.GetBriefing(School, cancellationToken: cancellationToken));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("# Test Academy\n\nNo school or academy found.")]
+    [InlineData("# Test Academy\n\n## School summary\n\nRated Good.\n\n## More background information\n\n### News and media coverage\n\n- 1 May 2026: News. [A](https://a.org/x)")]
+    public void CanAddWebSearchFindings_IsFalse_WithNoRecordsOrWhenNewsIsAlreadyThere(string? briefing)
+        => Assert.False(_sut.CanAddWebSearchFindings(briefing));
+
+    [Fact]
+    public async Task GetWebSearchFindings_RunsTheWebSearchAgent_WithTheBriefingWithoutItsCitationsAsEvidence_AndTheCityInItsPrompt()
+    {
+        SetUpWebSearchResult(Result(AgentNames.WebSearch, "- 20 August 2026: Record results. [The Star](https://www.thestar.co.uk/a-1)", 10));
+        const string briefing = "# Test Academy\n\n## School summary\n\nRated Good. [Test Academy 123456 Academy converter]";
+
+        await _sut.GetWebSearchFindings(School, briefing, "Coventry", website: null, cancellationToken);
 
         await _agentRuntime.Received(1).RunEphemeralAsync(
-            Arg.Is<AgentSpec>(spec => spec.Name == SynthesisAgentName), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<AgentSpec>(), Arg.Is<string>(prompt => prompt.Contains("Coventry", StringComparison.Ordinal)), Arg.Any<ToolCallResolver?>(),
+            Arg.Is<string?>(evidence => evidence != null && evidence.Contains("Rated Good.", StringComparison.Ordinal) && !evidence.Contains('[')),
+            Arg.Any<Func<AgentResult, string>?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task GetBriefing_UsesSynthesisInstructionsFromThePromptService()
+    public async Task GetWebSearchFindings_ReturnsOnlyTheMoreBackgroundInformationSection_WithoutRerunningTheBriefingAgent()
     {
-        var sut = CreateSut();
-        SetUpAgentResult(Establishment.Name, "establishment-output");
-        SetUpAgentResult(Ofsted.Name, "ofsted-output");
-        SetUpAgentResult(Trust.Name, "trust-output");
-        _promptProvider.GetSystemPrompt(SystemPromptType.Synthesis).Returns("synthesis-instructions");
-        SetUpSynthesisAgentResult("final-briefing");
+        SetUpWebSearchResult(Result(AgentNames.WebSearch, "## Web search findings\n\n- 20 August 2026: Record results. [The Star](https://www.thestar.co.uk/a-1)", 15));
+        const string briefing = "# Test Academy\n\n## School summary\n\nRated Good.\n\n## Financial health\n\n- Not available.\n";
 
-        var parameters = new BriefingParameters("123456", "Test Academy");
+        var result = await _sut.GetWebSearchFindings(School, briefing, city: null, website: null, cancellationToken);
 
-        await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        Assert.Equal("synthesis-instructions", _capturedSynthesisSpec?.Instructions);
+        Assert.Equal("## More background information\n\n### News and media coverage\n\n- 20 August 2026: Record results. [The Star](https://www.thestar.co.uk/a-1)\n", result.Output);
+        Assert.Equal(15, result.TotalTokens);
+        await _agentService.DidNotReceiveWithAnyArgs().RunAsync(default!, default!, cancellationToken: cancellationToken);
     }
 
-    [Fact]
-    public async Task GetBriefing_DoesNotRunTheWebSearchAgent_WhenNotAllowed()
+    // Progress<T> reports on the thread pool, so a test can't rely on its order; this reports as it's called.
+    private sealed class SynchronousProgress(Action<string> report) : IProgress<string>
     {
-        var sut = CreateSut();
-        SetUpAgentResult(Establishment.Name, "establishment-output");
-        SetUpAgentResult(Ofsted.Name, "ofsted-output");
-        SetUpAgentResult(Trust.Name, "trust-output");
-        SetUpSynthesisAgentResult("final-briefing");
-
-        var parameters = new BriefingParameters("123456", "Test Academy", AllowWebSearch: false);
-
-        await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        await _agentRuntime.DidNotReceive().RunEphemeralAsync(
-            Arg.Is<AgentSpec>(spec => spec.Name == WebSearchAgentName), Arg.Any<string>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task GetBriefing_RunsTheWebSearchAgent_WhenAllowed_AndIncludesItInSynthesis()
-    {
-        var sut = CreateSut();
-        SetUpAgentResult(Establishment.Name, "establishment-output");
-        SetUpAgentResult(Ofsted.Name, "ofsted-output");
-        SetUpAgentResult(Trust.Name, "trust-output");
-        SetUpSynthesisAgentResult("final-briefing");
-        SetUpWebSearchAgentResult("web search findings");
-
-        var parameters = new BriefingParameters("123456", "Test Academy", AllowWebSearch: true);
-
-        await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        await _agentRuntime.Received(1).RunEphemeralAsync(
-            Arg.Is<AgentSpec>(spec => spec.Name == WebSearchAgentName), Arg.Any<string>(), Arg.Any<CancellationToken>());
-
-        _promptBuilder.Received(1).Build(Arg.Any<string>(),
-            Arg.Is<IReadOnlyDictionary<string, string>>(d => 
-                d["IncludedSections"].Contains("Web Search", StringComparison.Ordinal) &&
-                d["Context"].Contains("web search findings", StringComparison.Ordinal)));
-    }
-
-    [Fact]
-    public async Task GetBriefing_UsesWebSearchInstructionsFromThePromptService()
-    {
-        var sut = CreateSut();
-        SetUpAgentResult(Establishment.Name, "establishment-output");
-        SetUpAgentResult(Ofsted.Name, "ofsted-output");
-        SetUpAgentResult(Trust.Name, "trust-output");
-        SetUpSynthesisAgentResult("final-briefing");
-        _promptProvider.GetSystemPrompt(SystemPromptType.WebSearch).Returns("web-search-instructions");
-        SetUpWebSearchAgentResult("web search findings");
-
-        var parameters = new BriefingParameters("123456", "Test Academy", AllowWebSearch: true);
-
-        await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        Assert.Equal("web-search-instructions", _capturedWebSearchInstructions);
-    }
-
-    [Fact]
-    public async Task GetBriefing_WebSearchPrompt_IncludesTheAlreadyCompiledSpecialistFindings()
-    {
-        var sut = CreateSut();
-        SetUpAgentResult(Establishment.Name, "establishment findings unique to this test");
-        SetUpAgentResult(Ofsted.Name, "ofsted-output");
-        SetUpAgentResult(Trust.Name, "trust-output");
-        SetUpSynthesisAgentResult("final-briefing");
-        SetUpWebSearchAgentResult("web search findings");
-
-        var parameters = new BriefingParameters("123456", "Test Academy", AllowWebSearch: true);
-
-        await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-        Assert.NotNull(_capturedWebSearchPrompt);
-        Assert.Contains("establishment findings unique to this test", _capturedWebSearchPrompt, StringComparison.Ordinal);
-        Assert.Contains("ofsted-output", _capturedWebSearchPrompt, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GetBriefing_WaitsForSpecialistsToFinish_BeforeRunningWebSearch()
-    {
-        var sut = CreateSut();
-        SetUpAgentResult(Establishment.Name, "establishment-output");
-
-        var ofstedGate = new TaskCompletionSource<AgentResult>();
-        _agentRunner.RunAsync(Arg.Is<AgentReference>(agent => agent.Name == Ofsted.Name), Arg.Any<string>(), cancellationToken: Arg.Any<CancellationToken>())
-            .Returns(_ => ofstedGate.Task);
-        SetUpAgentResult(Trust.Name, "trust-output");
-        SetUpSynthesisAgentResult("final-briefing");
-        SetUpWebSearchAgentResult("web search findings");
-
-        var webSearchCalled = false;
-        _agentRuntime.When(x => x.RunEphemeralAsync(
-                Arg.Is<AgentSpec>(spec => spec.Name == WebSearchAgentName), Arg.Any<string>(), Arg.Any<CancellationToken>()))
-            .Do(_ => webSearchCalled = true);
-
-        var parameters = new BriefingParameters("123456", "Test Academy", AllowWebSearch: true);
-        var briefingTask = sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        await Task.Delay(50, cancellationToken);
-        Assert.False(webSearchCalled);
-
-        ofstedGate.SetResult(new AgentResult(Ofsted.Name, "ofsted-output", 10));
-        await briefingTask;
-
-        Assert.True(webSearchCalled);
-    }
-
-    [Fact]
-    public async Task GetBriefing_RunsNonManagedSpecialists_AsEphemeralAgents()
-    {
-        var sut = CreateSut([Establishment, Ofsted, Trust, RiseConcerns]);
-        SetUpAgentResult(Establishment.Name, "establishment-output");
-        SetUpAgentResult(Ofsted.Name, "ofsted-output");
-        SetUpAgentResult(Trust.Name, "trust-output");
-        SetUpEphemeralSpecialistResult(RiseConcerns.Name, "rise-output");
-        SetUpSynthesisAgentResult("final-briefing");
-
-        var parameters = new BriefingParameters("123456", "Test Academy");
-
-        var result = await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        Assert.Equal("final-briefing", result.Output);
-        await _agentRuntime.Received(1).RunEphemeralAsync(
-            Arg.Is<AgentSpec>(spec => spec.Name == RiseConcerns.Name), Arg.Any<string>(), Arg.Any<CancellationToken>());
-        _promptBuilder.Received(1).Build(Arg.Any<string>(),
-            Arg.Is<IReadOnlyDictionary<string, string>>(d => d["Context"].Contains("rise-output", StringComparison.Ordinal)));
-    }
-
-    [Fact]
-    public async Task GetBriefing_EphemeralSpecialistFailure_DoesNotFailWholeBriefing()
-    {
-        var sut = CreateSut([Establishment, Ofsted, Trust, RiseConcerns]);
-        SetUpAgentResult(Establishment.Name, "establishment-output");
-        SetUpAgentResult(Ofsted.Name, "ofsted-output");
-        SetUpAgentResult(Trust.Name, "trust-output");
-        _agentRuntime.RunEphemeralAsync(Arg.Is<AgentSpec>(spec => spec.Name == RiseConcerns.Name), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Throws(new InvalidOperationException("rise-concerns-agent failed"));
-        SetUpSynthesisAgentResult("final-briefing");
-
-        var parameters = new BriefingParameters("123456", "Test Academy");
-
-        var result = await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        Assert.Equal("final-briefing", result.Output);
-    }
-
-    [Fact]
-    public async Task GetBriefing_WebSearchAgentFailure_DoesNotFailTheBriefing()
-    {
-        var sut = CreateSut();
-        SetUpAgentResult(Establishment.Name, "establishment-output");
-        SetUpAgentResult(Ofsted.Name, "ofsted-output");
-        SetUpAgentResult(Trust.Name, "trust-output");
-        SetUpSynthesisAgentResult("final-briefing");
-        SetUpWebSearchAgentFailure();
-
-        var parameters = new BriefingParameters("123456", "Test Academy", AllowWebSearch: true);
-
-        var result = await sut.GetBriefing(parameters, cancellationToken: cancellationToken);
-
-        Assert.Equal("final-briefing", result.Output);
+        public void Report(string value) => report(value);
     }
 }

@@ -1,0 +1,37 @@
+@model SubjectSummaryListModel
+@* The school or trust's summary list, the same on every page about it; the summary page adds its date and Re-generate. *@
+@{
+    var subjectPage = Model.Page;
+    var subject = subjectPage.Subject!;
+    var summary = Model.Summary;
+}
+
+<govuk-summary-list class="govuk-!-margin-bottom-9">
+    <govuk-summary-list-row>
+        <govuk-summary-list-row-key>@subjectPage.NameLabel</govuk-summary-list-row-key>
+        <govuk-summary-list-row-value>@subject.Name</govuk-summary-list-row-value>
+    </govuk-summary-list-row>
+    <govuk-summary-list-row>
+        <govuk-summary-list-row-key>@subjectPage.ReferenceLabel</govuk-summary-list-row-key>
+        <govuk-summary-list-row-value>@subject.UrnOrTrn</govuk-summary-list-row-value>
+    </govuk-summary-list-row>
+    @if (subject.Region is not null)
+    {
+        <govuk-summary-list-row>
+            <govuk-summary-list-row-key>Region</govuk-summary-list-row-key>
+            <govuk-summary-list-row-value>@subject.Region</govuk-summary-list-row-value>
+        </govuk-summary-list-row>
+    }
+    @if (summary is not null)
+    {
+        @* Without JavaScript, Re-generate goes back to the disclaimer to generate again; briefing.js runs it straight away. *@
+        <govuk-summary-list-row>
+            <govuk-summary-list-row-key>Date of last summary</govuk-summary-list-row-key>
+            <govuk-summary-list-row-value>@summary.SummaryDate.ToString("d MMMM yyyy")</govuk-summary-list-row-value>
+            <govuk-summary-list-row-actions>
+                <govuk-summary-list-row-action href="@Url.Page("Summary", new { type = subjectPage.Type, urnOrTrn = subject.UrnOrTrn })" id="briefing-regenerate"
+                                               visually-hidden-text="the summary">Re-generate</govuk-summary-list-row-action>
+            </govuk-summary-list-row-actions>
+        </govuk-summary-list-row>
+    }
+</govuk-summary-list>

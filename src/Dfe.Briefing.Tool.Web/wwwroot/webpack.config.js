@@ -1,7 +1,7 @@
 const path = require('path');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 module.exports = {
-   entry: ["./src/index.js", "./src/index.scss"],
+   entry: ["./src/site.js", "./src/site.scss"],
    plugins: [
       new MiniCssExtractPlugin({ filename: 'site.css' }),
    ],

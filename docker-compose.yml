@@ -1,0 +1,32 @@
+# Runs the app in the image Azure Container Apps runs. From the repository root:
+#   GITHUB_TOKEN=<a token that can read DFE-Digital packages> docker compose up --build
+# Settings come from .env at the repository root (copy .env.example) and, in Development, your user secrets
+# (docker-compose.override.yml). Then open http://localhost:8080.
+name: briefing-tool
+services:
+  dfe.briefing.tool.web:
+    image: ${DOCKER_REGISTRY-}dfebriefingtoolweb
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final
+      secrets:
+        - github_token
+    develop:
+      watch:
+        - path: ./src
+          action: rebuild
+    ports:
+      - "8080:8080/tcp"
+    env_file:
+      - path: .env
+        required: false
+    networks:
+      - local-dev
+
+secrets:
+  github_token:
+    environment: GITHUB_TOKEN
+
+networks:
+  local-dev:

@@ -61,10 +61,67 @@
     @include govuk-link-common;
     @include govuk-link-style-default;
   }
+
+  // Agents use tables for anything with several comparable facts (Ofsted judgements across
+  // inspections, a trust's academies). Lets a table wider than its column scroll sideways
+  // instead of breaking the page layout, rather than wrapping it in an extra container the
+  // agents' output doesn't provide.
+  table {
+    @include govuk-font(19);
+    @include govuk-responsive-margin(6, "bottom");
+    display: block;
+    overflow-x: auto;
+    border-collapse: collapse;
+    width: 100%;
+    color: govuk-colour("black");
+  }
+
+  th, td {
+    padding: govuk-spacing(2) govuk-spacing(4) govuk-spacing(2) 0;
+    text-align: left;
+    border-bottom: 1px solid govuk-colour("mid-grey");
+    vertical-align: top;
+  }
+
+  th {
+    font-weight: bold;
+    border-bottom: 2px solid govuk-colour("black");
+  }
+}
+
+// Web search findings, in their own Further context panel under the summary's. Its sections (Website, then News and
+// media coverage) are numbered, as in the designs; the numbers aren't in the Markdown, so copying it stays clean.
+// Its headings are all the panel heading's size, and each section's text is set in under its numbered heading.
+.app-web-search-output {
+  counter-reset: app-web-search-section;
+
+  .briefing-output {
+    h2,
+    h3 {
+      @include govuk-font(19, $weight: bold);
+      margin-top: 0;
+      @include govuk-responsive-margin(2, "bottom");
+    }
+
+    h2 {
+      @include govuk-responsive-margin(4, "bottom");
+    }
+
+    h3::before {
+      counter-increment: app-web-search-section;
+      content: counter(app-web-search-section) ". ";
+    }
+
+    p,
+    ul,
+    ol {
+      margin-left: govuk-spacing(4);
+    }
+  }
 }
 
 // Live step-by-step status shown while a briefing streams in - see initBriefingProgress in
-// index.js. Styled as a quiet, bordered log rather than a GOV.UK panel, so it doesn't compete
+// briefing.js. Styled as a quiet, bordered log rather than a GOV.UK panel, so it doesn't compete
 // with the actual briefing content once it appears below.
 .app-briefing-status {
   margin-top: govuk-spacing(4);
@@ -74,15 +131,88 @@
   background-color: govuk-colour("light-grey");
 }
 
+.app-briefing-status__heading {
+  display: flex;
+  align-items: center;
+  gap: govuk-spacing(2);
+}
+
+// A small rotating ring next to "Generating briefing...", so it's clear the page is still
+// working and hasn't stalled during the (sometimes long) multi-agent run.
+.app-spinner {
+  flex-shrink: 0;
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid govuk-colour("mid-grey");
+  border-top-color: govuk-colour("blue");
+  border-radius: 50%;
+  animation: app-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-spinner {
+    animation: none;
+    // Still visually distinct from a static icon, so the "in progress" state reads even without motion.
+    border-style: dashed;
+  }
+}
+
+@keyframes app-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .app-briefing-status__list {
   margin-bottom: 0;
 
-  // Always exactly one item - each "progress" event replaces it rather than appending, so there's
-  // no "earlier step" to grey out against a "current step" to highlight.
+  // Each "progress" event appends a step; briefing.js marks the newest as current (spinner) and the
+  // earlier ones as done (tick), so it's clear which step is still running.
   li {
     @include govuk-font(16);
-    color: govuk-colour("black");
-    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: govuk-spacing(2);
+    // Quieter than the current step, but still readable: mid-grey on the light-grey panel is about 1.9:1, under
+    // WCAG AA's 4.5:1 for text, where GOV.UK's secondary text colour is about 6.5:1.
+    color: $govuk-secondary-text-colour;
+  }
+}
+
+.app-briefing-status__icon {
+  flex-shrink: 0;
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+}
+
+.app-briefing-status__step--current {
+  color: govuk-colour("black");
+  font-weight: bold;
+
+  .app-briefing-status__icon {
+    border: 2px solid govuk-colour("mid-grey");
+    border-top-color: govuk-colour("blue");
+    border-radius: 50%;
+    box-sizing: border-box;
+    animation: app-spin 0.8s linear infinite;
+  }
+}
+
+.app-briefing-status__step--done .app-briefing-status__icon::before {
+  content: "\2713";
+  display: block;
+  line-height: 16px;
+  text-align: center;
+  font-weight: bold;
+  color: govuk-colour("green");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-briefing-status__step--current .app-briefing-status__icon {
+    animation: none;
+    border-style: dashed;
   }
 }
 
@@ -97,4 +227,56 @@
 .app-header__signed-in-text {
   @include govuk-font(16);
   color: govuk-colour("white");
+}
+
+// The light blue panels on the generate and summary pages: the AI disclaimer, the summary and its further context.
+$app-panel-colour: govuk-tint(govuk-colour("blue"), 80%);
+
+.app-disclaimer {
+  padding: govuk-spacing(4);
+  background-color: $app-panel-colour;
+}
+
+.app-briefing-panel {
+  @include govuk-responsive-margin(6, "bottom");
+  padding: govuk-spacing(4);
+  background-color: $app-panel-colour;
+
+  .briefing-output > :first-child {
+    margin-top: 0;
+  }
+}
+
+// The "Read more" link under the warning's text, on a line of its own and in normal weight.
+.app-briefing-warning__link {
+  display: block;
+  margin-top: govuk-spacing(1);
+  font-weight: normal;
+}
+
+// A button that does something on the page (re-generate, copy) but reads as a link, as in the designs.
+.app-link-button {
+  @include govuk-font(19);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+// The school or trust search on the Find page (subjectAutocomplete.js): a match's region under its name, and the
+// autocomplete's input marked like a GOV.UK input when the field has an error.
+.app-autocomplete__hint {
+  @include govuk-font(16);
+  display: block;
+  color: $govuk-secondary-text-colour;
+}
+
+.autocomplete__option--focused .app-autocomplete__hint,
+.autocomplete__option:hover .app-autocomplete__hint {
+  color: govuk-colour("white");
+}
+
+.govuk-form-group--error .autocomplete__input {
+  border-color: $govuk-error-colour;
 }

@@ -1,11 +1,16 @@
 ﻿using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace Dfe.Briefing.Tool.Web.Extensions;
 
 public static class SecurityConfigurationExtension
 {
+    // dotnet watch's and Visual Studio's hot-reload websocket, allowed in Development only.
+    private const string LocalWebSocket = "ws://localhost:*";
+    private const string LocalSecureWebSocket = "wss://localhost:*";
+
+    // Visual Studio's Browser Link, which first connects over plain HTTP to its own port, allowed in Development only.
+    private const string LocalHttp = "http://localhost:*";
+
     /// <summary>
     /// Add API key based authentication
     /// </summary>
@@ -21,7 +26,7 @@ public static class SecurityConfigurationExtension
         app.UseAuthorization();
         return app;
     }
-    private static IApplicationBuilder AddForwardedHeaders(this IApplicationBuilder app)
+    private static void AddForwardedHeaders(this IApplicationBuilder app)
     {
         var forwardOptions = new ForwardedHeadersOptions
         {
@@ -31,11 +36,9 @@ public static class SecurityConfigurationExtension
         forwardOptions.KnownIPNetworks.Clear();
         forwardOptions.KnownProxies.Clear();
         app.UseForwardedHeaders(forwardOptions);
-
-        return app;
     }
 
-    private static IApplicationBuilder AddSecurityHeaders(this IApplicationBuilder app)
+    private static void AddSecurityHeaders(this IApplicationBuilder app)
     {
         var isDevelopment = app.ApplicationServices.GetRequiredService<IHostEnvironment>().IsDevelopment();
 
@@ -56,10 +59,11 @@ public static class SecurityConfigurationExtension
                     {
                         // dotnet watch's browser-refresh script (and Visual Studio's own live-reload
                         // equivalent) opens a websocket back to the dev server for hot reload
-                        // notifications - CSP has no "same-origin websocket" shorthand, so this has
-                        // to be spelled out explicitly, and only for Development; never allow
-                        // arbitrary ws/wss origins once this is actually deployed.
-                        connectSrc.From("ws://localhost:*").From("wss://localhost:*");
+                        // notifications, and Browser Link negotiates over HTTP with Visual Studio's
+                        // own port before its websocket - CSP has no "same-origin websocket" or "any
+                        // local port" shorthand, so this has to be spelled out explicitly, and only for
+                        // Development; never allow these origins once this is actually deployed.
+                        connectSrc.From(LocalWebSocket).From(LocalSecureWebSocket).From(LocalHttp);
                     }
                 })
                 .AddPermissionsPolicy(builder =>
@@ -80,6 +84,5 @@ public static class SecurityConfigurationExtension
                     builder.AddUsb().None();
                 });
         });
-        return app;
     }
 }

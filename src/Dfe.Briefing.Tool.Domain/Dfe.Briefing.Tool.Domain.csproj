@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="GovUK.Dfe.AI.Agents.AISearch" Version="0.0.3-prerelease.98" />
+  </ItemGroup>
+
 </Project>

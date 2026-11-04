@@ -1,0 +1,8 @@
+services:
+  dfe.briefing.tool.web:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+    # Development reads your user secrets, as dotnet run does; the app runs as the image's "app" user.
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -181,16 +181,20 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.4" />
+    <!-- Encrypts the data protection keys at rest with a Key Vault key (DataProtection:KeyVaultKey). -->
+    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.5" />
     <!-- Microsoft.Identity.Web.Certificate (via Microsoft.Identity.Web) also pulls in Azure.Identity
          transitively, and newer Azure.Core versions duplicate its credential types (e.g.
          DefaultAzureCredential) under the same namespace - referencing both makes that type
          ambiguous (CS0433). Excluding Azure.Identity's compile assets here resolves it to the
          Azure.Core copy at compile time while leaving the runtime assembly untouched. -->
     <PackageReference Include="Azure.Identity" Version="1.21.0" ExcludeAssets="compile" />
-    <PackageReference Include="GovUk.Frontend.AspNetCore" Version="4.4.0" />
-    <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
-    <PackageReference Include="Microsoft.Identity.Web" Version="4.14.2" />
+    <PackageReference Include="GovUk.Frontend.AspNetCore" Version="5.1.0" />
+    <PackageReference Include="HtmlSanitizer" Version="10.0.1120" />
+    <PackageReference Include="Markdig" Version="1.5.1" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="4.16.1" />
+    <!-- Overrides the vulnerable 10.0.10 that Microsoft.Identity.Web.TokenCache 4.16.0 brings in (GHSA-846f-f764-76mx). -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
     <PackageReference Include="NetEscapades.AspNetCore.SecurityHeaders" Version="1.3.1" />
     <PackageReference Include="NetEscapades.AspNetCore.SecurityHeaders.TagHelpers" Version="1.3.1" />
   </ItemGroup>
@@ -201,31 +205,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Prompts\Systems\RecastConcerns.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Prompts\Systems\Trust.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Prompts\Systems\RiseConcerns.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Prompts\Systems\Ofsted.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Prompts\Systems\Establishment.md">
+    <None Update="Prompts\Systems\Briefing.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Prompts\Systems\WebSearch.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Prompts\Systems\Synthesis.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Prompts\Synthesis.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Prompts\StandardAgentResponseFormat.md">
+    <None Update="Prompts\Briefing.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

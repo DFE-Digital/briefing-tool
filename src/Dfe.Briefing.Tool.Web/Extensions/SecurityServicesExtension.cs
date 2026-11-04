@@ -13,6 +13,10 @@ namespace Dfe.Briefing.Tool.Web.Extensions;
 [ExcludeFromCodeCoverage]
 public static class SecurityServicesExtension
 {
+    // Every instance must name the app the same to read each other's keys; by default the name is the content root path,
+    // which can differ between instances.
+    private const string DataProtectionApplicationName = "Dfe.Briefing.Tool";
+
     public static void AddSecurityServices(this WebApplicationBuilder builder)
     {
         AddHsts(builder);
@@ -94,28 +98,45 @@ public static class SecurityServicesExtension
 
     private static void AddDataProtectionServices(WebApplicationBuilder builder)
     {
-        // Setup basic Data Protection and persist keys.xml to local file system
-        var dp = builder.Services.AddDataProtection();
+        // The sign-in, anti-forgery and TempData cookies are encrypted with these keys, so with more than one instance
+        // every instance must share them: a cookie one instance wrote is then readable by whichever answers next. They're
+        // kept in DataProtection:Path, a folder every instance mounts, so access to it should be limited to the app.
+        var dp = builder.Services.AddDataProtection().SetApplicationName(DataProtectionApplicationName);
 
-        // If a Key Vault Key URI is defined, encrypt the keys.xml with it before persisting to disk
-        var kvProtectionKeyUri = builder.Configuration.GetValue<string>("DataProtection:KeyVaultKey");
-        if (!string.IsNullOrWhiteSpace(kvProtectionKeyUri))
+        var keyPath = builder.Configuration.GetValue<string>("DataProtection:Path");
+        if (string.IsNullOrWhiteSpace(keyPath))
         {
-            var kvProtectionPath = builder.Configuration.GetValue<string>("DataProtection:Path");
-
-            if (string.IsNullOrWhiteSpace(kvProtectionPath))
+            // Each instance would make keys of its own, so a form or sign-in could fail when the next request reaches
+            // another instance. Only allowed for local development, which runs one instance.
+            if (!builder.Environment.IsDevelopment())
             {
                 throw new InvalidOperationException(ErrorMessages.DataProtectionPathUndefined);
             }
 
-            var kvProtectionPathDir = new DirectoryInfo(kvProtectionPath);
-            if (!kvProtectionPathDir.Exists || kvProtectionPathDir.Attributes.HasFlag(FileAttributes.ReadOnly))
+            return;
+        }
+
+        var keyDirectory = new DirectoryInfo(keyPath);
+        if (!keyDirectory.Exists || keyDirectory.Attributes.HasFlag(FileAttributes.ReadOnly))
+        {
+            throw new ReadOnlyException(string.Format(ErrorMessages.DataProtectionPathNotWritable, keyPath));
+        }
+
+        dp.PersistKeysToFileSystem(keyDirectory);
+
+        // Whoever can read the shared folder could otherwise read the keys and forge or decrypt the cookies, so they're
+        // encrypted at rest with a Key Vault key. Only local development may keep them unencrypted.
+        var keyVaultKey = builder.Configuration.GetValue<string>("DataProtection:KeyVaultKey");
+        if (string.IsNullOrWhiteSpace(keyVaultKey))
+        {
+            if (!builder.Environment.IsDevelopment())
             {
-                throw new ReadOnlyException(string.Format(ErrorMessages.DataProtectionPathNotWritable, kvProtectionPath));
+                throw new InvalidOperationException(ErrorMessages.DataProtectionKeyVaultKeyUndefined);
             }
 
-            dp.PersistKeysToFileSystem(kvProtectionPathDir);
-            dp.ProtectKeysWithAzureKeyVault(kvProtectionKeyUri, new DefaultAzureCredential());
+            return;
         }
+
+        dp.ProtectKeysWithAzureKeyVault(new Uri(keyVaultKey), new DefaultAzureCredential());
     }
 }

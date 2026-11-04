@@ -1,0 +1,19 @@
+@page
+@model ConfirmModel
+@{
+    var subject = Model.Subject!;
+    ViewData["Title"] = $"Search for a {Model.SubjectNoun}";
+}
+
+@section BeforeMain {
+    <govuk-back-link href="@Url.BackLink(Url.Page("Find", new { type = Model.Type, urnOrTrn = subject.UrnOrTrn }))">Back</govuk-back-link>
+}
+
+<h1 class="govuk-heading-l">Search for a @Model.SubjectNoun</h1>
+
+<partial name="_SubjectSummaryList" model="new SubjectSummaryListModel(Model)" />
+
+<div class="govuk-button-group">
+    <govuk-button-link href="@Url.Page("Summary", new { type = Model.Type, urnOrTrn = subject.UrnOrTrn })">Confirm</govuk-button-link>
+    <a asp-page="Type" class="govuk-link">Choose a different establishment</a>
+</div>

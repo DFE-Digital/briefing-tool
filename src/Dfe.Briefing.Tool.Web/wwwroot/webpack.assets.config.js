@@ -2,6 +2,7 @@ const path = require('path');
 const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
+	entry: {},
 	plugins: [
 		new CopyPlugin({
 			patterns: [

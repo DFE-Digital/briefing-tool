@@ -1,0 +1,58 @@
+@page
+@model AiSummariesModel
+@{
+    ViewData["Title"] = "AI-generated summaries and the data they use";
+}
+
+@section BeforeMain {
+    <govuk-back-link href="@Url.BackLink(Url.Page("/Index"))">Back</govuk-back-link>
+}
+
+<h1 class="govuk-heading-xl">AI-generated summaries and the data they use</h1>
+
+<h2 class="govuk-heading-m">How a summary is generated</h2>
+<p class="govuk-body">
+    When you search for a school or trust, the service finds the records DfE holds about it. AI then reads those
+    records and writes a short summary.
+</p>
+<p class="govuk-body">
+    The AI only uses the records it finds for that school or trust. Each fact in the summary links to the record
+    it came from, listed under References at the end of the summary.
+</p>
+
+<h2 class="govuk-heading-m">The data it uses</h2>
+<p class="govuk-body">A summary can include:</p>
+<ul class="govuk-list govuk-list--bullet">
+    <li>establishment details, such as type, phase, age range, local authority, trust, capacity and number on roll</li>
+    <li>trust details and the academies in the trust</li>
+    <li>Ofsted inspection outcomes</li>
+    <li>KS2 and KS4 attainment</li>
+    <li>attendance</li>
+    <li>pupil characteristics, alongside local and national averages</li>
+    <li>concerns and support recorded in Rise and Recast</li>
+    <li>financial health</li>
+    <li>the parliamentary constituency and MP</li>
+</ul>
+<p class="govuk-body">If a record isn't held for a school or trust, that part of the summary is left out.</p>
+
+<h2 class="govuk-heading-m">Information from the web</h2>
+<p class="govuk-body">
+    After a summary is generated, you can choose to search the web. This looks for education-related news about
+    the school or trust from the last two years, from sources such as the local authority, local news and GOV.UK.
+    What it finds is added in a "More background information" section, with a link to each source. The web is
+    only searched if you choose it.
+</p>
+
+<h2 class="govuk-heading-m">Checking a summary</h2>
+<p class="govuk-body">AI can make mistakes. A summary may:</p>
+<ul class="govuk-list govuk-list--bullet">
+    <li>leave out information</li>
+    <li>describe information wrongly</li>
+    <li>use records that are out of date</li>
+</ul>
+<p class="govuk-body">
+    Use the summary as a starting point. Check important information against the source data before using it in
+    a briefing or decision, and follow departmental guidance on the use of AI-generated content.
+</p>
+
+<govuk-button-link href="@Url.Page("/Briefing/Type")">Generate a summary</govuk-button-link>

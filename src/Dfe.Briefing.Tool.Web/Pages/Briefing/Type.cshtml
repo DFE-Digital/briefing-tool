@@ -1,0 +1,26 @@
+@page
+@using Dfe.Briefing.Tool.Web.Constants
+@model TypeModel
+@{
+    ViewData["Title"] = "Select the type of establishment to summarise";
+}
+
+@section BeforeMain {
+    <govuk-back-link href="@Url.BackLink(Url.Page("/Index"))">Back</govuk-back-link>
+}
+
+@* An error for Type shows on the radios, and in the error summary the GOV.UK tag helpers add to the page. *@
+<form method="post" novalidate>
+    <govuk-radios for="Type">
+        <govuk-radios-fieldset>
+            <govuk-radios-fieldset-legend is-page-heading="true" class="govuk-fieldset__legend--l">
+                Select the type of establishment to summarise
+            </govuk-radios-fieldset-legend>
+
+            <govuk-radios-item value="@SubjectTypes.Trust">Trust</govuk-radios-item>
+            <govuk-radios-item value="@SubjectTypes.Establishment">School</govuk-radios-item>
+        </govuk-radios-fieldset>
+    </govuk-radios>
+
+    <govuk-button type="submit">Continue</govuk-button>
+</form>

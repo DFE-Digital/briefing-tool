@@ -7,6 +7,7 @@ namespace Dfe.Briefing.Tool.Web.Pages
     {
         public void OnGet()
         {
+            // Nothing to load: the page is static content.
         }
     }
 

@@ -1,44 +1,41 @@
-using Azure.Identity; 
-using Dfe.Briefing.Tool.Infrastructure.Configs;
-using GovUK.Dfe.CoreLibs.AiAgents;
-using GovUK.Dfe.CoreLibs.AiAgents.Factories;
+using Dfe.Briefing.Tool.Application;
+using Dfe.Briefing.Tool.Application.Options;
+using Dfe.Briefing.Tool.Application.Providers;
+using GovUK.Dfe.AI.Agents.Builders;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace Dfe.Briefing.Tool.Infrastructure;
 
 public static class DependencyInjection
 {
+    private const string GuardrailsSubscriptionIdKey = "AiAgents:Guardrails:SubscriptionId";
+
     /// <summary>
-    /// Adds the infrastructure services to the service collection.
+    /// Registers the briefing agents. The web app and the release gate share this, so both run the agents with the
+    /// same settings and guardrail; each adds what only it needs through <paramref name="configureAgents"/>.
+    /// It also adds the daily agent sweep, which only a host that starts its background services (the web app) runs.
     /// </summary>
-    /// <param name="services">The service collection to which to add the infrastructure services.</param>
-    /// <param name="configuration">The configuration.</param>
-    /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration,
+        Action<AgentsBuilder>? configureAgents = null)
     {
-        SetConfiguration<AzureFoundryConfig>(services, configuration, "AzureFoundry");
+        services.AddApplication();
+         
+        var briefingOptions = configuration.GetSection(BriefingOptions.SectionName).Get<BriefingOptions>() ?? new BriefingOptions();
+        services.AddAgentSweeps(briefingOptions); 
 
-        services.AddFoundryAgents(
-            endpoint: sp => new Uri(sp.GetRequiredService<AzureFoundryConfig>().Endpoint),
-            credential: sp =>
-            {
-                var config = sp.GetRequiredService<AzureFoundryConfig>();
-                return new ClientSecretCredential(config.TenantId, config.ClientId, config.ClientSecret);
-            },
-            optionsFactory: sp => new FoundryAgentFactoryOptions(sp.GetRequiredService<AzureFoundryConfig>().DeploymentModel));
-        services.AddAgentVersionPinning(configuration);
-        services.AddPinnedAgentVersionDriftDetection();
+        services.AddAgents(configuration, agents =>
+        {
+            agents.AddAgents(BriefingAgents.All).AddAISearch();
 
-        services.AddAzureSearchContextRetriever(configuration);
+            // Guardrails are only added if the subscription ID is set in configuration,
+            // so that the release gate can run without guardrails.
+            if (!string.IsNullOrWhiteSpace(configuration[GuardrailsSubscriptionIdKey]))
+                agents.AddGuardrails();
+
+            configureAgents?.Invoke(agents);
+        });
 
         return services;
-    }
-
-    private static void SetConfiguration<T>(IServiceCollection services, IConfiguration configuration, string configurationName) where T : class
-    {
-        services.AddOptions<T>().Bind(configuration.GetSection(configurationName)).ValidateOnStart();
-        services.AddSingleton(sp => sp.GetRequiredService<IOptions<T>>().Value);
     }
 }

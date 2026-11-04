@@ -1,0 +1,134 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: environment
+        description: "Choose an environment to deploy to"
+        required: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.inputs.environment }}
+
+env:
+  IMAGE_NAME: briefing-tool-app
+
+jobs:
+  set-env:
+    name: Determine environment
+    runs-on: ubuntu-24.04
+    outputs:
+      environment: ${{ steps.var.outputs.environment }}
+      release: ${{ steps.var.outputs.release }}
+      image-name: ${{ steps.var.outputs.image-name }}
+    steps:
+      - id: var
+        run: |
+          INPUT=${{ github.event.inputs.environment }}
+          ENVIRONMENT=${INPUT:-"development"}
+          RELEASE=${ENVIRONMENT,,}-`date +%Y-%m-%d`.${{ github.run_number }}
+          echo "environment=${ENVIRONMENT,,}" >> $GITHUB_OUTPUT
+          echo "release=${RELEASE,,}" >> $GITHUB_OUTPUT
+          echo "image-name=${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
+
+  # A release the Responsible AI quality gate blocks never deploys.
+  quality-gate:
+    name: AI quality gate
+    uses: ./.github/workflows/ai-quality-gate.yml
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: read
+
+  # No validate-packages job: it rejects prerelease packages, and the GovUK.Dfe.AI.* packages are prereleases. Add
+  # DFE-Digital/rsd-github-actions/.github/actions/validate-packages@v1 back once they have stable versions.
+
+  build-import-deploy:
+    name: Build, Import, Deploy
+    needs: [ set-env, quality-gate ]
+    runs-on: ubuntu-24.04
+    environment: ${{ needs.set-env.outputs.environment }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: DFE-Digital/deploy-azure-container-apps-action/.github/actions/build@8e72e403f05ff9da09668207eef1d79e1ce9d1a7 # v5.2.1
+        with:
+          build-file-name: ./Dockerfile
+          build-args: CI=true
+          build-target: final
+          image-name: ${{ needs.set-env.outputs.image-name }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: DFE-Digital/deploy-azure-container-apps-action/.github/actions/import@8e72e403f05ff9da09668207eef1d79e1ce9d1a7 # v5.2.1
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure-acr-client-id: ${{ secrets.ACR_CLIENT_ID }}
+          azure-acr-name: ${{ secrets.ACR_NAME }}
+          image-name: ${{ needs.set-env.outputs.image-name }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID || '' }}
+          AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION_ID || '' }}
+          AZURE_ACR_CLIENT_ID: ${{ secrets.ACR_CLIENT_ID || '' }}
+
+      - uses: DFE-Digital/deploy-azure-container-apps-action/.github/actions/deploy@8e72e403f05ff9da09668207eef1d79e1ce9d1a7 # v5.2.1
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure-aca-client-id: ${{ secrets.ACA_CLIENT_ID }}
+          azure-aca-name: ${{ secrets.ACA_CONTAINERAPP_NAME }}
+          azure-aca-resource-group: ${{ secrets.ACA_RESOURCE_GROUP }}
+          azure-acr-name: ${{ secrets.ACR_NAME }}
+          annotate-release: true
+          image-name: ${{ needs.set-env.outputs.image-name }}
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID || '' }}
+          AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION_ID || '' }}
+          AZURE_ACA_CLIENT_ID: ${{ secrets.ACA_CLIENT_ID || '' }}
+
+  # Production releases only: tagging every development deployment would bury the releases that matter.
+  create-tag:
+    name: Tag and release
+    if: needs.set-env.outputs.environment == 'production'
+    needs: [ set-env, build-import-deploy ]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Create tag
+        run: |
+          git tag ${{ needs.set-env.outputs.release }}
+          git push origin ${{ needs.set-env.outputs.release }}
+
+      - name: Create release
+        uses: "actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b" # v7
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          script: |
+            try {
+              await github.rest.repos.createRelease({
+                draft: false,
+                generate_release_notes: true,
+                name: "${{ needs.set-env.outputs.release }}",
+                owner: context.repo.owner,
+                prerelease: false,
+                repo: context.repo.repo,
+                tag_name: "${{ needs.set-env.outputs.release }}",
+              });
+            } catch (error) {
+              core.setFailed(error.message);
+            }

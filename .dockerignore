@@ -1,0 +1,39 @@
+### Dotfiles
+.dockerignore
+.DS_Store
+.env
+.idea
+.git
+.gitattributes
+.gitignore
+.github
+.vs
+.vscode
+.claude
+
+### Docker
+docker-compose.yml
+docker-compose.*.yml
+docker-compose.dcproj
+.env.example
+
+### Docs
+docs
+# Only the Markdown at the root: the agents' prompts (src/Dfe.Briefing.Tool.Web/Prompts/**/*.md) must stay in the image,
+# so never change this to **/*.md
+*.md
+CODEOWNERS
+
+### .NET
+**/bin/
+**/obj/
+**/*.user
+**/TestResults/
+
+### Node
+**/node_modules
+
+### Not part of the web app
+src/tests/
+src/Dfe.Briefing.Tool.ReleaseGate/
+**/evaluation-reports/

@@ -16,9 +16,14 @@ public sealed class BriefingBuilderTests
 
     private readonly IPromptProvider _promptProvider = Substitute.For<IPromptProvider>();
     private readonly IPromptTemplateBuilder _promptBuilder = Substitute.For<IPromptTemplateBuilder>();
+    private readonly TimeProvider _timeProvider = Substitute.For<TimeProvider>();
     private readonly BriefingBuilder _sut;
 
-    public BriefingBuilderTests() => _sut = new BriefingBuilder(_promptProvider, _promptBuilder);
+    public BriefingBuilderTests()
+    {
+        _timeProvider.GetUtcNow().Returns(new DateTimeOffset(2026, 11, 3, 23, 30, 0, TimeSpan.Zero));
+        _sut = new BriefingBuilder(_promptProvider, _promptBuilder, _timeProvider);
+    }
 
     private static AgentResult Result(string agentName, string output)
         => new() { AgentName = agentName, Output = output, TotalTokens = 10 };
@@ -173,6 +178,28 @@ public sealed class BriefingBuilderTests
         Assert.Equal("briefing-prompt", prompt);
         _promptBuilder.Received(1).Build(UserPromptType.Briefing, Arg.Is<IReadOnlyDictionary<string, string>>(values =>
             values["SchoolOrTrustName"] == "Test" && values["SchoolUrnOrTrustTrn"] == urnOrTrn && values["SubjectType"] == subjectType));
+    }
+
+    [Fact]
+    public void BuildBriefingPrompt_GivesTodaysDate_SoTheAgentKnowsWhichConcernsAreFromTheLast3Years()
+    {
+        _sut.BuildBriefingPrompt(Subject);
+
+        _promptBuilder.Received(1).Build(UserPromptType.Briefing,
+            Arg.Is<IReadOnlyDictionary<string, string>>(values => values["Today"] == "3 November 2026"));
+    }
+
+    [Theory]
+    [InlineData("# Test Academy\n\n## About the school\n\nA fact. [Evidence 1]\n\n{{city: Exampleton}}", "Exampleton")]
+    [InlineData("# Test Academy\n\n## About the school\n\nA fact. [Evidence 1]\n\n{{city: none}}", null)]
+    [InlineData("# Test Academy\n\n## About the school\n\nA fact. [Evidence 1]", null)]
+    public void PresentBriefing_TakesOutTheLocationMarker_AndGivesItsCity(string output, string? city)
+    {
+        var (briefing, found) = _sut.PresentBriefing(output);
+
+        Assert.Equal(city, found);
+        Assert.DoesNotContain("{{city", briefing, StringComparison.Ordinal);
+        Assert.Contains("A fact. [Evidence 1]", briefing, StringComparison.Ordinal);
     }
 
 

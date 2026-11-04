@@ -1,3 +1,4 @@
+using Dfe.Briefing.Tool.Application.Builders;
 using Dfe.Briefing.Tool.Domain.Constants;
 using GovUK.Dfe.AI.Agents.ValueObjects;
 
@@ -9,7 +10,15 @@ public static class BriefingAgents
     /// Writes the whole briefing in one run from the school's or trust's records, citing each fact's record. The web
     /// search agent is built per run (see BriefingBuilder.BuildWebSearchAgentSpec), so it isn't listed here.
     /// </summary>
-    public static readonly AgentDefinition Briefing = new(AgentNames.Briefing, SystemPromptKey.Briefing) { Validate = ValidateMarkdownOutput };
+    /// <remarks>
+    /// <see cref="AgentDefinition.PresentOutput"/> is the step the app takes before showing the briefing, so the release
+    /// gate checks and scores the briefing users read, not the location marker or sections the app removes.
+    /// </remarks>
+    public static readonly AgentDefinition Briefing = new(AgentNames.Briefing, SystemPromptKey.Briefing)
+    {
+        Validate = ValidateMarkdownOutput,
+        PresentOutput = BriefingPresenter.AsShown,
+    };
 
     public static readonly AgentDefinition[] All = [Briefing];
 

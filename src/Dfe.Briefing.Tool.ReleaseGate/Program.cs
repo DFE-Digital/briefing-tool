@@ -23,7 +23,7 @@ if (command != CommandNames.Gate)
 {
     await Console.Error.WriteLineAsync($"""
         Usage:
-          {CommandNames.Gate}                           Check the guardrail and run every test case (exit 1 on failure)
+          {CommandNames.Gate}                           Run the Responsible AI quality gate: guardrail, test cases, checks (exit 1 if release is blocked)
           {CommandNames.ExportCopilotStudio} [folder]   Write the evaluation and guardrail test cases as Copilot Studio test sets
         """);
     return 2;
@@ -50,9 +50,9 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
     [Settings.TestCasesDirectoryKey] = preparedCases
 });
 
-builder.Services.AddInfrastructure(builder.Configuration, agents => agents
-    .AddQualityEvaluation()
-    .AddReleaseGate());
+// The judge, the release gate that runs the test cases, and the quality gate that decides the release under the six
+// Responsible AI principles: one call, set up in appsettings.json.
+builder.Services.AddInfrastructure(builder.Configuration, agents => agents.AddResponsibleAiQualityGate());
 
 // Same cloud_RoleName as the web app; its own cloud_RoleInstance tells the gate's telemetry apart.
 var telemetryOn = builder.AddApplicationInsights(Telemetry.RoleInstance);
@@ -106,7 +106,7 @@ static string[] ChooseCommand()
 {
     Console.WriteLine("""
         What do you want to do?
-          1. Run the release gate (guardrail and evaluation)
+          1. Run the Responsible AI quality gate (guardrail, evaluation and release decision)
           2. Export the test cases as Copilot Studio test sets
         """);
 

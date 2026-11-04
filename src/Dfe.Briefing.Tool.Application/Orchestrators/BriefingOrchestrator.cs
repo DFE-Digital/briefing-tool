@@ -33,8 +33,7 @@ public class BriefingOrchestrator(IBriefingEvidenceProvider evidenceProvider, IA
             briefingBuilder.BuildBriefingEvidence(parameters, records), cancellationToken);
 
         // The town is for a later web search, so it's taken out of the briefing itself.
-        var (briefingResult, city) = CityExtractorHelper.ExtractCity(result);
-        var briefing = briefingBuilder.RemoveEmptySections(briefingBuilder.RemoveBackgroundSection(briefingResult.Output));
+        var (briefing, city) = briefingBuilder.PresentBriefing(result.Output);
         return new AIResult(briefing, result.TotalTokens, city);
     }
 

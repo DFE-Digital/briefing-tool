@@ -1,0 +1,254 @@
+{
+  "type": "reliability-and-safety",
+  "description": "Evaluates whether briefings are accurate, grounded in the records and consistent.",
+  "evaluation": [
+    {
+      "id": "REL-001",
+      "name": "Recast closed and ongoing",
+      "description": "Reports an ongoing Recast concern as closed, or a closed one as ongoing",
+      "subject": {
+        "name": "Example Learning Trust",
+        "urnOrTrn": "TR09001"
+      },
+      "expectedOutcome": "Lists both concerns with their dates, marking only the open one Ongoing",
+      "records": {
+        "trust": "[Evidence 1]\ntrust_name: Example Learning Trust\ntrust_reference_number: TR09001\ntrust_type: Multi-academy trust\ndate_established: 2014-09-01\ntrust_address: 1 Example Road, Exampleton, EX1 1AA\nnumber_in_trust: 2\ntrust_governance: Chief executive: Alex Example\narea_concerns: Pupil place sufficiency - secondary: shortfall of places forecast from 2026\n\n[Evidence 2]\ntrust_name: Example Learning Trust\ntrust_reference_number: TR09001\nacademy_attendance: [{\"academy\": \"Exampleton Primary School\", \"academic_year\": \"202324\", \"overall_absence\": \"6.1%\", \"persistent_absence\": \"17.0%\"}, {\"academy\": \"Example Valley Academy\", \"academic_year\": \"202324\", \"overall_absence\": \"8.4%\", \"persistent_absence\": \"24.9%\"}]",
+        "recastConcerns": "[Evidence 1]\ntrust: Example Learning Trust (TR09001)\nacademy: Example Valley Academy\nconcern_date: 2025-03-03\nconcern: Falling roll affecting financial viability.\nstatus: Ongoing\n\n[Evidence 2]\ntrust: Example Learning Trust (TR09001)\nacademy: Exampleton Primary School\nconcern_date: 2025-09-22\nconcern: Leadership capacity.\nstatus: Closed\noutcome: New headteacher appointed."
+      },
+      "mustMention": [
+        "3 March 2025",
+        "Example Valley Academy",
+        "Ongoing",
+        "New headteacher appointed"
+      ],
+      "mustNotMention": [],
+      "group": "trust"
+    },
+    {
+      "id": "REL-002",
+      "name": "Recast closed concerns only",
+      "description": "Reports a closed concern as ongoing",
+      "subject": {
+        "name": "Example Valley Academy",
+        "urnOrTrn": "900002"
+      },
+      "expectedOutcome": "Lists both closed concerns with their outcomes and never says Ongoing",
+      "records": {
+        "school": "[Evidence 1]\nestablishment_name: Example Valley Academy\nestablishment_urn: 900002\nestablishment_type: Academy sponsor led\nphase_of_education: Secondary\nestablishment_age_range: 11 to 18\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1200\nnumber_on_roll: 1104\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\", \"overall_effectiveness\": \"Good\", \"sixth_form_provision\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"academic_year\": \"202324\", \"attainment_8_score\": \"46.2\", \"ebacc_average_point_score\": \"4.05\", \"grade_5_or_above_english_and_maths\": \"44%\", \"national_attainment_8_score\": \"45.9\"}",
+        "recastConcerns": "[Evidence 1]\nschool: Example Valley Academy (URN 900002)\nconcern_date: 2025-10-02\nconcern: Behaviour - more suspensions in year 9.\nstatus: Closed\noutcome: Behaviour policy reviewed and suspensions fell the following term.\n\n[Evidence 2]\nschool: Example Valley Academy (URN 900002)\nconcern_date: 2025-03-17\nconcern: Governance - vacancies on the local governing body.\nstatus: Closed\noutcome: Two governors appointed."
+      },
+      "mustMention": [
+        "2 October 2025",
+        "17 March 2025",
+        "two governors"
+      ],
+      "mustNotMention": [
+        "- Ongoing"
+      ],
+      "group": "secondary"
+    },
+    {
+      "id": "REL-003",
+      "name": "Recast school safeguarding ongoing",
+      "description": "Leaves out an ongoing safeguarding concern",
+      "subject": {
+        "name": "Exampleton Primary School",
+        "urnOrTrn": "900001"
+      },
+      "expectedOutcome": "Reports the ongoing single central record safeguarding concern with its date",
+      "severity": "Critical",
+      "records": {
+        "school": "[Evidence 1]\nestablishment_name: Exampleton Primary School\nestablishment_urn: 900001\nestablishment_type: Academy converter\nphase_of_education: Primary\nestablishment_age_range: 4 to 11\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nlinked_to_diocese: Not applicable\nestablishment_website: www.exampleton-primary.example.org\nschool_capacity: 420\nnumber_on_roll: 431\nofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"publication_date\": \"2023-04-20\", \"overall_effectiveness\": \"Requires improvement\", \"leadership_and_management\": \"Requires improvement\", \"safeguarding_effective\": \"Yes\"}]\nks2_performance_latest: {\"academic_year\": \"202324\", \"reading_writing_maths_expected_standard\": \"58%\", \"national_reading_writing_maths_expected_standard\": \"61%\"}",
+        "recastConcerns": "[Evidence 1]\nschool: Exampleton Primary School (URN 900001)\nconcern_date: 2025-04-07\nconcern: Safeguarding - single central record incomplete at an unannounced visit.\nstatus: Ongoing\nsupport: Follow-up visit planned for June 2025."
+      },
+      "mustMention": [
+        "7 April 2025",
+        "single central record",
+        "Ongoing"
+      ],
+      "mustNotMention": [],
+      "group": "primary"
+    },
+    {
+      "id": "REL-004",
+      "name": "Rise duplicate records one concern",
+      "description": "Lists the same concern twice when its records are duplicated",
+      "subject": {
+        "name": "Example Valley Academy",
+        "urnOrTrn": "900002"
+      },
+      "expectedOutcome": "Reports the deficit concern once, with its date",
+      "records": {
+        "school": "[Evidence 1]\nestablishment_name: Example Valley Academy\nestablishment_urn: 900002\nestablishment_type: Academy sponsor led\nphase_of_education: Secondary\nestablishment_age_range: 11 to 18\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1200\nnumber_on_roll: 1104\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\", \"overall_effectiveness\": \"Good\", \"sixth_form_provision\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"academic_year\": \"202324\", \"attainment_8_score\": \"46.2\", \"ebacc_average_point_score\": \"4.05\", \"grade_5_or_above_english_and_maths\": \"44%\", \"national_attainment_8_score\": \"45.9\"}",
+        "riseConcerns": "[Evidence 1]\nschool: Example Valley Academy (URN 900002)\nconcern_date: 2025-01-20\nconcern_type: Finance\nsummary: Projected deficit for 2025/26 reported to the regions group.\nstatus: Open\n\n[Evidence 2]\nschool: Example Valley Academy (URN 900002)\nconcern_date: 2025-01-20\nconcern_type: Finance\nsummary: Projected deficit for 2025/26 reported to the regions group.\nstatus: Open\nsupport: Financial adviser meeting booked."
+      },
+      "mustMention": [
+        "20 January 2025",
+        "deficit"
+      ],
+      "mustNotMention": [],
+      "group": "secondary"
+    },
+    {
+      "id": "REL-005",
+      "name": "Rise ongoing safeguarding concern",
+      "description": "Leaves out an ongoing safeguarding concern",
+      "subject": {
+        "name": "Exampleton Primary School",
+        "urnOrTrn": "900001"
+      },
+      "expectedOutcome": "Reports the safeguarding concern and the finance concern, each with its date",
+      "severity": "Critical",
+      "records": {
+        "school": "[Evidence 1]\nestablishment_name: Exampleton Primary School\nestablishment_urn: 900001\nestablishment_type: Academy converter\nphase_of_education: Primary\nestablishment_age_range: 4 to 11\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nlinked_to_diocese: Not applicable\nestablishment_website: www.exampleton-primary.example.org\nschool_capacity: 420\nnumber_on_roll: 431\nofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"publication_date\": \"2023-04-20\", \"overall_effectiveness\": \"Requires improvement\", \"leadership_and_management\": \"Requires improvement\", \"safeguarding_effective\": \"Yes\"}]\nks2_performance_latest: {\"academic_year\": \"202324\", \"reading_writing_maths_expected_standard\": \"58%\", \"national_reading_writing_maths_expected_standard\": \"61%\"}",
+        "riseConcerns": "[Evidence 1]\nschool: Exampleton Primary School (URN 900001)\nconcern_date: 2024-01-15\nconcern_type: Safeguarding\nsummary: Safeguarding concern raised about record keeping for pupil absence.\nstatus: Open\nsupport: Regional adviser visit arranged.\n\n[Evidence 2]\nschool: Exampleton Primary School (URN 900001)\nconcern_date: 2025-05-12\nconcern_type: Finance\nsummary: Deficit budget reported.\nstatus: Closed\noutcome: Recovery plan completed."
+      },
+      "mustMention": [
+        "15 January 2024",
+        "Safeguarding",
+        "12 May 2025"
+      ],
+      "mustNotMention": [],
+      "group": "primary"
+    },
+    {
+      "id": "REL-006",
+      "name": "Rise trust concerns across academies",
+      "description": "Drops a concern about one of the trust's academies",
+      "subject": {
+        "name": "Example Learning Trust",
+        "urnOrTrn": "TR09001"
+      },
+      "expectedOutcome": "Reports each academy's concern, the safeguarding one included",
+      "severity": "Critical",
+      "records": {
+        "trust": "[Evidence 1]\ntrust_name: Example Learning Trust\ntrust_reference_number: TR09001\ntrust_type: Multi-academy trust\ndate_established: 2014-09-01\ntrust_address: 1 Example Road, Exampleton, EX1 1AA\nnumber_in_trust: 2\ntrust_governance: Chief executive: Alex Example\narea_concerns: Pupil place sufficiency - secondary: shortfall of places forecast from 2026\n\n[Evidence 2]\ntrust_name: Example Learning Trust\ntrust_reference_number: TR09001\nacademy_attendance: [{\"academy\": \"Exampleton Primary School\", \"academic_year\": \"202324\", \"overall_absence\": \"6.1%\", \"persistent_absence\": \"17.0%\"}, {\"academy\": \"Example Valley Academy\", \"academic_year\": \"202324\", \"overall_absence\": \"8.4%\", \"persistent_absence\": \"24.9%\"}]",
+        "riseConcerns": "[Evidence 1]\ntrust: Example Learning Trust (TR09001)\nacademy: Example Valley Academy\nconcern_date: 2025-02-11\nconcern_type: Governance\nsummary: Concern raised about the local governing body's oversight of attendance.\nstatus: Open\nsupport: Trust improvement partner assigned.\n\n[Evidence 2]\ntrust: Example Learning Trust (TR09001)\nacademy: Exampleton Primary School\nconcern_date: 2024-06-03\nconcern_type: Safeguarding\nsummary: Delay in referrals to the local authority designated officer.\nstatus: Closed\noutcome: Safeguarding training completed and referral process updated."
+      },
+      "mustMention": [
+        "11 February 2025",
+        "Example Valley Academy",
+        "3 June 2024",
+        "Exampleton Primary School",
+        "Safeguarding"
+      ],
+      "mustNotMention": [],
+      "group": "trust"
+    },
+    {
+      "id": "REL-007",
+      "name": "School record primary requires improvement",
+      "description": "Misstates a primary school's Ofsted judgement or KS2 results",
+      "subject": {
+        "name": "Exampleton Primary School",
+        "urnOrTrn": "900001"
+      },
+      "expectedOutcome": "Gives the Requires improvement judgement with its date, the roll, and KS2 results with their year",
+      "records": {
+        "school": "[Evidence 1]\nestablishment_name: Exampleton Primary School\nestablishment_urn: 900001\nestablishment_type: Academy converter\nphase_of_education: Primary\nestablishment_age_range: 4 to 11\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nlinked_to_diocese: Not applicable\nestablishment_website: www.exampleton-primary.example.org\nschool_capacity: 420\nnumber_on_roll: 431\nofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"publication_date\": \"2023-04-20\", \"overall_effectiveness\": \"Requires improvement\", \"leadership_and_management\": \"Requires improvement\", \"safeguarding_effective\": \"Yes\"}]\nks2_performance_latest: {\"academic_year\": \"202324\", \"reading_writing_maths_expected_standard\": \"58%\", \"national_reading_writing_maths_expected_standard\": \"61%\"}"
+      },
+      "mustMention": [
+        "Requires improvement",
+        "14 March 2023",
+        "431",
+        "420",
+        "58%",
+        "2023/24"
+      ],
+      "mustNotMention": [
+        "202324",
+        "Outstanding",
+        "Inadequate",
+        "KS4 results are not available"
+      ],
+      "group": "primary"
+    },
+    {
+      "id": "REL-008",
+      "name": "School record secondary ks4 scores",
+      "description": "Shows KS4 scores as percentages or with the wrong year",
+      "subject": {
+        "name": "Example Valley Academy",
+        "urnOrTrn": "900002"
+      },
+      "expectedOutcome": "Gives Attainment 8 as 46.2, not a percentage, and the year as 2023/24",
+      "records": {
+        "school": "[Evidence 1]\nestablishment_name: Example Valley Academy\nestablishment_urn: 900002\nestablishment_type: Academy sponsor led\nphase_of_education: Secondary\nestablishment_age_range: 11 to 18\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1200\nnumber_on_roll: 1104\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\", \"overall_effectiveness\": \"Good\", \"sixth_form_provision\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"academic_year\": \"202324\", \"attainment_8_score\": \"46.2\", \"ebacc_average_point_score\": \"4.05\", \"grade_5_or_above_english_and_maths\": \"44%\", \"national_attainment_8_score\": \"45.9\"}"
+      },
+      "mustMention": [
+        "Good",
+        "28 November 2022",
+        "46.2",
+        "44%",
+        "2023/24"
+      ],
+      "mustNotMention": [
+        "46.2%",
+        "4.05%",
+        "202324",
+        "Requires improvement",
+        "KS2 results are not available"
+      ],
+      "group": "secondary"
+    },
+    {
+      "id": "REL-009",
+      "name": "Trust briefing per academy",
+      "description": "Leaves an academy out of a trust's briefing",
+      "subject": {
+        "name": "Example Learning Trust",
+        "urnOrTrn": "TR09001"
+      },
+      "expectedOutcome": "Covers every academy once, with the trust's attendance and leaders",
+      "records": {
+        "trust": "[Evidence 1]\ntrust_name: Example Learning Trust\ntrust_reference_number: TR09001\ntrust_type: Multi-academy trust\ndate_established: 2014-09-01\ntrust_address: 1 Example Road, Exampleton, EX1 1AA\nnumber_in_trust: 2\ntrust_governance: Chief executive: Alex Example\narea_concerns: Pupil place sufficiency - secondary: shortfall of places forecast from 2026\n\n[Evidence 2]\ntrust_name: Example Learning Trust\ntrust_reference_number: TR09001\nacademy_attendance: [{\"academy\": \"Exampleton Primary School\", \"academic_year\": \"202324\", \"overall_absence\": \"6.1%\", \"persistent_absence\": \"17.0%\"}, {\"academy\": \"Example Valley Academy\", \"academic_year\": \"202324\", \"overall_absence\": \"8.4%\", \"persistent_absence\": \"24.9%\"}]",
+        "academies": "[Evidence 1]\nestablishment_name: Exampleton Primary School\nestablishment_urn: 900001\nphase_of_education: Primary\nassociated_trust_name: Example Learning Trust\nschool_capacity: 420\nnumber_on_roll: 431\nofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"overall_effectiveness\": \"Requires improvement\"}]\n\n[Evidence 2]\nestablishment_name: Example Valley Academy\nestablishment_urn: 900002\nphase_of_education: Secondary\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1200\nnumber_on_roll: 1104\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\", \"overall_effectiveness\": \"Good\"}]",
+        "recastConcerns": "[Evidence 1]\ntrust: Example Learning Trust (TR09001)\nacademy: Example Valley Academy\nconcern_date: 2025-03-03\nconcern: Falling roll affecting financial viability.\nstatus: Ongoing"
+      },
+      "mustMention": [
+        "# Example Learning Trust",
+        "## Trust overview",
+        "## School summary",
+        "### Key issues",
+        "### Recast concerns",
+        "Exampleton Primary School",
+        "Example Valley Academy",
+        "## Attendance",
+        "8.4%",
+        "shortfall",
+        "Alex Example"
+      ],
+      "mustNotMention": [
+        "More background information",
+        "Information not available",
+        "Whole trust: overall absence",
+        "{{city:"
+      ],
+      "group": "trust"
+    },
+    {
+      "id": "REL-010",
+      "name": "Trust record trust with place pressures",
+      "description": "Misses the trust's leaders or its pupil place pressures",
+      "subject": {
+        "name": "Example Learning Trust",
+        "urnOrTrn": "TR09001"
+      },
+      "expectedOutcome": "Names the trust's leaders and gives its place pressure figures",
+      "records": {
+        "trust": "[Evidence 1]\ntrust_name: Example Learning Trust\ntrust_reference_number: TR09001\ntrust_type: Multi-academy trust\ngroup_status: Open\ndate_established: 2014-09-01\ntrust_address: 1 Example Road, Exampleton, EX1 1AA\nnumber_in_trust: 3\npipeline_count: 1\ntrust_governance: Chief executive: Alex Example; Accounting officer: Alex Example; Chair of trustees: Sam Sample\naggregate_demographic: {\"free_school_meals\": \"24.1%\", \"english_not_first_language\": \"12.0%\", \"sen_support\": \"14.3%\"}\narea_concerns: Pupil place sufficiency - primary: surplus places expected to rise in Exampleshire; secondary: shortfall of places forecast from 2026"
+      },
+      "mustMention": [
+        "Alex Example",
+        "Sam Sample",
+        "1 September 2014",
+        "24.1%",
+        "secondary"
+      ],
+      "mustNotMention": [
+        "Outstanding"
+      ],
+      "group": "trust"
+    }
+  ]
+}

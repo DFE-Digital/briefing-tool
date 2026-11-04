@@ -2,7 +2,6 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
 using Dfe.Briefing.Tool.ReleaseGate.Constants;
-using Microsoft.Extensions.Configuration;
 
 namespace Dfe.Briefing.Tool.ReleaseGate.Commands;
 
@@ -17,18 +16,23 @@ internal static class ExportCopilotStudioCommand
     public static async Task<int> RunAsync(string folder, CancellationToken cancellationToken)
     {
         var source = Path.Combine(AppContext.BaseDirectory, TestCaseFields.SourceDirectory);
-        var refusals = RefusalPhrases();
 
         var cases = new List<Case>();
         foreach (var file in Directory.Exists(source) ? Directory.GetFiles(source, TestCaseFields.FilePattern, SearchOption.AllDirectories) : [])
         {
             var relativePath = Path.GetRelativePath(source, file);
-            if (relativePath.Split(Path.DirectorySeparatorChar).Contains(TestCaseFields.GuardrailTestSet))
-                continue;
-
-            var testCase = JsonNode.Parse(await File.ReadAllTextAsync(file, cancellationToken))?.AsObject()
+            var testsFile = JsonNode.Parse(await File.ReadAllTextAsync(file, cancellationToken))?.AsObject()
                 ?? throw new InvalidDataException(TestCaseErrors.Empty(relativePath));
-            cases.Add(ToCase(testCase, relativePath, refusals));
+            if (testsFile.ContainsKey(TestCaseFields.Tests))
+                throw new InvalidDataException(TestCaseErrors.UseSections(relativePath));
+
+            // Only the evaluation cases: an attack is the guardrail's to block, not a question for Copilot Studio.
+            var tests = testsFile[TestCaseFields.EvaluationSection]?.AsArray() ?? [];
+            for (var i = 0; i < tests.Count; i++)
+            {
+                var testCase = tests[i]?.AsObject() ?? throw new InvalidDataException(TestCaseErrors.Empty($"{relativePath} test {i + 1}"));
+                cases.Add(ToCase(testCase, TestCaseErrors.CaseAt(relativePath, testCase, i)));
+            }
         }
 
         // Every evaluation case about the same school or trust becomes one question, as Copilot Studio answers it whole.
@@ -61,16 +65,14 @@ internal static class ExportCopilotStudioCommand
 
     // A case's own "copilotStudio" object, if it has one, sets its question and expected response; otherwise both come
     // from its subject and the facts it must mention.
-    private static Case ToCase(JsonObject testCase, string relativePath, IReadOnlyList<string> refusals)
+    private static Case ToCase(JsonObject testCase, string relativePath)
     {
         var copilotStudio = testCase[TestCaseFields.CopilotStudio]?.AsObject();
         var subject = SubjectOf(testCase, relativePath);
 
-        // Markdown headings check the briefing agents' layout, and refusals a specialist's empty answer: neither is a
-        // fact a whole briefing gives.
+        // Markdown headings check the briefing agent's layout: they aren't a fact a whole briefing gives.
         var facts = (ReadList(testCase, TestCaseFields.MustMention) ?? [])
             .Where(fact => !fact.StartsWith(CopilotStudioTestSet.MarkdownHeadingPrefix, StringComparison.Ordinal))
-            .Where(fact => !refusals.Contains(fact, StringComparer.OrdinalIgnoreCase))
             .ToList();
 
         return new Case(ReadText(copilotStudio, TestCaseFields.CopilotStudioQuestion) ?? $"Give me a briefing on {subject}.", subject,
@@ -93,11 +95,6 @@ internal static class ExportCopilotStudioCommand
         var identifier = BriefingParameters.FromReference(urnOrTrn, name).IsTrust ? "TRN" : "URN";
         return $"{name} ({identifier} {urnOrTrn})";
     }
-
-    // The release gate's refusal phrases, e.g. "No information available": answers checked by their wording, not facts.
-    private static string[] RefusalPhrases()
-        => new ConfigurationBuilder().SetBasePath(AppContext.BaseDirectory).AddJsonFile(Settings.AppSettingsFile, optional: true).Build()
-            .GetSection(Settings.RefusalPhrasesKey).Get<string[]>() ?? [];
 
     private static string? ReadText(JsonObject? node, string property)
         => node?[property]?.GetValue<string>() is { Length: > 0 } value ? value : null;

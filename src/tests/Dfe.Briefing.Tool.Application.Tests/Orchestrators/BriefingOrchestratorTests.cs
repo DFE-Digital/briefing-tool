@@ -35,7 +35,7 @@ public sealed class BriefingOrchestratorTests
 
     public BriefingOrchestratorTests()
     {
-        _briefingBuilder = new BriefingBuilder(_promptProvider, _promptBuilder);
+        _briefingBuilder = new BriefingBuilder(_promptProvider, _promptBuilder, TimeProvider.System);
         _evidenceProvider.GetRecordsAsync(Arg.Any<BriefingParameters>(), Arg.Any<IProgress<string>?>(), Arg.Any<CancellationToken>()).Returns(Records);
         _promptBuilder.Build(UserPromptType.Briefing, Arg.Any<IReadOnlyDictionary<string, string>>()).Returns("briefing-prompt");
         _promptProvider.GetSystemPrompt(SystemPromptKey.WebSearch).Returns("web-search-system-prompt");

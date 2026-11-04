@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Dfe.Briefing.Tool.Application.Builders.Interfaces;
+using Dfe.Briefing.Tool.Application.Helpers;
 using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
 using GovUK.Dfe.AI.Agents.Prompts.Interfaces;
@@ -14,7 +15,8 @@ namespace Dfe.Briefing.Tool.Application.Builders;
 /// The one place the agents' prompts and evidence are built - the app and the release gate both use it, so the gate
 /// tests what the app sends.
 /// </summary>
-internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTemplateBuilder promptBuilder) : IBriefingBuilder
+internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTemplateBuilder promptBuilder, TimeProvider timeProvider)
+    : IBriefingBuilder
 {
     public AIResult BuildNoEvidenceResult(BriefingParameters parameters)
     {
@@ -22,12 +24,16 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
         return new AIResult($"# {parameters.SchoolOrTrustName}\n\n{message}", TotalTokens: 0);
     }
 
+    public (string? Briefing, string? City) PresentBriefing(string? output) => BriefingPresenter.Present(output);
+
     public string BuildBriefingPrompt(BriefingParameters parameters)
         => promptBuilder.Build(UserPromptType.Briefing, new Dictionary<string, string>
         {
             ["SchoolOrTrustName"] = parameters.SchoolOrTrustName,
             ["SchoolUrnOrTrustTrn"] = parameters.SchoolUrnOrTrustTrn,
-            ["SubjectType"] = parameters.IsTrust ? "trust" : "school"
+            ["SubjectType"] = parameters.IsTrust ? "trust" : "school",
+            // The agent can't know the date itself, and needs it for "the last 3 years" of concerns.
+            ["Today"] = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime).ToString("d MMMM yyyy", EnglishCulture)
         });
 
     // Each search numbers its own records from 1, so they're renumbered to run on across the sets, each set under its
@@ -131,8 +137,7 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
 
     // More background information is only for web search findings. The briefing agent is told not to write it, but
     // one it writes anyway is removed here, so the section appears only once the person asks for a web search.
-    public string? RemoveBackgroundSection(string? briefing)
-        => briefing is null ? null : BackgroundSectionRegex().Replace(briefing, string.Empty);
+    public string? RemoveBackgroundSection(string? briefing) => BriefingPresenter.RemoveBackgroundSection(briefing);
 
     public const string BackgroundSectionHeading = "## More background information";
 
@@ -140,17 +145,8 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
 
     public const string NewsSectionHeading = "### News and media coverage";
 
-    // The section runs to the next "##" heading ("###" doesn't end it) or the end of the briefing.
-    [GeneratedRegex(@"^##[ \t]+More background information[^\r\n]*(?:\r?\n|\z)[\s\S]*?(?=^##[ \t]|\z)", RegexOptions.Multiline)]
-    private static partial Regex BackgroundSectionRegex();
-
-    // The briefing agent is told to leave out a section it has no facts for, but sometimes leaves its heading with
-    // nothing under it - a "##" heading followed straight by another heading, or by the end, is removed here.
-    public string? RemoveEmptySections(string? briefing)
-        => briefing is null ? null : EmptySectionRegex().Replace(briefing, string.Empty);
-
-    [GeneratedRegex(@"^##[ \t]+[^\r\n]*\r?\n(?:[ \t]*\r?\n)*(?=^##?[ \t]|\z)", RegexOptions.Multiline)]
-    private static partial Regex EmptySectionRegex();
+    // A section the agent left with nothing under it is removed (see BriefingPresenter).
+    public string? RemoveEmptySections(string? briefing) => BriefingPresenter.RemoveEmptySections(briefing);
 
     // A finding starts with its date, e.g. "- 20 August 2026: ...".
     private static DateOnly PublishedDate(string finding)

@@ -16,4 +16,11 @@ public interface IBriefingBuilder
     bool HasNewsSection(string briefing);
     string? RemoveBackgroundSection(string? briefing);
     string? RemoveEmptySections(string? briefing);
+
+    /// <summary>
+    /// The briefing as the user sees it, from the agent's answer: without its location marker, its background section
+    /// or any empty section; and the town or city the marker gave, if any. The release gate checks this, not the raw
+    /// answer, so it tests what the app shows.
+    /// </summary>
+    (string? Briefing, string? City) PresentBriefing(string? output);
 }

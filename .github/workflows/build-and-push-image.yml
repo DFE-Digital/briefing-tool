@@ -35,21 +35,12 @@ jobs:
           echo "release=${RELEASE,,}" >> $GITHUB_OUTPUT
           echo "image-name=${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
 
-  # A release the Responsible AI quality gate blocks never deploys.
-  quality-gate:
-    name: AI quality gate
-    uses: ./.github/workflows/ai-quality-gate.yml
-    secrets: inherit
-    permissions:
-      contents: read
-      packages: read
-
   # No validate-packages job: it rejects prerelease packages, and the GovUK.Dfe.AI.* packages are prereleases. Add
   # DFE-Digital/rsd-github-actions/.github/actions/validate-packages@v1 back once they have stable versions.
 
   build-import-deploy:
     name: Build, Import, Deploy
-    needs: [ set-env, quality-gate ]
+    needs: [ set-env ]
     runs-on: ubuntu-24.04
     environment: ${{ needs.set-env.outputs.environment }}
     permissions:

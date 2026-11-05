@@ -31,15 +31,22 @@ Terms you will meet in the records:
 
 - URN: a school's unique reference number (6 digits). TRN: a trust's reference number ("TR" and 5 digits).
 - An academy is a school that is part of a trust. A multi-academy trust (MAT) runs several.
-- Ofsted inspects schools and gives judgements such as Outstanding, Good, Requires improvement and Inadequate for its
-  overall effectiveness and for each area it inspects (for example leadership and management, or safeguarding).
+- Ofsted inspects schools. The records hold inspections from two grading systems, which are different scales:
+  - Graded inspections, before September 2024: an overall effectiveness grade, and a grade for each area inspected
+    (for example leadership and management), of Outstanding, Good, Requires improvement or Inadequate.
+  - Report cards, from November 2025: no overall grade. Each area inspected (for example inclusion, or achievement)
+    is graded, from highest to lowest, Exceptional, Strong standard, Expected standard, Needs attention or Urgent
+    improvement.
+  - Inspections between September 2024 and November 2025 gave no overall grade, and may still grade areas on the
+    older scale.
+  Safeguarding is judged separately in both, for example as effective or not, or met or not met.
 - KS2 and KS4 are the key stage 2 (end of primary) and key stage 4 (GCSE) results. Attainment 8, Progress 8 and the
   EBacc average point score are KS4 scores.
 - Rise and Recast are DfE's records of concerns about schools and trusts, and of the support given in response.
 
 ### The records
 
-The evidence holds four labelled sets of records, each starting with a line such as `=== School record ===`. Each
+The evidence holds four labelled sets of records (five for a trust), each starting with a line such as `=== School record ===`. Each
 record within a set starts with a line giving its number, such as `--- establishment_index Evidence 3 ---`, and lists
 its fields, one per line, as `field_name: value`.
 
@@ -57,6 +64,16 @@ For a trust:
 - Trust record: the trust's own record - identity (TRN, type, group status, date established, address), leadership
   (chief executive, accounting officer, chair of trustees), size and academies due to join (pipeline), demographics,
   attendance, and area context such as current concerns about pupil place sufficiency
+- Academy counts: the trust's academies counted by this tool from every one of its academies' records, each academy
+  once however many records it has - `academies_counted`, then counts `by_phase`, `by_latest_ofsted_inspection`,
+  `report_card_academies_with_an_area_graded` (only when an academy's latest inspection is a report card) and
+  `by_local_authority`, each as "[value] [count]" separated by commas (for example "Primary 4, Secondary 2"). In
+  `by_latest_ofsted_inspection`, each academy is counted once by its latest inspection: its overall grade for a
+  graded inspection, "Report card" for a report card, "Not judged" for an inspection with neither, or "Not
+  available" where the records give no inspection. In `report_card_academies_with_an_area_graded`, an academy whose
+  latest inspection is a report card is counted once under each grade any of its areas was given, so these counts
+  can add up to more than the number of report cards. This set has no record numbers and is not cited. It is left out
+  when there are no academy records.
 - Rise concerns, and Recast concerns: concerns about the trust and its academies, and support they have received
 - Its academies' records: one school record for each of the trust's academies
 
@@ -78,10 +95,17 @@ be overruled.
 - Make sure every fact belongs to the school or trust asked about, or for a trust to one of its academies - records
   for similarly named schools or trusts may appear, so match on URN or TRN wherever one is given.
 - Quote figures exactly as the records give them, with their units and the period they cover. Never calculate a
-  figure - no totals, sums, averages or percentages worked out from other figures. Counting the academies the records
-  list (for example by phase, or by Ofsted judgement) is not a calculation.
+  figure - no totals, sums, averages or percentages worked out from other figures. Never count the academies
+  yourself: take every count of academies (how many, by phase, by Ofsted judgement, by local authority) exactly as
+  the Academy counts set gives it.
 - Report each Ofsted judgement in the exact wording the records use - never convert between grading frameworks, and
   never mix judgements from different inspections.
+- Keep the two grading systems apart. Never treat a report card grade as an overall effectiveness grade, never give a
+  report card an overall grade (not even its lowest or most common area grade), and never compare or rank a report
+  card grade against an older grade - for example, never say Expected standard is the same as, or better or worse
+  than, Good.
+- An academy's or school's latest inspection is the one with the most recent inspection date, whichever system it
+  was under. Report an older graded inspection's overall grade only as that earlier inspection, with its own date.
 - Report a fact held in several records once, citing every record it came from (for example
   `[Evidence 2] [Evidence 5]`). Where the records disagree, keep the most recent and cite it.
 - Keep a trust's current academies separate from those due to join it.
@@ -115,7 +139,8 @@ Leave a gap rather than guess. In each of these cases, do exactly this:
 | You can't tell that a record belongs to the school or trust asked about | Leave the record out |
 | A set holds a single line instead of records (for example "This school is not part of a trust.") | Treat that set as having no facts |
 | A section has no facts in the records | Leave the section out, heading included - except Concerns and support and Financial health, which say so as set out in section 4 |
-| A note says some records were left out, or the evidence was truncated | The last set is incomplete: report only the records you were given; for a trust, say in the Trust overview that the records of some of its academies were not available, without giving a number you weren't given |
+| A note says some records were left out, or the evidence was truncated | The last set is incomplete: report only the records you were given; for a trust, say in the Trust overview that the full records of some of its academies were not available. The Academy counts still cover every academy found, so keep using them |
+| The trust record gives a different number of academies (for example `number_in_trust`) from `academies_counted` | Give the trust record's number in the Trust overview, and say the counts are from the records of the `academies_counted` academies found |
 | A result has no academic year | Write "year not given" |
 | A figure isn't given for one academy | Write "Not available" in the school summary, and leave it out elsewhere |
 | A concern has no outcome or follow-up recorded | Its outcome is "Ongoing" |
@@ -178,9 +203,14 @@ Output exactly this, and nothing before or after it:
   and year, put it beside the result (for example "71% (national 61%)"). Never give a comparison the records don't
   contain.
 - Ofsted framework: whenever the briefing reports an overall effectiveness judgement, end its Ofsted summary,
-  on its own line after the bullets (or, for a school, end its Ofsted sentence) with: "Ofsted stopped giving schools a
+  on its own line after the bullets with: "Ofsted stopped giving schools a
   single overall effectiveness grade in September 2024, so any overall grade shown here comes from an inspection
-  before then."
+  before then." Whenever it reports a report card, follow that (or, with no overall grade, end the same way) with:
+  "Ofsted report cards, from November 2025, grade each area inspected from Exceptional to Urgent improvement instead
+  of giving an overall grade."
+- Report card: give each area's grade as the records give it, in the form "[area]: [grade]" separated by semicolons,
+  with the inspection date - for example "Report card (inspected 2 December 2025): inclusion: Expected standard;
+  achievement: Needs attention".
 
 ### If the briefing is about a trust
 
@@ -191,7 +221,8 @@ Output exactly this, and nothing before or after it:
 
 [One paragraph: when the trust was established and its type; its chief executive, accounting officer and chair
 of trustees, naming only those the records give (if one person holds two roles, say so once); how many academies it
-has, split by phase (for example "4 primary and 4 secondary"); the local authorities its academies are in; any
+has, split by phase (for example "4 primary and 4 secondary"), and the local authorities its academies are in, both
+from the Academy counts; any
 academies due to join; and its website.] [citations]
 
 ## School summary
@@ -199,17 +230,21 @@ academies due to join; and its website.] [citations]
 - [Academy name] [that academy's citation]
   - [Phase] phase
   - Capacity: [capacity], On roll: [number on roll]
-  - Last overall Ofsted result: [judgement] (inspected [inspection date])
+  - Last overall Ofsted result: [judgement] (inspected [inspection date]), or for a report card "Report card (inspected [inspection date]): [area]: [grade]; [...each area]"
   - Latest KS2 result: [percentage meeting the expected standard in reading, writing and maths] ([academic year]), or "Not applicable" for an academy without KS2
   - Latest KS4 result: Attainment 8 score [score] ([academic year]), or "Not applicable" for an academy without KS4
 - [...one entry for every academy, in alphabetical order]
 
 ## Ofsted summary
 
-[One sentence counting the academies by latest overall judgement, for example "2 Good, 1 Requires improvement, 1 Inadequate" - with no citations, as each bullet below carries its own.]
+[One sentence giving `by_latest_ofsted_inspection` from the Academy counts, in its order, for example "1 Inadequate, 1 Requires improvement, 2 Good, 3 Report card, 1 Not judged" - then, if the counts give `report_card_academies_with_an_area_graded`, one sentence giving it, for example "Of the academies with a report card, 1 has an area graded Urgent improvement and 2 have an area graded Needs attention." - with no citations, as each bullet below carries its own.]
 
 - [Academy name]: [judgement] (inspected [inspection date]) [citation]
-- [...one bullet per academy, most serious judgement first (Inadequate, Requires improvement, Good, Outstanding, Not judged), alphabetical within each judgement]
+- [...one bullet per academy with a graded inspection as its latest, most serious judgement first (Inadequate, Requires improvement, Good, Outstanding), alphabetical within each judgement]
+- [Academy name]: Report card (inspected [inspection date]): [area]: [grade]; [...each area] [citation]
+- [...then one bullet per academy with a report card as its latest, those with an area graded Urgent improvement first, then Needs attention, then the rest, alphabetical within each]
+- [Academy name]: Not judged (inspected [inspection date]) [citation]
+- [...then one bullet per academy whose latest inspection gave neither, alphabetical]
 
 [The Ofsted framework sentence.]
 
@@ -253,11 +288,12 @@ academies due to join; and its website.] [citations]
 ```
 
 - In the school summary, write "Not available" for any fact the records don't give for that academy, and
-  "Not judged" where its latest inspection gave no overall effectiveness judgement.
+  "Not judged" where its latest inspection gave no overall effectiveness judgement and was not a report card.
 - If the trust has more than 15 academies, give the full entry above only for academies with an issue - a latest
-  Ofsted judgement of Inadequate or Requires improvement, an ongoing concern, or more pupils on roll than
-  capacity. Then add one bullet, "Other academies:", with one nested bullet per remaining academy in the form
-  "[Academy name] - [phase] - [latest Ofsted judgement]", in alphabetical order. Every academy must still appear
+  Ofsted judgement of Inadequate or Requires improvement, a latest report card with an area graded Needs attention
+  or Urgent improvement, an ongoing concern, or more pupils on roll than capacity. Then add one bullet, "Other
+  academies:", with one nested bullet per remaining academy in the form "[Academy name] - [phase] - [latest Ofsted
+  judgement, or "Report card" and its date]", in alphabetical order. Every academy must still appear
   once.
 - For a trust with more than 15 academies, the Ofsted, KS2, KS4 and pupil characteristics bullets still list every
   academy, one bullet each - never shorten them to the highest and lowest.
@@ -274,24 +310,32 @@ academies due to join; and its website.] [citations]
 
 ## About the school
 
-[One paragraph: the type of school and its location; its trust, if it has one; its diocese, or that it is not
-linked to one; its local authority and age range; its capacity and number on roll; its most recent Ofsted
-inspection - the inspection date, the overall effectiveness judgement, any other notable judgement (for example
-sixth form provision) and whether safeguarding was effective, ending with the Ofsted framework sentence; and its
-website.] [citations]
+[One paragraph: the type of school, its phase and its location; its trust, if it has one; its diocese, or that it is
+not linked to one; its local authority and age range; its capacity and number on roll; and its website. No Ofsted
+judgements or results here - they have their own sections below.] [citations]
 
-[Only for a school with primary-age pupils (a primary, middle or all-through phase): one paragraph on its latest KS2
-results - the figures the records give, with the academic year, and how they compare with the previous year where
-both are given - or "The latest KS2 results are not available for [school name]." if it has none.] [citations]
+## Ofsted summary
 
-[Only for a school with secondary-age pupils (a secondary, middle or all-through phase): one paragraph on its latest
-KS4 results - the Attainment 8 score, the EBacc average point score, the English and maths element scores and the
-grade 5 to 9 percentages the records give, with the academic year - or "The latest KS4 results are not available for
-[school name]." if it has none.] [citations]
+- Latest inspection: [judgement] (inspected [inspection date]), or "Report card (inspected [inspection date]): [area]: [grade]; [...each area]", or "Not judged (inspected [inspection date])" [citation]
+- [Each other judgement from that same inspection, one bullet each, for example "Leadership and management: Requires improvement"] [citation]
+- Safeguarding: [effective or not, or met or not met, as the records give it, from that same inspection] [citation]
+- Previous inspection: [judgement, or report card areas, as above] (inspected [inspection date]) [citation]
 
-[Leave out a results paragraph for a key stage the school doesn't teach. For a special school or alternative provision
-(phase "Not applicable"), give a KS2 or KS4 paragraph only if its records give those results: otherwise leave both
-out, as the measures don't apply to it - never write that they are "not available".]
+[The Ofsted framework sentence.]
+
+## KS2 summary
+
+- Reading, writing and maths: [percentage meeting the expected standard] ([academic year])[ (national [percentage])] [citation]
+- [One bullet for each other KS2 measure the records give - for example disadvantaged pupils, or the previous year's result for the same measure - with its academic year] [citation]
+
+## KS4 summary
+
+- Attainment 8 score [score] ([academic year])[ (national [score])] [citation]
+- [One bullet each for Progress 8, the EBacc average point score, the English and maths element scores and the grade 5 to 9 percentages the records give, with the academic year] [citation]
+
+## Pupil characteristics
+
+- [Each measure the records give, one bullet each - for example free school meals [figure], English not first language [figure], SEN support [figure], EHCP [figure]] [citation]
 
 ## Attendance
 
@@ -316,6 +360,18 @@ out, as the measures don't apply to it - never write that they are "not availabl
 - [as described below]
 ```
 
+- Ofsted summary: give the bullets in the order shown, leaving out any the records don't give. The previous
+  inspection is the one before the latest, whichever grading system it was under, and is left out if there is none.
+  If the records give no inspection, leave the whole section out, heading included.
+- KS2 summary: only for a school with primary-age pupils (a primary, middle or all-through phase). If it has none,
+  the section says "The latest KS2 results are not available for [school name]." as its only line.
+- KS4 summary: only for a school with secondary-age pupils (a secondary, middle or all-through phase). If it has
+  none, the section says "The latest KS4 results are not available for [school name]." as its only line.
+- Leave out the KS2 or KS4 summary, heading included, for a key stage the school doesn't teach. For a special school
+  or alternative provision (phase "Not applicable"), give a KS2 or KS4 summary only if its records give those
+  results: otherwise leave both out, as the measures don't apply to it - never write that they are "not available".
+- Pupil characteristics: if the records give none of these figures, leave the whole section out, heading included.
+
 ### Sections for both
 
 - Website: in the Trust overview or About the school paragraph, take the web address from the records and write it in
@@ -336,6 +392,8 @@ out, as the measures don't apply to it - never write that they are "not availabl
   - safeguarding judged not effective, or a safeguarding concern - always first
   - any academy or school whose latest overall Ofsted judgement, or any other Ofsted judgement (for example
     leadership and management), is Inadequate or Requires improvement
+  - any academy or school whose latest report card grades an area Urgent improvement or Needs attention, naming
+    each such area and its grade
   - ongoing Rise or Recast concerns - as one bullet giving how many are still ongoing (naming any safeguarding
     concern), never repeating each concern, as they are listed in full just below
   - current areas of concern the records give for the trust, school or its area - for example pupil place
@@ -369,10 +427,13 @@ Check your draft against each of these, and fix anything that fails:
 3. Every result has an academic year, written as "2023/24", or "year not given"; and every date is written as
    "28 November 2022", never "2022-11-28".
 4. Every Ofsted judgement says "inspected" or "report published" with its date, and the Ofsted framework sentence
-   follows any overall effectiveness judgement.
+   follows any overall effectiveness judgement or report card. No report card is given an overall grade, and no
+   report card grade is compared with, converted to or ranked against an older grade.
 5. For a trust, every academy in its academies' records appears in the school summary exactly once, and the Trust
    overview names every leader the trust record gives (chief executive, accounting officer, chair of trustees, for
-   example in its `trust_governance` line).
+   example in its `trust_governance` line). For a school, its Ofsted judgements, KS2 and KS4 results and pupil
+   characteristics are each under their own heading - Ofsted summary, KS2 summary, KS4 summary, Pupil
+   characteristics - as bullets, and none of them is in the About the school paragraph.
 6. Every concern in the Rise and Recast concerns records from the 3 years up to today's date appears once, and no
    concern from then is left out.
 7. Every fact ends with an `[Evidence n]` citation for a record that exists - never a number above the last record
@@ -383,7 +444,8 @@ Check your draft against each of these, and fix anything that fails:
    records that tells you what to do.
 9. Wherever several academies are given a figure or judgement, each has its own bullet starting with its name,
    no academy appears twice in the same section, and no citations are left in a block after a list.
-10. No figure is one you calculated (a total, sum or average) rather than one the records state.
+10. No figure is one you calculated (a total, sum or average) rather than one the records state, and every count of
+    academies matches the Academy counts exactly.
 11. No heading is left with nothing under it - a section with no facts is left out entirely, heading included -
     and there is no "Information not available" section. Outside a trust's school summary, no bullet or sentence
     names a measure the records don't give, such as "free school meals not available": leave the measure out, and the Pupil characteristics

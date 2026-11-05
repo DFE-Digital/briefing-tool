@@ -9,6 +9,7 @@ public static class EvidenceLabels
     public const string SchoolsTrustRecord = "Its trust's record";
     public const string TrustRecord = "Trust record";
     public const string AcademyRecords = "Its academies' records";
+    public const string AcademyCounts = "Academy counts";
     public const string RiseConcerns = "Rise concerns";
     public const string RecastConcerns = "Recast concerns";
     public const string NoRecords = "No records were found.";

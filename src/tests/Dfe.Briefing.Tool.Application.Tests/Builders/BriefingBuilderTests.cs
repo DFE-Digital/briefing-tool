@@ -240,5 +240,39 @@ public sealed class BriefingBuilderTests
 
         Assert.StartsWith("=== Trust record ===\n\n[Evidence 1]\ntrust_name: Test Trust\n\n=== Rise concerns ===", evidence.Text, StringComparison.Ordinal);
         Assert.EndsWith("=== Its academies' records ===\n\nNo records were found.", evidence.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("=== Academy counts ===", evidence.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildBriefingEvidence_ForATrust_PutsItsAcademyCountsStraightAfterItsOwnRecord_AsTheyreNeverCut()
+    {
+        var none = new ContextResult(string.Empty, HasEvidence: false);
+        var trust = new ContextResult("[Evidence 1]\ntrust_name: Test Trust", HasEvidence: true);
+        var academies = new ContextResult(
+            "[Evidence 1]\nestablishment_urn: 900001\nphase_of_education: Primary\nlocal_authority_name: Exampleshire\n" +
+            "ofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"overall_effectiveness\": \"Good\"}]\n\n" +
+            "[Evidence 2]\nestablishment_urn: 900002\nphase_of_education: Secondary\nlocal_authority_name: Exampleshire", HasEvidence: true);
+
+        var evidence = _sut.BuildBriefingEvidence(new BriefingParameters("TR12345", "Test Trust", IsTrust: true), new BriefingRecords(trust, academies, none, none));
+
+        Assert.StartsWith(
+            "=== Trust record ===\n\n[Evidence 1]\ntrust_name: Test Trust\n\n" +
+            "=== Academy counts ===\n\nacademies_counted: 2\nby_phase: Primary 1, Secondary 1\n" +
+            "by_latest_ofsted_inspection: Good 1, Not available 1\nby_local_authority: Exampleshire 2\n\n" +
+            "=== Rise concerns ===",
+            evidence.Text, StringComparison.Ordinal);
+        // The counts have no record numbers, so the academies still number on from the trust's record.
+        Assert.Contains("=== Its academies' records ===\n\n[Evidence 2]\nestablishment_urn: 900001", evidence.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildBriefingEvidence_ForASchool_GivesNoAcademyCounts()
+    {
+        var school = new ContextResult("[Evidence 1]\nestablishment_urn: 123456\nphase_of_education: Primary", HasEvidence: true);
+        var none = new ContextResult(string.Empty, HasEvidence: false);
+
+        var evidence = _sut.BuildBriefingEvidence(Subject, new BriefingRecords(school, none, none, none));
+
+        Assert.DoesNotContain("=== Academy counts ===", evidence.Text, StringComparison.Ordinal);
     }
 }

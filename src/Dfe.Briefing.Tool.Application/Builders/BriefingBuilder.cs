@@ -44,10 +44,13 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
         ArgumentNullException.ThrowIfNull(records);
 
         // Evidence over AiAgents:MaxEvidenceCharacters is cut from the end, so the related records - a large trust's
-        // academies can be hundreds of records - go last, after the subject's own record and its concerns.
+        // academies can be hundreds of records - go last, after the subject's own record and its concerns. A trust's
+        // academy counts, made in code from all of those records, go straight after its own record, so they're never cut.
+        var academyCounts = parameters.IsTrust && records.Related.HasEvidence ? AcademyCounter.Count(records.Related.Text) : null;
         (string Label, ContextResult Result)[] sets =
         [
             (parameters.IsTrust ? EvidenceLabels.TrustRecord : EvidenceLabels.SchoolRecord, records.Subject),
+            .. academyCounts is null ? [] : new[] { (EvidenceLabels.AcademyCounts, new ContextResult(academyCounts, HasEvidence: true)) },
             (EvidenceLabels.RiseConcerns, records.RiseConcerns),
             (EvidenceLabels.RecastConcerns, records.RecastConcerns),
             (parameters.IsTrust ? EvidenceLabels.AcademyRecords : EvidenceLabels.SchoolsTrustRecord, records.Related)

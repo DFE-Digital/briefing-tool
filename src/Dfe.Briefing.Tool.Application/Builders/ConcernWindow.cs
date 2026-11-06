@@ -41,7 +41,6 @@ internal static partial class ConcernWindow
         {
             var end = i + 1 < starts.Count ? starts[i + 1].Index : concerns.Text.Length;
             var record = concerns.Text[starts[i].Index..end].Trim();
-            // A date after today is a recording error, not a concern in the window, so it's left out too.
             if (ConcernDate(record) is { } date && (date < from || date > today))
                 dropped.Add(int.Parse(starts[i].Groups["number"].Value, CultureInfo.InvariantCulture));
             else

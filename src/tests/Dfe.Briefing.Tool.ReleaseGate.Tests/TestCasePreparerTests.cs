@@ -140,7 +140,7 @@ public sealed class TestCasePreparerTests : IDisposable
     }
 
     [Fact]
-    public async Task A_raw_value_a_case_expects_itself_is_not_also_forbidden()
+    public async Task A_raw_date_is_forbidden_even_in_a_timestamp_but_not_one_the_case_expects_itself()
     {
         var root = Directory.CreateTempSubdirectory("briefing-raw-values-");
         try
@@ -149,7 +149,7 @@ public sealed class TestCasePreparerTests : IDisposable
             await File.WriteAllTextAsync(Path.Combine(agent.FullName, "reliability-and-safety.json"), """
                 { "type": "reliability-and-safety", "evaluation": [ { "id": "REL-900", "description": "d",
                   "subject": { "name": "Exampleton Primary School", "urnOrTrn": "900001" },
-                  "records": { "school": "[Evidence 1]\nopened: 2010-09-01\nclosed: 2025-07-31" },
+                  "records": { "school": "[Evidence 1]\nopened: 2010-09-01\nlast_changed_date: 2026-10-15T06:00:00Z\nclosed: 2025-07-31" },
                   "mustMention": [ "Closed on 2025-07-31" ] } ] }
                 """, TestContext.Current.CancellationToken);
 
@@ -158,7 +158,7 @@ public sealed class TestCasePreparerTests : IDisposable
 
             var prepared = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(_prepared.FullName, "briefing-agent", "reliability-and-safety.json"),
                 TestContext.Current.CancellationToken))!["evaluation"]![0]!.AsObject();
-            Assert.Equal(["2010-09-01"], MustNotMention(prepared));
+            Assert.Equal(["2010-09-01", "2026-10-15"], MustNotMention(prepared));
         }
         finally
         {

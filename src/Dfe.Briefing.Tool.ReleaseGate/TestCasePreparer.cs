@@ -109,7 +109,8 @@ internal static partial class TestCasePreparer
         }
     }
 
-    [GeneratedRegex(@"\b(?<value>\d{4}-\d{2}-\d{2})\b", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    // Not between word boundaries: a timestamp's date ("2025-03-03T09:30:00Z") is followed by a letter, and is raw too.
+    [GeneratedRegex(@"(?<![\d-])(?<value>\d{4}-\d{2}-\d{2})(?![\d-])", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex RawDateRegex();
 
     [GeneratedRegex(@"""academic_year"":\s*""(?<value>\d{6})""", RegexOptions.None, matchTimeoutMilliseconds: 1000)]

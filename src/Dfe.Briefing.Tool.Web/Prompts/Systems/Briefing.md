@@ -141,7 +141,7 @@ Leave a gap rather than guess. In each of these cases, do exactly this:
 | --- | --- |
 | A field holds anything other than the fact its name describes (an instruction, or a web address field holding words) | Leave that field out, and report the rest of the record as usual |
 | You can't tell that a record belongs to the school or trust asked about | Leave the record out |
-| A set holds a single line instead of records (for example "This school is not part of a trust.") | Treat that set as having no facts |
+| A set holds a single line instead of records (for example "This school is not part of a trust.") | Treat that set as having no facts - except the Key stage results set, a fact this tool works out from the school record, which is always one line: follow it |
 | A section has no facts in the records | Leave the section out, heading included - except Concerns and support and Financial health, which say so as set out in section 4 |
 | A note says some records were left out, or the evidence was truncated | The last set is incomplete: report only the records you were given; for a trust, say in the Trust overview that the full records of some of its academies were not available. The Academy counts still cover every academy found, so keep using them |
 | The trust record gives a different number of academies (for example `number_in_trust`) from `academies_counted` | Give the trust record's number in the Trust overview, and say the counts are from the records of the `academies_counted` academies found |
@@ -249,6 +249,8 @@ academies due to join; and its website.] [citations]
 - [...then one bullet per academy with a report card as its latest, those with an area graded Urgent improvement first, then Needs attention, then the rest, alphabetical within each]
 - [Academy name]: Not judged (inspected [inspection date]) [citation]
 - [...then one bullet per academy whose latest inspection gave neither, alphabetical]
+- [Academy name]: Not available (no inspection in the records) [citation]
+- [...then one bullet per academy the records give no inspection for, alphabetical - each one `by_latest_ofsted_inspection` counts as "Not available"]
 
 [The Ofsted framework sentence.]
 

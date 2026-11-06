@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Dfe.Briefing.Tool.Application.Helpers;
 
 namespace Dfe.Briefing.Tool.Application.Builders;
 
@@ -69,8 +70,9 @@ internal static partial class AcademyCounter
 
     private sealed record Inspection(DateOnly Date, string? OverallEffectiveness, IReadOnlyList<string> ReportCardGrades);
 
-    // The records often hold several about the same academy, so they're grouped by URN, taking each field from the first
-    // record that gives it, and every inspection from all of them. A record with a name but no URN joins the academy
+    // The records often hold several about the same academy, so they're grouped by URN, taking each field from the newest
+    // record that gives it (by its last changed date; a record without one counts as the oldest, and records of the same
+    // date in the order they came), and every inspection from all of them. A record with a name but no URN joins the academy
     // another record gives that name with its URN, so it isn't counted again; a name given with two different URNs
     // (two academies with one name) can't be told apart, so such a record is grouped by its name alone.
     private static List<Academy> ReadAcademies(string? academyRecords)
@@ -78,11 +80,17 @@ internal static partial class AcademyCounter
         if (string.IsNullOrWhiteSpace(academyRecords))
             return [];
 
-        var records = RecordStartRegex().Split(academyRecords).Select(ReadFields).ToList();
+        // Newest first, so the first value an academy's records give is its newest. OrderByDescending is stable, so
+        // records of the same date keep their order.
+        var records = RecordStartRegex().Split(academyRecords).Select(ReadFields)
+            .OrderByDescending(fields => RecordDateHelper.Read(fields) ?? DateOnly.MinValue)
+            .ToList();
         var urnsByName = records
-            .Where(fields => Value(fields, "establishment_urn") is not null && Value(fields, "establishment_name") is not null)
-            .GroupBy(fields => Value(fields, "establishment_name")!, StringComparer.OrdinalIgnoreCase)
-            .Select(group => (Name: group.Key, Urns: group.Select(fields => Value(fields, "establishment_urn")!).Distinct(StringComparer.OrdinalIgnoreCase).ToList()))
+            .SelectMany(fields => Value(fields, "establishment_name") is { } name && Value(fields, "establishment_urn") is { } urn
+                ? new[] { (Name: name, Urn: urn) }
+                : [])
+            .GroupBy(record => record.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(group => (Name: group.Key, Urns: group.Select(record => record.Urn).Distinct(StringComparer.OrdinalIgnoreCase).ToList()))
             .Where(name => name.Urns.Count == 1)
             .ToDictionary(name => name.Name, name => name.Urns[0], StringComparer.OrdinalIgnoreCase);
 

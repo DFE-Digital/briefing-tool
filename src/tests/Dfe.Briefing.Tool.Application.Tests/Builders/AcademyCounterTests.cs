@@ -19,22 +19,6 @@ public sealed class AcademyCounterTests
         => Assert.Null(AcademyCounter.Count(records));
 
     [Fact]
-    public void Count_CountsARecordWithOnlyAName_AsTheAcademyAnotherRecordGivesThatNameWithItsUrn()
-    {
-        var records =
-            Academy(1, "900001", "Primary", "Exampleshire", Judged("2021-05-01", "Good")) +
-            "--- establishment_index Evidence 2 ---\nestablishment_name: academy 900001\nofsted_all_inspections: " + Judged("2024-02-20", "Inadequate") + "\n\n" +
-            Academy(3, "900002", "Secondary", "Exampleshire", Judged("2022-11-28", "Good"));
-
-        Assert.Equal(
-            "academies_counted: 2\n" +
-            "by_phase: Primary 1, Secondary 1\n" +
-            "by_latest_ofsted_inspection: Inadequate 1, Good 1\n" +
-            "by_local_authority: Exampleshire 2",
-            AcademyCounter.Count(records));
-    }
-
-    [Fact]
     public void Count_KeepsANameOnlyRecordApart_WhenTwoAcademiesShareThatName()
     {
         var records =
@@ -62,20 +46,6 @@ public sealed class AcademyCounterTests
     }
 
     [Fact]
-    public void Count_GivesAReportCard_WithEveryRecordsAreaGrades_WhenRecordsShareTheLatestInspectionDate()
-    {
-        var records =
-            Academy(1, "900001", "Primary", "Exampleshire", "[{\"inspection_date\": \"2025-12-02\", \"overall_effectiveness\": \"Good\"}]") +
-            Academy(2, "900001", "Primary", "Exampleshire", "[{\"inspection_date\": \"2025-12-02\", \"achievement\": \"Needs attention\"}]") +
-            Academy(3, "900001", "Primary", "Exampleshire", "[{\"inspection_date\": \"2025-12-02\", \"inclusion\": \"Strong standard\"}]");
-
-        var counts = AcademyCounter.Count(records);
-
-        Assert.Contains("by_latest_ofsted_inspection: Report card 1\n", counts, StringComparison.Ordinal);
-        Assert.Contains("report_card_academies_with_an_area_graded: Needs attention 1, Strong standard 1\n", counts, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void Count_CountsByPhaseJudgementAndLocalAuthority()
     {
         var records =
@@ -93,17 +63,23 @@ public sealed class AcademyCounterTests
     }
 
     [Fact]
-    public void Count_CountsAnAcademyWithSeveralRecordsOnce_TakingItsLatestInspectionFromAllOfThem()
+    public void Count_CountsAnAcademyWithSeveralRecordsOnce_TakingEachFieldFromItsNewestRecord_AndItsLatestInspectionFromAll()
     {
+        // Academy 900001 has three records: an older dated one; one with its name but no URN (and no date, so the
+        // oldest), giving its latest inspection; and the newest, giving its phase but not its local authority.
         var records =
-            Academy(1, "900001", "Primary", "Exampleshire", Judged("2018-02-01", "Requires improvement")) +
-            "[Evidence 2]\nestablishment_urn: 900001\nofsted_all_inspections: " + Judged("2023-03-14", "Good") + "\n\n" +
-            Academy(3, "900002", "Secondary", "Exampleshire", Judged("2022-11-28", "Good"));
+            "[Evidence 1]\nestablishment_name: Academy 900001\nestablishment_urn: 900001\nphase_of_education: Primary\n" +
+            "local_authority_name: Oldshire\nlast_changed_date: 2023-01-10\nofsted_all_inspections: " + Judged("2018-02-01", "Requires improvement") + "\n\n" +
+            "[Evidence 2]\nestablishment_name: academy 900001\nlocal_authority_name: Undatedshire\nofsted_all_inspections: " + Judged("2023-03-14", "Good") + "\n\n" +
+            "[Evidence 3]\nestablishment_urn: 900001\nphase_of_education: All-through\nlast_changed_date: 15-10-2026\n\n" +
+            Academy(4, "900002", "Secondary", "Exampleshire", Judged("2022-11-28", "Good"));
 
-        var counts = AcademyCounter.Count(records);
-
-        Assert.StartsWith("academies_counted: 2\nby_phase: Primary 1, Secondary 1\n", counts, StringComparison.Ordinal);
-        Assert.Contains("by_latest_ofsted_inspection: Good 2\n", counts, StringComparison.Ordinal);
+        Assert.Equal(
+            "academies_counted: 2\n" +
+            "by_phase: All-through 1, Secondary 1\n" +
+            "by_latest_ofsted_inspection: Good 2\n" +
+            "by_local_authority: Exampleshire 1, Oldshire 1",
+            AcademyCounter.Count(records));
     }
 
     [Fact]
@@ -167,7 +143,7 @@ public sealed class AcademyCounterTests
     }
 
     [Fact]
-    public void Count_UsesTheLatestInspection_WhicheverSystemItWasUnder()
+    public void Count_UsesTheLatestInspection_WhicheverSystemItWasUnder_WithEveryRecordsAreaGradesWhenTheyShareItsDate()
     {
         var records =
             "[Evidence 1]\nestablishment_urn: 900001\nofsted_all_inspections: [" +
@@ -176,12 +152,16 @@ public sealed class AcademyCounterTests
             "[Evidence 2]\nestablishment_urn: 900002\nofsted_all_inspections: [" +
             "{\"inspection_date\": \"2023-05-01\", \"overall_effectiveness\": \"Outstanding\"}]\n\n" +
             "[Evidence 3]\nestablishment_urn: 900002\nofsted_all_inspections: [" +
-            "{\"inspection_date\": \"2019-05-01\", \"achievement\": \"Exceptional\"}]";
+            "{\"inspection_date\": \"2019-05-01\", \"achievement\": \"Exceptional\"}]\n\n" +
+            // Three records of academy 900003's latest inspection: a report card in any makes it one, with all their grades.
+            "[Evidence 4]\nestablishment_urn: 900003\nofsted_all_inspections: [{\"inspection_date\": \"2025-12-02\", \"overall_effectiveness\": \"Good\"}]\n\n" +
+            "[Evidence 5]\nestablishment_urn: 900003\nofsted_all_inspections: [{\"inspection_date\": \"2025-12-02\", \"achievement\": \"Needs attention\"}]\n\n" +
+            "[Evidence 6]\nestablishment_urn: 900003\nofsted_all_inspections: [{\"inspection_date\": \"2025-12-02\", \"inclusion\": \"Strong standard\"}]";
 
         var counts = AcademyCounter.Count(records);
 
-        Assert.Contains("by_latest_ofsted_inspection: Outstanding 1, Report card 1\n", counts, StringComparison.Ordinal);
-        Assert.Contains("report_card_academies_with_an_area_graded: Strong standard 1\n", counts, StringComparison.Ordinal);
+        Assert.Contains("by_latest_ofsted_inspection: Outstanding 1, Report card 2\n", counts, StringComparison.Ordinal);
+        Assert.Contains("report_card_academies_with_an_area_graded: Needs attention 1, Strong standard 2\n", counts, StringComparison.Ordinal);
     }
 
     [Fact]

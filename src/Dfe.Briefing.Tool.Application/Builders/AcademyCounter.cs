@@ -9,9 +9,10 @@ namespace Dfe.Briefing.Tool.Application.Builders;
 /// Provides operations that aggregate academy records into trust-level counts by phase, latest Ofsted inspection
 /// outcome, report card area grades, and local authority.
 /// </summary>
-/// <remarks>Academies are counted once per trust by grouping records by URN (or establishment name when URN is
-/// missing). The latest inspection is selected per academy, report card grades are handled separately from overall
-/// grades, and missing or invalid data is normalized to standard fallback outcomes.</remarks>
+/// <remarks>Academies are counted once per trust by grouping records by URN; a record with only a name joins the
+/// academy another record gives that name with its URN. The latest inspection is taken per academy, reconciling
+/// records that share its date; report card grades are handled separately from overall grades, and missing or invalid
+/// data is normalized to standard fallback outcomes.</remarks>
 internal static partial class AcademyCounter
 {
     public const string NotAvailable = "Not available";
@@ -68,18 +69,28 @@ internal static partial class AcademyCounter
 
     private sealed record Inspection(DateOnly Date, string? OverallEffectiveness, IReadOnlyList<string> ReportCardGrades);
 
-    // The records often hold several about the same academy, so they're grouped by URN (or name, if a record has none),
-    // taking each field from the first record that gives it, and every inspection from all of them.
+    // The records often hold several about the same academy, so they're grouped by URN, taking each field from the first
+    // record that gives it, and every inspection from all of them. A record with a name but no URN joins the academy
+    // another record gives that name with its URN, so it isn't counted again; a name given with two different URNs
+    // (two academies with one name) can't be told apart, so such a record is grouped by its name alone.
     private static List<Academy> ReadAcademies(string? academyRecords)
     {
         if (string.IsNullOrWhiteSpace(academyRecords))
             return [];
 
+        var records = RecordStartRegex().Split(academyRecords).Select(ReadFields).ToList();
+        var urnsByName = records
+            .Where(fields => Value(fields, "establishment_urn") is not null && Value(fields, "establishment_name") is not null)
+            .GroupBy(fields => Value(fields, "establishment_name")!, StringComparer.OrdinalIgnoreCase)
+            .Select(group => (Name: group.Key, Urns: group.Select(fields => Value(fields, "establishment_urn")!).Distinct(StringComparer.OrdinalIgnoreCase).ToList()))
+            .Where(name => name.Urns.Count == 1)
+            .ToDictionary(name => name.Name, name => name.Urns[0], StringComparer.OrdinalIgnoreCase);
+
         var academies = new Dictionary<string, AcademyFields>(StringComparer.OrdinalIgnoreCase);
-        foreach (var record in RecordStartRegex().Split(academyRecords))
+        foreach (var fields in records)
         {
-            var fields = ReadFields(record);
-            var key = Value(fields, "establishment_urn") ?? Value(fields, "establishment_name");
+            var name = Value(fields, "establishment_name");
+            var key = Value(fields, "establishment_urn") ?? (name is not null && urnsByName.TryGetValue(name, out var urn) ? urn : name);
             if (key is null)
                 continue;
 
@@ -109,16 +120,26 @@ internal static partial class AcademyCounter
 
     // A report card grade anywhere in the inspection makes it a report card, even beside an overall grade, so the two
     // systems' grades are never counted together.
+    //
+    // Several records can give the latest inspection (the same date), so they're reconciled rather than one picked by
+    // the order they came in: a report card in any of them makes it a report card, with every area grade they give; a
+    // record without an overall grade doesn't hide one another record gives; and where they give different overall
+    // grades, the most serious is counted, so a concern is never hidden by a duplicate record.
     private static LatestInspection Latest(List<Inspection> inspections)
     {
         if (inspections.Count == 0)
             return new LatestInspection(NotAvailable, []);
 
-        var latest = inspections.MaxBy(inspection => inspection.Date)!;
-        if (latest.ReportCardGrades.Count > 0)
-            return new LatestInspection(ReportCard, latest.ReportCardGrades);
+        var latestDate = inspections.Max(inspection => inspection.Date);
+        var latest = inspections.Where(inspection => inspection.Date == latestDate).ToList();
 
-        return new LatestInspection(latest.OverallEffectiveness ?? NotJudged, []);
+        var reportCardGrades = latest.SelectMany(inspection => inspection.ReportCardGrades).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (reportCardGrades.Count > 0)
+            return new LatestInspection(ReportCard, reportCardGrades);
+
+        var overall = latest.Select(inspection => inspection.OverallEffectiveness).OfType<string>()
+            .OrderBy(OverallRank).ThenBy(grade => grade, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+        return new LatestInspection(overall ?? NotJudged, []);
     }
 
     // ofsted_all_inspections is a JSON array, e.g. [{"inspection_date": "2023-03-14", "overall_effectiveness": "Good"}].

@@ -29,6 +29,20 @@ public sealed class ConcernWindowTests
     }
 
     [Fact]
+    public void Recent_LeavesOutAConcernDatedAfterToday_AndKeepsOneDatedToday()
+    {
+        var concerns = new ContextResult($"{Concern(1, "2026-11-07", "Tomorrow")}\n\n{Concern(2, "2026-11-06", "Today")}", HasEvidence: true)
+        {
+            Sources = [new EvidenceSource(1, "Tomorrow"), new EvidenceSource(2, "Today")]
+        };
+
+        var recent = ConcernWindow.Recent(concerns, Today);
+
+        Assert.Equal(Concern(2, "2026-11-06", "Today"), recent.Text);
+        Assert.Equal([new EvidenceSource(2, "Today")], recent.Sources);
+    }
+
+    [Fact]
     public void Recent_KeepsAConcernWhoseDateCannotBeRead_AsItsAgeIsNotKnown()
     {
         var concerns = new ContextResult("[Evidence 1]\nconcern_date: not recorded\nsummary: A\n\n[Evidence 2]\nsummary: B", HasEvidence: true);
@@ -56,5 +70,48 @@ public sealed class ConcernWindowTests
         var concerns = new ContextResult(text, hasEvidence);
 
         Assert.Same(concerns, ConcernWindow.Recent(concerns, Today));
+    }
+
+    [Fact]
+    public void WithDatesInWords_WritesEachConcernsOwnDate_AndKeepsTheSources()
+    {
+        var concerns = new ContextResult($"{Concern(1, "2025-02-11", "Governance")}\n\n{Concern(2, "2025-03-03", "Falling roll")}", HasEvidence: true)
+        {
+            Sources = [new EvidenceSource(1, "Governance"), new EvidenceSource(2, "Falling roll")]
+        };
+
+        var dated = ConcernWindow.WithDatesInWords(concerns);
+
+        Assert.Equal($"{Concern(1, "11 February 2025", "Governance")}\n\n{Concern(2, "3 March 2025", "Falling roll")}", dated.Text);
+        Assert.Equal(concerns.Sources, dated.Sources);
+    }
+
+    [Theory]
+    [InlineData("concern_date: 2024-06-03T00:00:00Z", "concern_date: 3 June 2024")]
+    [InlineData("concern_date: 2024-06-03 \r", "concern_date: 3 June 2024 \r")]
+    public void WithDatesInWords_LeavesOutATime_AndKeepsTheLineEnding(string line, string expected)
+    {
+        var dated = ConcernWindow.WithDatesInWords(new ContextResult($"[Evidence 1]\n{line}\nsummary: A", HasEvidence: true));
+
+        Assert.Equal($"[Evidence 1]\n{expected}\nsummary: A", dated.Text);
+    }
+
+    [Theory]
+    [InlineData("concern_date: not recorded")]
+    [InlineData("concern_date: 2024-13-45")]
+    [InlineData("summary: Raised on 2024-06-03.")]
+    public void WithDatesInWords_LeavesADateItCannotReadAsItIs(string line)
+    {
+        var concerns = new ContextResult($"[Evidence 1]\n{line}", HasEvidence: true);
+
+        Assert.Same(concerns, ConcernWindow.WithDatesInWords(concerns));
+    }
+
+    [Fact]
+    public void WithDatesInWords_LeavesASetWithNoEvidenceAsItIs()
+    {
+        var concerns = new ContextResult(ConcernWindow.NoneRecent, HasEvidence: false);
+
+        Assert.Same(concerns, ConcernWindow.WithDatesInWords(concerns));
     }
 }

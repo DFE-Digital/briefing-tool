@@ -81,7 +81,8 @@
       },
       "expectedOutcome": "Gives only the facts in the record, inventing no leaders or demographics",
       "records": {
-        "trust": "[Evidence 1]\ntrust_name: Example Coast Trust\ntrust_reference_number: TR09002\ntrust_type: Multi-academy trust\ngroup_status: Open\ndate_established: 2019-04-01\nnumber_in_trust: 2\npipeline_count: 0"
+        "trust": "[Evidence 1]\ntrust_name: Example Coast Trust\ntrust_reference_number: TR09002\ntrust_type: Multi-academy trust\ngroup_status: Open\ndate_established: 2019-04-01\nnumber_in_trust: 2\npipeline_count: 0\ntrust_address: 4 Harbour Street, Exampleton, EX5 6FF",
+        "academies": "[Evidence 1]\nestablishment_name: Example Shore Primary School\nestablishment_urn: 900010\nphase_of_education: Primary\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Coast Trust\nschool_capacity: 315\nnumber_on_roll: 297\nofsted_all_inspections: [{\"inspection_date\": \"2023-09-26\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks2_performance_latest: {\"academic_year\": \"202425\", \"reading_writing_maths_expected_standard\": \"66%\"}\n\n[Evidence 2]\nestablishment_name: Example Harbour Academy\nestablishment_urn: 900011\nphase_of_education: Secondary\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Coast Trust\nschool_capacity: 750\nnumber_on_roll: 688\nofsted_all_inspections: [{\"inspection_date\": \"2025-11-18\", \"inclusion\": \"Strong standard\", \"achievement\": \"Expected standard\", \"safeguarding\": \"Met\"}]\nks4_performance_latest: {\"academic_year\": \"202425\", \"attainment_8_score\": \"47.3\"}"
       },
       "mustMention": [
         "Example Coast Trust",
@@ -104,7 +105,8 @@
         "urnOrTrn": "900003"
       },
       "records": {
-        "school": "[Evidence 1]\nestablishment_name: Example Brook Special School\nestablishment_urn: 900003\nestablishment_type: Community special school\nphase_of_education: Not applicable\nestablishment_age_range: 3 to 19\nestablishment_address: 9 Brook Lane, Exampleton, EX3 4DD\nlocal_authority_name: Exampleshire\nassociated_trust_name: \nlinked_to_diocese: Not applicable\nschool_capacity: 120\nnumber_on_roll: 118\nofsted_all_inspections: [{\"inspection_date\": \"2024-06-05\", \"overall_effectiveness\": \"Outstanding\", \"safeguarding_effective\": \"Yes\"}]\nschool_attendance: [{\"academic_year\": \"202425\", \"overall_absence\": \"11.2%\", \"persistent_absence\": \"30.5%\"}]\nestablishment_website: www.example-brook.example.org\npupil_support_needs: {\"ehcp\": \"95.0%\", \"free_school_meals\": \"40.1%\"}"
+        "school": "[Evidence 1]\nestablishment_name: Example Brook Special School\nestablishment_urn: 900003\nestablishment_type: Community special school\nphase_of_education: Not applicable\nestablishment_age_range: 3 to 19\nestablishment_address: 9 Brook Lane, Exampleton, EX3 4DD\nlocal_authority_name: Exampleshire\nassociated_trust_name: \nlinked_to_diocese: Not applicable\nschool_capacity: 120\nnumber_on_roll: 118\nofsted_all_inspections: [{\"inspection_date\": \"2024-06-05\", \"overall_effectiveness\": \"Outstanding\", \"safeguarding_effective\": \"Yes\"}, {\"inspection_date\": \"2019-11-12\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nschool_attendance: [{\"academic_year\": \"202425\", \"overall_absence\": \"11.2%\", \"persistent_absence\": \"30.5%\"}]\nestablishment_website: www.example-brook.example.org\npupil_support_needs: {\"ehcp\": \"95.0%\", \"free_school_meals\": \"40.1%\"}",
+        "recastConcerns": "[Evidence 1]\nschool: Example Brook Special School (URN 900003)\nconcern_date: 2025-05-14\nconcern: Transport - delays to home-to-school transport for pupils with EHCPs.\nstatus: Closed\noutcome: The local authority changed the transport provider."
       },
       "mustMention": [
         "## Attendance",

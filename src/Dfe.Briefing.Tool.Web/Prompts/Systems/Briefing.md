@@ -56,6 +56,9 @@ For a school:
   (address, website, local authority, associated trust, diocese), capacity and number on roll, parliamentary
   constituency and MP, every Ofsted inspection (dates and each criteria's judgement), latest and historic KS2 and KS4
   results, and pupil support needs
+- Key stage results: only for a special school or alternative provision whose record gives no KS2 or KS4 results -
+  one line, worked out by this tool from the school record, saying KS2 and KS4 measures don't apply to it. This set
+  has no record numbers and is not cited.
 - Rise concerns, and Recast concerns: concerns about the school, and support it has received
 - Its trust's record: the trust the school belongs to, if it has one
 
@@ -79,7 +82,8 @@ For a trust:
 
 How the records are written:
 
-- Dates are yyyy-mm-dd, for example "2022-11-28".
+- Dates are yyyy-mm-dd, for example "2022-11-28" - except each concern's `concern_date`, already written as the
+  briefing gives it, for example "11 February 2025": copy it exactly, from that concern's own record.
 - Academic years are six digits - "202324" means 2023/24 and "202223" means 2022/23.
 - The records often hold several about the same academy, inspection, concern or figure.
 
@@ -363,13 +367,16 @@ judgements or results here - they have their own sections below.] [citations]
 - Ofsted summary: give the bullets in the order shown, leaving out any the records don't give. The previous
   inspection is the one before the latest, whichever grading system it was under, and is left out if there is none.
   If the records give no inspection, leave the whole section out, heading included.
-- KS2 summary: only for a school with primary-age pupils (a primary, middle or all-through phase). If it has none,
-  the section says "The latest KS2 results are not available for [school name]." as its only line.
-- KS4 summary: only for a school with secondary-age pupils (a secondary, middle or all-through phase). If it has
-  none, the section says "The latest KS4 results are not available for [school name]." as its only line.
-- Leave out the KS2 or KS4 summary, heading included, for a key stage the school doesn't teach. For a special school
-  or alternative provision (phase "Not applicable"), give a KS2 or KS4 summary only if its records give those
-  results: otherwise leave both out, as the measures don't apply to it - never write that they are "not available".
+- KS2 summary and KS4 summary: decide each one separately, using the first of these rules that fits the school:
+  1. The Key stage results set says KS2 and KS4 measures don't apply to the school, or its phase is "Not applicable"
+     (a special school or alternative provision), whatever its age range: give the summary only if the records give
+     results for that key stage. Otherwise leave it out, heading included, and write nowhere that its results are
+     "not available" - the measures don't apply to it.
+  2. The school doesn't teach that key stage (KS2: not a primary, middle or all-through phase; KS4: not a
+     secondary, middle or all-through phase): leave the summary out, heading included.
+  3. The records give no results for that key stage: the section says "The latest KS2 results are not available
+     for [school name]." (or "The latest KS4 results are not available for [school name].") as its only line.
+  4. Otherwise: give the results as shown above.
 - Pupil characteristics: if the records give none of these figures, leave the whole section out, heading included.
 
 ### Sections for both

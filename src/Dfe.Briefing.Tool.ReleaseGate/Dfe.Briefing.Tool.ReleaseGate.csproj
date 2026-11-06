@@ -9,6 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The judge, release gate and Responsible AI quality gate: only the gate uses them, so the web app doesn't ship them. -->
+    <PackageReference Include="GovUK.Dfe.AI.Agents.Evaluation" Version="0.0.5" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
   </ItemGroup>
 

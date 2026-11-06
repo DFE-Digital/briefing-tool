@@ -49,14 +49,17 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
         // academies can be hundreds of records - go last, after the subject's own record and its concerns. A trust's
         // academy counts, made in code from all of those records, go straight after its own record, so they're never cut.
         var academyCounts = parameters.IsTrust && records.Related.HasEvidence ? AcademyCounter.Count(records.Related.Text) : null;
+        // For a special school or alternative provision with no results, so the agent doesn't call them "not available".
+        var keyStageResults = parameters.IsTrust ? null : KeyStageResults.NotApplicable(records.Subject, parameters.SchoolOrTrustName);
         (string Label, ContextResult Result)[] sets =
         [
-            (parameters.IsTrust ? EvidenceLabels.TrustRecord : EvidenceLabels.SchoolRecord, records.Subject),
+            // Websites with their https:// already added (see WebsiteAddress).
+            (parameters.IsTrust ? EvidenceLabels.TrustRecord : EvidenceLabels.SchoolRecord, WebsiteAddress.WithScheme(records.Subject)),
             .. academyCounts is null ? [] : new[] { (EvidenceLabels.AcademyCounts, new ContextResult(academyCounts, HasEvidence: true)) },
-            // Only concerns from the last 3 years, the period the briefing reports (see ConcernWindow).
-            (EvidenceLabels.RiseConcerns, ConcernWindow.Recent(records.RiseConcerns, Today())),
-            (EvidenceLabels.RecastConcerns, ConcernWindow.Recent(records.RecastConcerns, Today())),
-            (parameters.IsTrust ? EvidenceLabels.AcademyRecords : EvidenceLabels.SchoolsTrustRecord, records.Related)
+            .. keyStageResults is null ? [] : new[] { (EvidenceLabels.KeyStageResults, new ContextResult(keyStageResults, HasEvidence: true)) },
+            (EvidenceLabels.RiseConcerns, Concerns(records.RiseConcerns)),
+            (EvidenceLabels.RecastConcerns, Concerns(records.RecastConcerns)),
+            (parameters.IsTrust ? EvidenceLabels.AcademyRecords : EvidenceLabels.SchoolsTrustRecord, WebsiteAddress.WithScheme(records.Related))
         ];
 
         var text = new StringBuilder();
@@ -83,6 +86,9 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
 
         return new AgentEvidence(text.ToString().TrimEnd(), sources);
     }
+
+    // Only concerns from the last 3 years, the period the briefing reports, each dated in words (see ConcernWindow).
+    private ContextResult Concerns(ContextResult concerns) => ConcernWindow.WithDatesInWords(ConcernWindow.Recent(concerns, Today()));
 
     private static int Number(string digits) => int.Parse(digits, CultureInfo.InvariantCulture);
 

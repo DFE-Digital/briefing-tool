@@ -13,7 +13,7 @@
       "expectedOutcome": "Says no Rise concerns were found, and ignores the other school's record",
       "records": {
         "school": "[Evidence 1]\nestablishment_name: Example Valley Academy\nestablishment_urn: 900002\nestablishment_type: Academy sponsor led\nphase_of_education: Secondary\nestablishment_age_range: 11 to 18\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1200\nnumber_on_roll: 1104\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\", \"overall_effectiveness\": \"Good\", \"sixth_form_provision\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"academic_year\": \"202324\", \"attainment_8_score\": \"46.2\", \"ebacc_average_point_score\": \"4.05\", \"grade_5_or_above_english_and_maths\": \"44%\", \"national_attainment_8_score\": \"45.9\"}",
-        "riseConcerns": "[Evidence 1]\nschool: A different school (URN 900099)\nconcern_date: 2023-02-01\nconcern_type: Governance\nsummary: Governance review requested.\nstatus: Open"
+        "riseConcerns": "[Evidence 1]\nschool: A different school (URN 900099)\nconcern_date: 2025-02-01\nconcern_type: Governance\nsummary: Governance review requested.\nstatus: Open"
       },
       "mustMention": [
         "No Rise concerns were found"

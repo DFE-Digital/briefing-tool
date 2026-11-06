@@ -28,6 +28,7 @@ app.UseStatusCodePagesWithReExecute("/Errors", "?statusCode={0}");
 app.UseGovUkFrontend();
 app.AddSecurityLayer(); 
 
+app.MapHealth();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();

@@ -266,6 +266,23 @@ public sealed class BriefingBuilderTests
     }
 
     [Fact]
+    public void BuildBriefingEvidence_SendsOnlyTheConcernsFromTheLast3Years_SoTheAgentCannotReportAnOlderOne()
+    {
+        // Today is 3 November 2026, so the window starts on 3 November 2023.
+        var school = new ContextResult("[Evidence 1]\nestablishment_urn: 123456", HasEvidence: true);
+        var rise = new ContextResult("[Evidence 1]\nconcern_date: 2019-05-01\nsummary: Old\n\n[Evidence 2]\nconcern_date: 2025-06-10\nsummary: Recent", HasEvidence: true);
+        var recast = new ContextResult("[Evidence 1]\nconcern_date: 2021-02-02\nsummary: Also old", HasEvidence: true);
+        var none = new ContextResult(string.Empty, HasEvidence: false);
+
+        var evidence = _sut.BuildBriefingEvidence(Subject, new BriefingRecords(school, none, rise, recast));
+
+        Assert.Contains("=== Rise concerns ===\n\n[Evidence 3]\nconcern_date: 2025-06-10\nsummary: Recent\n\n", evidence.Text, StringComparison.Ordinal);
+        Assert.Contains($"=== Recast concerns ===\n\n{ConcernWindow.NoneRecent}", evidence.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("2019-05-01", evidence.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("2021-02-02", evidence.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BuildBriefingEvidence_ForASchool_GivesNoAcademyCounts()
     {
         var school = new ContextResult("[Evidence 1]\nestablishment_urn: 123456\nphase_of_education: Primary", HasEvidence: true);

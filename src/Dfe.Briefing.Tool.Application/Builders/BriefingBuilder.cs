@@ -33,8 +33,10 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
             ["SchoolUrnOrTrustTrn"] = parameters.SchoolUrnOrTrustTrn,
             ["SubjectType"] = parameters.IsTrust ? "trust" : "school",
             // The agent can't know the date itself, and needs it for "the last 3 years" of concerns.
-            ["Today"] = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime).ToString("d MMMM yyyy", EnglishCulture)
+            ["Today"] = Today().ToString("d MMMM yyyy", EnglishCulture)
         });
+
+    private DateOnly Today() => DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
 
     // Each search numbers its own records from 1, so they're renumbered to run on across the sets, each set under its
     // own label: every [Evidence n] the agent cites then points at one record, and at its source.
@@ -51,8 +53,9 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
         [
             (parameters.IsTrust ? EvidenceLabels.TrustRecord : EvidenceLabels.SchoolRecord, records.Subject),
             .. academyCounts is null ? [] : new[] { (EvidenceLabels.AcademyCounts, new ContextResult(academyCounts, HasEvidence: true)) },
-            (EvidenceLabels.RiseConcerns, records.RiseConcerns),
-            (EvidenceLabels.RecastConcerns, records.RecastConcerns),
+            // Only concerns from the last 3 years, the period the briefing reports (see ConcernWindow).
+            (EvidenceLabels.RiseConcerns, ConcernWindow.Recent(records.RiseConcerns, Today())),
+            (EvidenceLabels.RecastConcerns, ConcernWindow.Recent(records.RecastConcerns, Today())),
             (parameters.IsTrust ? EvidenceLabels.AcademyRecords : EvidenceLabels.SchoolsTrustRecord, records.Related)
         ];
 

@@ -143,7 +143,7 @@ Leave a gap rather than guess. In each of these cases, do exactly this:
 | The trust record gives a different number of academies (for example `number_in_trust`) from `academies_counted` | Give the trust record's number in the Trust overview, and say the counts are from the records of the `academies_counted` academies found |
 | A result has no academic year | Write "year not given" |
 | A figure isn't given for one academy | Write "Not available" in the school summary, and leave it out elsewhere |
-| A concern has no outcome or follow-up recorded | Its outcome is "Ongoing" |
+| A concern has no outcome recorded | Give the support or follow-up it records, then "Ongoing"; with neither, "Ongoing" |
 | No town or city can be found in the school's or trust's own address | Use `{{city: none}}` as the location marker |
 
 Never write an "Information not available" section, or a sentence listing the sections that had no data.
@@ -409,7 +409,12 @@ judgements or results here - they have their own sections below.] [citations]
   issues.
 - Rise concerns and Recast concerns: one bullet per concern or support from that set of records, most recent first,
   never listing the same one twice, in the form "[date]: [academy name, for a trust - ][concern or support] -
-  [outcome or "Ongoing"]", ending with its citation. Never merge the two lists or move a concern between them, and
+  [what happened]", ending with its citation. [What happened] is, from that record:
+  - its outcome, in the record's own words (for example "Two governors appointed"), when it has one
+  - otherwise, the support or follow-up it records, then "Ongoing" (for example "Behaviour specialist assigned - Ongoing")
+  - otherwise, "Ongoing"
+  Never write a status alone, such as "Closed" or "Open", in place of the outcome or support the record gives - the
+  reader needs to know what happened. Never merge the two lists or move a concern between them, and
   never leave out a concern, especially a safeguarding one. If that set has no concerns or support, write "No Rise
   concerns were found in the provided sources." (or "No Recast concerns…") as the only line under that sub-heading.
 - Financial health: if the records give the trust's or school's financial health, summarise it in one bullet with

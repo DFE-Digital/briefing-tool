@@ -1,0 +1,82 @@
+name: Release gate
+
+# Runs the Responsible AI release gate against one environment: checks the guardrail, runs every test case against
+# that environment's agents, then decides the release under the Responsible AI policy.
+#
+# Started by hand only (Actions > Release gate > Run workflow, choosing the environment). It never runs on a push, a
+# merge to main or a pull request, and isn't part of the Deploy workflow: each run calls Foundry, AI Search and the
+# judge model, so it costs money and takes a while.
+#
+# Each environment needs these secrets (the settings appsettings.shared.json leaves empty):
+#   APPLICATIONINSIGHTS_CONNECTION_STRING, AI_FOUNDRY_ENDPOINT, AI_FOUNDRY_DEFAULT_MODEL,
+#   AI_AGENTS_TENANT_ID, AI_AGENTS_CLIENT_ID, AI_AGENTS_CLIENT_SECRET,
+#   AI_GUARDRAILS_SUBSCRIPTION_ID, AI_GUARDRAILS_RESOURCE_GROUP,
+#   AI_SEARCH_ENDPOINT, AI_SEARCH_TENANT_ID, AI_SEARCH_CLIENT_ID, AI_SEARCH_CLIENT_SECRET
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: environment
+        description: "Choose the environment to run the release gate against"
+        required: true
+
+# One gate per environment at a time; a second waits rather than cancelling a run part-way through.
+concurrency:
+  group: release-gate-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  release-gate:
+    name: Responsible AI release gate (${{ inputs.environment }})
+    runs-on: ubuntu-24.04
+    # The environment's own secrets, below, and any protection rules it has (e.g. required reviewers).
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 90
+    env:
+      DOTNET_NOLOGO: true
+      APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
+      AiAgents__Foundry__Endpoint: ${{ secrets.AI_FOUNDRY_ENDPOINT }}
+      AiAgents__Foundry__DefaultModel: ${{ secrets.AI_FOUNDRY_DEFAULT_MODEL }}
+      AiAgents__Authentication__TenantId: ${{ secrets.AI_AGENTS_TENANT_ID }}
+      AiAgents__Authentication__ClientId: ${{ secrets.AI_AGENTS_CLIENT_ID }}
+      AiAgents__Authentication__ClientSecret: ${{ secrets.AI_AGENTS_CLIENT_SECRET }}
+      AiAgents__Guardrails__SubscriptionId: ${{ secrets.AI_GUARDRAILS_SUBSCRIPTION_ID }}
+      AiAgents__Guardrails__ResourceGroup: ${{ secrets.AI_GUARDRAILS_RESOURCE_GROUP }}
+      AiAgents__AISearch__Endpoint: ${{ secrets.AI_SEARCH_ENDPOINT }}
+      AiAgents__AISearch__Authentication__TenantId: ${{ secrets.AI_SEARCH_TENANT_ID }}
+      AiAgents__AISearch__Authentication__ClientId: ${{ secrets.AI_SEARCH_CLIENT_ID }}
+      AiAgents__AISearch__Authentication__ClientSecret: ${{ secrets.AI_SEARCH_CLIENT_SECRET }}
+    defaults:
+      run:
+        # The gate finds its Baselines and writes evaluation-reports relative to the folder it runs in.
+        working-directory: src/Dfe.Briefing.Tool.ReleaseGate
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Add nuget package source
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet nuget add source --username USERNAME --password $GH_TOKEN --store-password-in-clear-text --name github "https://nuget.pkg.github.com/DFE-Digital/index.json"
+
+      # Exit 1: the release is blocked; exit 2: the gate couldn't run. Either fails the job.
+      - name: Run the release gate
+        run: dotnet run -c Release -- gate
+
+      - name: Add the gate's report to the run summary
+        if: always()
+        run: |
+          report=evaluation-reports/quality-gate-report.md
+          if [ -f "$report" ]; then
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "The release gate wrote no report: see the Run the release gate step's log." >> "$GITHUB_STEP_SUMMARY"
+          fi

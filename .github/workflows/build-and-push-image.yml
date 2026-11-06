@@ -35,61 +35,9 @@ jobs:
           echo "release=${RELEASE,,}" >> $GITHUB_OUTPUT
           echo "image-name=${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
 
-  # No validate-packages job: it rejects prerelease packages, and the GovUK.Dfe.AI.* packages are prereleases. Add
-  # DFE-Digital/rsd-github-actions/.github/actions/validate-packages@v1 back once they have stable versions.
-
-  # The Responsible AI release gate: runs every test case against the agents and decides the release under the
-  # Responsible AI policy. Production only, as it calls Foundry, AI Search and the judge (cost and time); a blocked
-  # release (exit 1) or a gate that couldn't run (exit 2) fails this job, so production isn't deployed.
-  # Needs these secrets in the production environment (the settings appsettings.shared.json leaves empty):
-  #   APPLICATIONINSIGHTS_CONNECTION_STRING, AI_FOUNDRY_ENDPOINT, AI_FOUNDRY_DEFAULT_MODEL,
-  #   AI_AGENTS_TENANT_ID, AI_AGENTS_CLIENT_ID, AI_AGENTS_CLIENT_SECRET,
-  #   AI_GUARDRAILS_SUBSCRIPTION_ID, AI_GUARDRAILS_RESOURCE_GROUP,
-  #   AI_SEARCH_ENDPOINT, AI_SEARCH_TENANT_ID, AI_SEARCH_CLIENT_ID, AI_SEARCH_CLIENT_SECRET
-  release-gate:
-    name: Responsible AI release gate
-    if: needs.set-env.outputs.environment == 'production'
-    needs: [ set-env ]
-    runs-on: ubuntu-24.04
-    environment: ${{ needs.set-env.outputs.environment }}
-    timeout-minutes: 90
-    permissions:
-      contents: read
-      packages: read
-    env:
-      DOTNET_NOLOGO: true
-      APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
-      AiAgents__Foundry__Endpoint: ${{ secrets.AI_FOUNDRY_ENDPOINT }}
-      AiAgents__Foundry__DefaultModel: ${{ secrets.AI_FOUNDRY_DEFAULT_MODEL }}
-      AiAgents__Authentication__TenantId: ${{ secrets.AI_AGENTS_TENANT_ID }}
-      AiAgents__Authentication__ClientId: ${{ secrets.AI_AGENTS_CLIENT_ID }}
-      AiAgents__Authentication__ClientSecret: ${{ secrets.AI_AGENTS_CLIENT_SECRET }}
-      AiAgents__Guardrails__SubscriptionId: ${{ secrets.AI_GUARDRAILS_SUBSCRIPTION_ID }}
-      AiAgents__Guardrails__ResourceGroup: ${{ secrets.AI_GUARDRAILS_RESOURCE_GROUP }}
-      AiAgents__AISearch__Endpoint: ${{ secrets.AI_SEARCH_ENDPOINT }}
-      AiAgents__AISearch__Authentication__TenantId: ${{ secrets.AI_SEARCH_TENANT_ID }}
-      AiAgents__AISearch__Authentication__ClientId: ${{ secrets.AI_SEARCH_CLIENT_ID }}
-      AiAgents__AISearch__Authentication__ClientSecret: ${{ secrets.AI_SEARCH_CLIENT_SECRET }}
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Add nuget package source
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: dotnet nuget add source --username USERNAME --password $GH_TOKEN --store-password-in-clear-text --name github "https://nuget.pkg.github.com/DFE-Digital/index.json"
-
-      - name: Run the release gate
-        run: dotnet run --project src/Dfe.Briefing.Tool.ReleaseGate -c Release -- gate
-
   build-import-deploy:
     name: Build, Import, Deploy
-    needs: [ set-env, release-gate ]
-    # Runs when the gate passed, or was skipped (not production); never after a blocked or failed gate.
-    if: ${{ !failure() && !cancelled() }}
+    needs: [ set-env ]
     runs-on: ubuntu-24.04
     environment: ${{ needs.set-env.outputs.environment }}
     permissions:

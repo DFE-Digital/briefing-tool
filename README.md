@@ -308,9 +308,10 @@ Five queries cover the app and its agents. Start with the first, and go down the
 | --- | --- |
 | 1. App and agent health, per day | How fast each agent is, the tokens and cost it uses, and whether there were waits, rate limits or errors |
 | 2. Rate limit or performance? | Which minutes had a problem, and whether it was the rate limit, speed or concurrency |
-| 3. Errors and rate-limited calls | What went wrong, step by step, for one briefing |
-| 4. Release gate result per agent | Whether each release passed, its scores, and what it cost |
-| 5. One release run's problems and findings | Why a release failed |
+| 3. Low tokens | How close the gateway came to its tokens-per-minute limit, before calls got HTTP 429 |
+| 4. Errors and rate-limited calls | What went wrong, step by step, for one briefing |
+| 5. Release gate result per agent | Whether each release passed, its scores, and what it cost |
+| 6. One release run's problems and findings | Why a release failed |
 
 In queries 1 and 2, `source` is "release gate" for the release gate's own runs, so they're never mistaken for people's
 briefings. Each run of the briefing agent is one briefing, so its `tokensPerRun` and `costPerRun` are per briefing.
@@ -379,7 +380,8 @@ including the release gate's (`releaseGateTokens`).
 | Performance: timed out, not throttled | The run took longer than `RunTimeout` with no HTTP 429 | Look at the agent's run time and the evidence size |
 | Performance: slow agent run | A run took longer than `slowRunSec` | As above |
 | Concurrency: waited for a run slot | Runs waited over 5 seconds for a free slot | Raise `MaxRunsPerInstance` if the gateway has tokens to spare, or add instances |
-| Other error | Any other error | See query 3 |
+| Rate limit risk: low tokens left | The gateway had less than `LowRemainingTokensPercent` (10%) of its tokens left for the minute | As above |
+| Other error | Any other error | See query 4 |
 
 ```kusto
 let app = "briefing-tool";
@@ -391,13 +393,14 @@ let throttledCalls = dependencies
 let usage = customMetrics
     | where timestamp > since and cloud_RoleName == app
     | where name in ("gen_ai.client.inference.usage.input_tokens", "gen_ai.client.inference.usage.output_tokens",
-        "dfe.ai_agents.run_slot.wait.duration", "gen_ai.invoke_agent.duration")
+        "dfe.ai_agents.run_slot.wait.duration", "gen_ai.invoke_agent.duration", "dfe.ai_agents.tokens.low")
     | extend isTokens = name startswith "gen_ai.client.inference.usage."
     | summarize tokens = tolong(sumif(valueSum, isTokens)),
         releaseGateTokens = tolong(sumif(valueSum, isTokens and cloud_RoleInstance == "release-gate")),
         runs = tolong(sumif(valueCount, name == "gen_ai.invoke_agent.duration")),
         maxRunSec = maxif(valueMax, name == "gen_ai.invoke_agent.duration"),
-        maxSlotWaitSec = maxif(valueMax, name == "dfe.ai_agents.run_slot.wait.duration")
+        maxSlotWaitSec = maxif(valueMax, name == "dfe.ai_agents.run_slot.wait.duration"),
+        lowTokenResponses = tolong(sumif(valueSum, name == "dfe.ai_agents.tokens.low"))
         by minute = bin(timestamp, 1m);
 let throttled = throttledCalls
     | summarize throttled = count() by minute = bin(timestamp, 1m);
@@ -415,7 +418,7 @@ union usage, throttled, failures
 | summarize tokens = sum(tokens), releaseGateTokens = sum(releaseGateTokens), throttled = sum(throttled),
     rateLimitFailures = sum(rateLimitFailures), throttledTimeouts = sum(throttledTimeouts), timeouts = sum(timeouts),
     otherErrors = sum(otherErrors), runs = sum(runs), maxRunSec = round(max(maxRunSec), 1),
-    maxSlotWaitSec = round(max(maxSlotWaitSec), 1)
+    maxSlotWaitSec = round(max(maxSlotWaitSec), 1), lowTokenResponses = sum(lowTokenResponses)
     by minute
 | extend diagnosis = case(
     rateLimitFailures > 0, "Rate limit: failed after retrying",
@@ -423,19 +426,62 @@ union usage, throttled, failures
     timeouts > 0, "Performance: timed out, not throttled",
     throttled > 0, "Rate limit: throttled, then retried",
     tokens > tokenLimit, "Rate limit risk: over the tokens per minute",
+    lowTokenResponses > 0, "Rate limit risk: low tokens left",
     maxSlotWaitSec > 5, "Concurrency: waited for a run slot",
     maxRunSec > slowRunSec, "Performance: slow agent run",
     otherErrors > 0, "Other error",
     "OK")
 | where diagnosis != "OK"
 | project minute, diagnosis, tokens, releaseGateTokens, throttled, rateLimitFailures, throttledTimeouts, timeouts,
-    otherErrors, runs, maxRunSec, maxSlotWaitSec
+    lowTokenResponses, otherErrors, runs, maxRunSec, maxSlotWaitSec
 | order by minute desc
 ```
 
 Count the diagnoses over the period by adding `| summarize minutes = count() by diagnosis` at the end.
 
-**3. Errors and rate-limited calls**, newest first. A briefing that says "Sorry, something went wrong" or "The service
+**3. Low tokens.** Every minute when the gateway had little of its tokens-per-minute limit left, lowest first. The
+library reads the tokens left from each model response. A response with less than `LowRemainingTokensPercent`
+(`AiAgents` setting, 10% by default) of the limit left counts as a low-token response. Low tokens are the warning
+before HTTP 429s, so `throttled` shows whether calls in the same minute were then refused. If the query returns
+nothing at all, the gateway doesn't send the remaining-token headers:
+
+```kusto
+let app = "briefing-tool";
+let since = ago(7d);
+let tokenLimit = 140000;   // the model gateway's tokens per minute
+customMetrics
+| where timestamp > since and tostring(customDimensions["dfe.ai_agents.application"]) == app
+| where name in ("dfe.ai_agents.tokens.remaining", "dfe.ai_agents.tokens.low",
+    "gen_ai.client.inference.usage.input_tokens", "gen_ai.client.inference.usage.output_tokens")
+| extend isTokens = name startswith "gen_ai.client.inference.usage."
+| summarize lowestTokensLeft = tolong(minif(valueMin, name == "dfe.ai_agents.tokens.remaining")),
+    lowTokenResponses = tolong(sumif(valueSum, name == "dfe.ai_agents.tokens.low")),
+    tokensUsed = tolong(sumif(valueSum, isTokens)),
+    releaseGateTokens = tolong(sumif(valueSum, isTokens and cloud_RoleInstance == "release-gate"))
+    by minute = bin(timestamp, 1m)
+| where isnotnull(lowestTokensLeft)
+| join kind=leftouter (dependencies
+    | where timestamp > since and cloud_RoleName == app and resultCode == "429"
+    | summarize throttled = count() by minute = bin(timestamp, 1m)) on minute
+| extend percentLeft = round(100.0 * lowestTokensLeft / tokenLimit, 1), throttled = coalesce(throttled, 0)
+| where lowTokenResponses > 0 or percentLeft < 25
+| project minute, lowestTokensLeft, percentLeft, lowTokenResponses, throttled, tokensUsed, releaseGateTokens
+| order by percentLeft asc, minute desc
+```
+
+For a trend, change `1m` to `1h` and drop the `where lowTokenResponses > 0 ...` line: the lowest `percentLeft` of each
+hour shows how close the app gets to the limit.
+
+**4. Hourly low-token response count**, for each app sharing the gateway:
+
+```kusto
+customMetrics
+| where name == "dfe.ai_agents.tokens.low"
+| summarize times = sum(valueSum) by cloud_RoleName, bin(timestamp, 1h)
+| order by timestamp desc
+```
+
+**5. Errors and rate-limited calls**, newest first. A briefing that says "Sorry, something went wrong" or "The service
 is busy" shows its cause here. To follow one briefing from start to end, filter on its `operation`:
 
 ```kusto
@@ -455,7 +501,7 @@ union
 | order by timestamp desc
 ```
 
-**4. Release gate result per agent**, newest first, with the tokens and cost of the run:
+**6. Release gate result per agent**, newest first, with the tokens and cost of the run:
 
 ```kusto
 let app = "briefing-tool";
@@ -486,7 +532,7 @@ customMetrics
 | order by started desc, agent asc
 ```
 
-**5. One release run's problems and findings.** Set the run id from query 4, or from the log line "Release run {id}
+**7. One release run's problems and findings.** Set the run id from query 5, or from the log line "Release run {id}
 started". A problem says why the release failed. Under `severityLevel`, a blocking quality gate finding is an error;
 a warning or an accepted risk is a warning:
 

@@ -29,7 +29,7 @@ performing, and any concerns about it - stated plainly, without opinion.
 
 Terms you will meet in the records:
 
-- URN: a school's unique reference number (6 digits). TRN: a trust's reference number ("TR" and 5 digits).
+- URN: a school's unique reference number (6 digits). TRN: a trust's reference number ("TR", or rarely "UT", and 5 digits).
 - An academy is a school that is part of a trust. A multi-academy trust (MAT) runs several.
 - Ofsted inspects schools. The records hold inspections from two grading systems, which are different scales:
   - Graded inspections, before September 2024: an overall effectiveness grade, and a grade for each area inspected

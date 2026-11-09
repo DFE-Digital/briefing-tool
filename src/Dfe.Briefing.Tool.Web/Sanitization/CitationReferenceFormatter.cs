@@ -157,7 +157,7 @@ public static partial class CitationReferenceFormatter
         return urnFirst.Success ? $"School record (URN {urnFirst.Groups["urn"].Value})" : null;
     }
 
-    [GeneratedRegex(@"^(?<name>[^\d\[\]<>]{2,}?)\s+(?<trn>TR\d{5})\b")]
+    [GeneratedRegex(@"^(?<name>[^\d\[\]<>]{2,}?)\s+(?<trn>(?:TR|UT)\d{5})\b")]
     private static partial Regex TrustRecordRegex();
 
     [GeneratedRegex(@"^(?<name>[^\[\]<>]{2,}?)\s+(?<urn>\d{6,7})\b")]

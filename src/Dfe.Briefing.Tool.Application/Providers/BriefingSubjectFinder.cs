@@ -151,15 +151,16 @@ internal sealed partial class BriefingSubjectFinder(IContextRetriever contextRet
     [GeneratedRegex(@"^\d{6}$")]
     private static partial Regex UrnRegex();
 
-    [GeneratedRegex(@"^TR\d{5}$")]
+    // Almost every TRN starts "TR"; a few, rarely, start "UT" (e.g. UT00018).
+    [GeneratedRegex(@"^(?:TR|UT)\d{5}$")]
     private static partial Regex TrnRegex();
 
-    // The start of a URN or TRN, at least 4 characters as the Find page asks for (e.g. "1234" or "TR00"): enough to
-    // narrow it down, but not the whole.
+    // The start of a URN or TRN, at least 4 characters as the Find page asks for (e.g. "1234", "TR00" or "UT00"):
+    // enough to narrow it down, but not the whole.
     [GeneratedRegex(@"^\d{4,5}$")]
     private static partial Regex PartialUrnRegex();
 
-    [GeneratedRegex(@"^TR\d{2,4}$")]
+    [GeneratedRegex(@"^(?:TR|UT)\d{2,4}$")]
     private static partial Regex PartialTrnRegex();
 
     [GeneratedRegex(@"\s+")]

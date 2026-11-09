@@ -8,6 +8,7 @@ public sealed class BriefingParametersTests
     [Theory]
     [InlineData("TR01234", true)]
     [InlineData(" tr01234 ", true)]
+    [InlineData("UT00018", true)]   // rare, but a TRN too
     [InlineData("123456", false)]
     public void FromReference_TakesTheTypeFromTheReference(string urnOrTrn, bool isTrust)
         => Assert.Equal(isTrust, BriefingParameters.FromReference(urnOrTrn, "Example").IsTrust);

@@ -112,6 +112,7 @@ public sealed class BriefingSubjectFinderTests
     [Theory]
     [InlineData("900001", false, "establishment_urn eq '900001'", "Exampleton Primary School")]
     [InlineData("tr 09002", true, "trust_reference_number eq 'TR09002'", "Example Coast Trust")]
+    [InlineData("ut00018", true, "trust_reference_number eq 'UT00018'", "Example Coast Trust")]   // rare, but a TRN too
     public async Task Search_ForAWholeUrnOrTrn_FindsThatSchoolOrTrust(string typed, bool isTrust, string filter, string name)
     {
         IndexReturns(isTrust ? TrustRecord : SchoolRecord);
@@ -143,6 +144,7 @@ public sealed class BriefingSubjectFinderTests
     [InlineData("1234", false, "establishment_index", "establishment_urn ge '123400' and establishment_urn le '123499'")]
     [InlineData("90012", false, "establishment_index", "establishment_urn ge '900120' and establishment_urn le '900129'")]
     [InlineData("tr001", true, "trust_index", "trust_reference_number ge 'TR00100' and trust_reference_number le 'TR00199'")]
+    [InlineData("ut000", true, "trust_index", "trust_reference_number ge 'UT00000' and trust_reference_number le 'UT00099'")]
     public async Task Search_ForTheStartOfAReference_FindsEveryReferenceStartingWithIt(string typed, bool isTrust, string index, string filter)
     {
         IndexReturns(string.Empty, hasEvidence: false);

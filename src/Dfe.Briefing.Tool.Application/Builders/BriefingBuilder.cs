@@ -50,7 +50,7 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
         // academy counts, made in code from all of those records, go straight after its own record, so they're never cut.
         var academyCounts = parameters.IsTrust && records.Related.HasEvidence ? AcademyCounter.Count(records.Related.Text) : null;
         // For a special school or alternative provision with no results, so the agent doesn't call them "not available".
-        var keyStageResults = parameters.IsTrust ? null : KeyStageResults.NotApplicable(records.Subject, parameters.SchoolOrTrustName);
+        var keyStageResults = parameters.IsTrust ? null : KeyStageResults.NotApplicable(records.Subject, parameters.SchoolUrnOrTrustTrn, parameters.SchoolOrTrustName);
         (string Label, ContextResult Result)[] sets =
         [
             // Websites with their https:// already added (see WebsiteAddress).

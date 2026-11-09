@@ -62,17 +62,22 @@ public sealed class AcademyCounterTests
             AcademyCounter.Count(records));
     }
 
-    [Fact]
-    public void Count_CountsAnAcademyWithSeveralRecordsOnce_TakingEachFieldFromItsNewestRecord_AndItsLatestInspectionFromAll()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]   // the same records in reverse: the counts don't depend on the order the search gives them in
+    public void Count_CountsAnAcademyWithSeveralRecordsOnce_TakingEachFieldFromItsNewestRecord_AndItsLatestInspectionFromAll(bool reversed)
     {
         // Academy 900001 has three records: an older dated one; one with its name but no URN (and no date, so the
         // oldest), giving its latest inspection; and the newest, giving its phase but not its local authority.
-        var records =
+        string[] academyRecords =
+        [
             "[Evidence 1]\nestablishment_name: Academy 900001\nestablishment_urn: 900001\nphase_of_education: Primary\n" +
-            "local_authority_name: Oldshire\nlast_changed_date: 2023-01-10\nofsted_all_inspections: " + Judged("2018-02-01", "Requires improvement") + "\n\n" +
-            "[Evidence 2]\nestablishment_name: academy 900001\nlocal_authority_name: Undatedshire\nofsted_all_inspections: " + Judged("2023-03-14", "Good") + "\n\n" +
-            "[Evidence 3]\nestablishment_urn: 900001\nphase_of_education: All-through\nlast_changed_date: 15-10-2026\n\n" +
-            Academy(4, "900002", "Secondary", "Exampleshire", Judged("2022-11-28", "Good"));
+            "local_authority_name: Oldshire\nlast_changed_date: 2023-01-10\nofsted_all_inspections: " + Judged("2018-02-01", "Requires improvement") + "\n\n",
+            "[Evidence 2]\nestablishment_name: academy 900001\nlocal_authority_name: Undatedshire\nofsted_all_inspections: " + Judged("2023-03-14", "Good") + "\n\n",
+            "[Evidence 3]\nestablishment_urn: 900001\nphase_of_education: All-through\nlast_changed_date: 15-10-2026\n\n",
+            Academy(4, "900002", "Secondary", "Exampleshire", Judged("2022-11-28", "Good")),
+        ];
+        var records = string.Concat(reversed ? academyRecords.Reverse() : academyRecords);
 
         Assert.Equal(
             "academies_counted: 2\n" +

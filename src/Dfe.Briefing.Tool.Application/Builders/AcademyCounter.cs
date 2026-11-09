@@ -24,7 +24,7 @@ internal static partial class AcademyCounter
     private static readonly string[] OverallGrades = ["Inadequate", "Requires improvement", "Good", "Outstanding"];
 
     // Report card grades (from November 2025), given to each area, lowest first.
-    private static readonly string[] ReportCardGrades = ["Urgent improvement", "Needs attention", "Expected standard", "Strong standard", "Exceptional"];
+    private static readonly string[] ReportCardGradeNames = ["Urgent improvement", "Needs attention", "Expected standard", "Strong standard", "Exceptional"];
 
     // After the overall grades (and any other wording the records use for one) come the outcomes that aren't one.
     private static readonly string[] NotOverallGrades = [ReportCard, NotJudged, NotAvailable];
@@ -63,30 +63,37 @@ internal static partial class AcademyCounter
 
     private sealed class AcademyFields
     {
-        public string? Phase { get; set; }
-        public string? LocalAuthority { get; set; }
+        public NewestValue Phase { get; set; }
+        public NewestValue LocalAuthority { get; set; }
         public List<Inspection> Inspections { get; } = [];
+    }
+
+    /// <summary>
+    /// A field's value from the newest record that provides it, along with the record's last changed date.
+    /// </summary>
+    /// <param name="Value">The value of the field from the newest record that provides it.</param>
+    /// <param name="Date">The last changed date of the record that provides the value.</param>
+    private readonly record struct NewestValue(string? Value, DateOnly Date)
+    {
+        public NewestValue Offer(string? value, DateOnly date)
+            => value is not null && (Value is null || date > Date) ? new NewestValue(value, date) : this;
     }
 
     private sealed record Inspection(DateOnly Date, string? OverallEffectiveness, IReadOnlyList<string> ReportCardGrades);
 
-    // The records often hold several about the same academy, so they're grouped by URN, taking each field from the newest
-    // record that gives it (by its last changed date; a record without one counts as the oldest, and records of the same
-    // date in the order they came), and every inspection from all of them. A record with a name but no URN joins the academy
-    // another record gives that name with its URN, so it isn't counted again; a name given with two different URNs
-    // (two academies with one name) can't be told apart, so such a record is grouped by its name alone.
+    /// <summary>
+    /// Reads academy records and returns a list of Academy objects, taking each field from the newest record that provides it and collecting all inspections.
+    /// </summary>
+    /// <param name="academyRecords"></param>
+    /// <returns></returns>
     private static List<Academy> ReadAcademies(string? academyRecords)
     {
         if (string.IsNullOrWhiteSpace(academyRecords))
             return [];
 
-        // Newest first, so the first value an academy's records give is its newest. OrderByDescending is stable, so
-        // records of the same date keep their order.
-        var records = RecordStartRegex().Split(academyRecords).Select(ReadFields)
-            .OrderByDescending(fields => RecordDateHelper.Read(fields) ?? DateOnly.MinValue)
-            .ToList();
+        var records = RecordStartRegex().Split(academyRecords).Select(ReadFields).ToList();
         var urnsByName = records
-            .SelectMany(fields => Value(fields, "establishment_name") is { } name && Value(fields, "establishment_urn") is { } urn
+            .SelectMany(fields => FieldValue(fields, "establishment_name") is { } name && FieldValue(fields, "establishment_urn") is { } urn
                 ? new[] { (Name: name, Urn: urn) }
                 : [])
             .GroupBy(record => record.Name, StringComparer.OrdinalIgnoreCase)
@@ -97,33 +104,33 @@ internal static partial class AcademyCounter
         var academies = new Dictionary<string, AcademyFields>(StringComparer.OrdinalIgnoreCase);
         foreach (var fields in records)
         {
-            var name = Value(fields, "establishment_name");
-            var key = Value(fields, "establishment_urn") ?? (name is not null && urnsByName.TryGetValue(name, out var urn) ? urn : name);
+            var name = FieldValue(fields, "establishment_name");
+            var key = FieldValue(fields, "establishment_urn") ?? (name is not null && urnsByName.TryGetValue(name, out var urn) ? urn : name);
             if (key is null)
                 continue;
 
             if (!academies.TryGetValue(key, out var academy))
                 academies[key] = academy = new AcademyFields();
 
-            academy.Phase ??= Value(fields, "phase_of_education");
-            academy.LocalAuthority ??= Value(fields, "local_authority_name");
-            academy.Inspections.AddRange(ReadInspections(Value(fields, "ofsted_all_inspections")));
+            var recordDate = RecordDateHelper.Read(fields) ?? DateOnly.MinValue;
+            academy.Phase = academy.Phase.Offer(FieldValue(fields, "phase_of_education"), recordDate);
+            academy.LocalAuthority = academy.LocalAuthority.Offer(FieldValue(fields, "local_authority_name"), recordDate);
+            academy.Inspections.AddRange(ReadInspections(FieldValue(fields, "ofsted_all_inspections")));
         }
 
-        return academies.Values
-            .Select(academy => new Academy(academy.Phase ?? NotAvailable, Latest(academy.Inspections), academy.LocalAuthority ?? NotAvailable))
-            .ToList();
+        return [.. academies.Values
+            .Select(academy => new Academy(academy.Phase.Value ?? NotAvailable, Latest(academy.Inspections), academy.LocalAuthority.Value ?? NotAvailable))];
     }
 
     private static Dictionary<string, string> ReadFields(string record)
     {
         var fields = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (Match match in FieldRegex().Matches(record))
-            fields.TryAdd(match.Groups[1].Value, match.Groups[2].Value.Trim());
+        foreach (var groups in FieldRegex().Matches(record).Select(match => match.Groups))
+            fields.TryAdd(groups[1].Value, groups[2].Value.Trim());
         return fields;
     }
 
-    private static string? Value(Dictionary<string, string> fields, string name)
+    private static string? FieldValue(Dictionary<string, string> fields, string name)
         => fields.TryGetValue(name, out var value) && value.Length > 0 ? value : null;
 
     // A report card grade anywhere in the inspection makes it a report card, even beside an overall grade, so the two
@@ -163,10 +170,9 @@ internal static partial class AcademyCounter
             if (document.RootElement.ValueKind != JsonValueKind.Array)
                 return [];
 
-            return document.RootElement.EnumerateArray()
+            return [.. document.RootElement.EnumerateArray()
                 .Where(inspection => inspection.ValueKind == JsonValueKind.Object)
-                .Select(inspection => new Inspection(InspectionDate(inspection), Text(inspection, "overall_effectiveness"), FindReportCardGrades(inspection)))
-                .ToList();
+                .Select(inspection => new Inspection(InspectionDate(inspection), Text(inspection, "overall_effectiveness"), FindReportCardGrades(inspection)))];
         }
         catch (JsonException)
         {
@@ -202,7 +208,7 @@ internal static partial class AcademyCounter
     }
 
     private static bool IsReportCardGrade(string text)
-        => ReportCardGrades.Contains(text, StringComparer.OrdinalIgnoreCase);
+        => ReportCardGradeNames.Contains(text, StringComparer.OrdinalIgnoreCase);
 
     // An inspection with no date, or one that can't be read, counts as the oldest.
     private static DateOnly InspectionDate(JsonElement inspection)
@@ -243,7 +249,7 @@ internal static partial class AcademyCounter
     }
 
     private static IEnumerable<(string Value, int Count)> ByReportCardGrade(IEnumerable<(string Value, int Count)> counts)
-        => counts.OrderBy(count => IndexOf(ReportCardGrades, count.Value));
+        => counts.OrderBy(count => IndexOf(ReportCardGradeNames, count.Value));
 
     private static int IndexOf(string[] values, string value)
         => Array.FindIndex(values, known => string.Equals(known, value, StringComparison.OrdinalIgnoreCase));

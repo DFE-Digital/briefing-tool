@@ -49,6 +49,16 @@ function addStep(list, message) {
    list.appendChild(item);
 }
 
+// A long step says how long it has taken, in its own text, rather than adding a step each minute.
+function updateCurrentStep(list, message) {
+   var current = list.querySelector('.app-briefing-status__step--current');
+   if (!current) {
+      addStep(list, message);
+      return;
+   }
+   current.lastElementChild.textContent = message;
+}
+
 function startStatus(region, list) {
    list.innerHTML = '';
    region.hidden = false;
@@ -345,6 +355,11 @@ export function initBriefingProgress() {
 
       source.addEventListener('progress', function (e) {
          addStep(statusList, e.data);
+      });
+
+      // Each minute of a long run, so it isn't mistaken for one that has stopped.
+      source.addEventListener('still-working', function (e) {
+         updateCurrentStep(statusList, e.data);
       });
 
       // Arrives just before "complete": the briefing to send back if the person asks for a web search.

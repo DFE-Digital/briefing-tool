@@ -302,7 +302,160 @@ after a run.
 | `dfe.ai_agents.guardrail.checks`, `guardrail.blocks` | Guardrail checks, and what it blocked |
 | `dfe.ai_agents.release_gate.agents` / `test_cases` / `score` | Release gate results |
 
-**Release result per agent**, newest first:
+Five queries cover the app and its agents. Start with the first, and go down the list to find out more:
+
+| Query | Answers |
+| --- | --- |
+| 1. App and agent health, per day | How fast each agent is, the tokens and cost it uses, and whether there were waits, rate limits or errors |
+| 2. Rate limit or performance? | Which minutes had a problem, and whether it was the rate limit, speed or concurrency |
+| 3. Errors and rate-limited calls | What went wrong, step by step, for one briefing |
+| 4. Release gate result per agent | Whether each release passed, its scores, and what it cost |
+| 5. One release run's problems and findings | Why a release failed |
+
+In queries 1 and 2, `source` is "release gate" for the release gate's own runs, so they're never mistaken for people's
+briefings. Each run of the briefing agent is one briefing, so its `tokensPerRun` and `costPerRun` are per briefing.
+
+**1. App and agent health, per day.** `slotWait` rates the longest wait for a free run slot. If the wait keeps
+growing, adjust `MaxRunsPerInstance` or `GlobalConcurrency:MaxRunsAcrossInstances`:
+
+| Longest wait | `slotWait` | What to do |
+| --- | --- | --- |
+| 0–2 seconds | Low | Nothing |
+| Over 2–3 seconds | Moderate | Monitor |
+| Over 3–5 seconds | High | Investigate capacity limits |
+| Over 5 seconds | Critical | Consider increasing capacity |
+
+```kusto
+let app = "briefing-tool";
+let since = ago(30d);
+let sourceOf = (instance: string) { iff(instance == "release-gate", "release gate", "app") };
+let agents = customMetrics
+    | where timestamp > since and tostring(customDimensions["dfe.ai_agents.application"]) == app
+    | where name in ("gen_ai.invoke_agent.duration", "gen_ai.client.inference.usage.input_tokens",
+        "gen_ai.client.inference.usage.output_tokens", "dfe.ai_agents.cost")
+    | summarize runs = tolong(sumif(valueCount, name == "gen_ai.invoke_agent.duration")),
+        runSec = sumif(valueSum, name == "gen_ai.invoke_agent.duration"),
+        maxRunSec = round(maxif(valueMax, name == "gen_ai.invoke_agent.duration"), 1),
+        inputTokens = tolong(sumif(valueSum, name endswith "input_tokens")),
+        outputTokens = tolong(sumif(valueSum, name endswith "output_tokens")),
+        cost = round(sumif(valueSum, name == "dfe.ai_agents.cost"), 4)
+        by day = bin(timestamp, 1d), source = sourceOf(cloud_RoleInstance), agent = tostring(customDimensions["gen_ai.agent.name"]);
+// Run slots, rate limits and errors aren't per agent, so each agent's row shows its source's for the day.
+let appWide = union
+        (customMetrics
+        | where timestamp > since and tostring(customDimensions["dfe.ai_agents.application"]) == app
+            and name == "dfe.ai_agents.run_slot.wait.duration"
+        | extend maxSlotWaitSec = valueMax),
+        (dependencies | where timestamp > since and cloud_RoleName == app and resultCode == "429" | extend throttled = 1),
+        (union traces, exceptions | where timestamp > since and cloud_RoleName == app and severityLevel >= 3 | extend errors = 1)
+    | summarize maxSlotWaitSec = round(max(maxSlotWaitSec), 1), throttledCalls = tolong(sum(throttled)), errors = tolong(sum(errors))
+        by day = bin(timestamp, 1d), source = sourceOf(cloud_RoleInstance);
+agents
+| lookup kind=leftouter appWide on day, source
+| extend perRun = iff(runs == 0, 1, runs)
+| extend avgRunSec = round(runSec / perRun, 1),
+    tokensPerRun = tolong((inputTokens + outputTokens) / perRun),
+    costPerRun = round(cost / perRun, 4),
+    slotWait = case(isnull(maxSlotWaitSec) or maxSlotWaitSec <= 2, "Low", maxSlotWaitSec <= 3, "Moderate",
+        maxSlotWaitSec <= 5, "High", "Critical")
+| project day, source, agent, runs, avgRunSec, maxRunSec, inputTokens, outputTokens, tokensPerRun, cost, costPerRun,
+    maxSlotWaitSec, slotWait, throttledCalls, errors
+| order by day desc, source asc, cost desc
+```
+
+For one total per day, add `| summarize runs = sum(runs), tokens = sum(inputTokens + outputTokens), cost = sum(cost) by day, source`.
+
+**2. Rate limit or performance?** Every minute that had a problem, with what it was. Set `tokenLimit` to the model
+gateway's tokens per minute. The gateway counts a request's tokens after it answers, so one large briefing can pass
+and leave the next minutes throttled: a `Rate limit` row can be caused by the tokens of the minute or two before it,
+including the release gate's (`releaseGateTokens`).
+
+| Diagnosis | Means | What to do |
+| --- | --- | --- |
+| Rate limit: failed after retrying | Calls were still getting HTTP 429 after every retry, so the run failed | Fewer runs at once, smaller evidence, or a higher tokens-per-minute limit |
+| Rate limit: retries ran past RunTimeout | The run timed out while waiting out HTTP 429s | As above, or a longer `RunTimeout` |
+| Rate limit: throttled, then retried | Calls got HTTP 429 but the retries got through, so the run was slower | Monitor; act if it happens often |
+| Rate limit risk: over the tokens per minute | More tokens than the limit, so the next minutes will be throttled | Check what used them: briefings or the release gate |
+| Performance: timed out, not throttled | The run took longer than `RunTimeout` with no HTTP 429 | Look at the agent's run time and the evidence size |
+| Performance: slow agent run | A run took longer than `slowRunSec` | As above |
+| Concurrency: waited for a run slot | Runs waited over 5 seconds for a free slot | Raise `MaxRunsPerInstance` if the gateway has tokens to spare, or add instances |
+| Other error | Any other error | See query 3 |
+
+```kusto
+let app = "briefing-tool";
+let since = ago(7d);
+let tokenLimit = 140000;   // the model gateway's tokens per minute
+let slowRunSec = 180.0;
+let throttledCalls = dependencies
+    | where timestamp > since and cloud_RoleName == app and resultCode == "429";
+let usage = customMetrics
+    | where timestamp > since and cloud_RoleName == app
+    | where name in ("gen_ai.client.inference.usage.input_tokens", "gen_ai.client.inference.usage.output_tokens",
+        "dfe.ai_agents.run_slot.wait.duration", "gen_ai.invoke_agent.duration")
+    | extend isTokens = name startswith "gen_ai.client.inference.usage."
+    | summarize tokens = tolong(sumif(valueSum, isTokens)),
+        releaseGateTokens = tolong(sumif(valueSum, isTokens and cloud_RoleInstance == "release-gate")),
+        runs = tolong(sumif(valueCount, name == "gen_ai.invoke_agent.duration")),
+        maxRunSec = maxif(valueMax, name == "gen_ai.invoke_agent.duration"),
+        maxSlotWaitSec = maxif(valueMax, name == "dfe.ai_agents.run_slot.wait.duration")
+        by minute = bin(timestamp, 1m);
+let throttled = throttledCalls
+    | summarize throttled = count() by minute = bin(timestamp, 1m);
+// A timeout is put down to the rate limit when its own briefing (operation) got an HTTP 429.
+let failures = union traces, exceptions
+    | where timestamp > since and cloud_RoleName == app and severityLevel >= 3
+    | extend text = strcat(message, " ", outerMessage, " ", innermostMessage)
+    | join kind=leftouter (throttledCalls | summarize operationThrottled = count() by operation_Id) on operation_Id
+    | summarize rateLimitFailures = countif(text has "HTTP 429"),
+        throttledTimeouts = countif(text has "did not finish within" and operationThrottled > 0),
+        timeouts = countif(text has "did not finish within" and isnull(operationThrottled)),
+        otherErrors = countif(text !has "HTTP 429" and text !has "did not finish within")
+        by minute = bin(timestamp, 1m);
+union usage, throttled, failures
+| summarize tokens = sum(tokens), releaseGateTokens = sum(releaseGateTokens), throttled = sum(throttled),
+    rateLimitFailures = sum(rateLimitFailures), throttledTimeouts = sum(throttledTimeouts), timeouts = sum(timeouts),
+    otherErrors = sum(otherErrors), runs = sum(runs), maxRunSec = round(max(maxRunSec), 1),
+    maxSlotWaitSec = round(max(maxSlotWaitSec), 1)
+    by minute
+| extend diagnosis = case(
+    rateLimitFailures > 0, "Rate limit: failed after retrying",
+    throttledTimeouts > 0, "Rate limit: retries ran past RunTimeout",
+    timeouts > 0, "Performance: timed out, not throttled",
+    throttled > 0, "Rate limit: throttled, then retried",
+    tokens > tokenLimit, "Rate limit risk: over the tokens per minute",
+    maxSlotWaitSec > 5, "Concurrency: waited for a run slot",
+    maxRunSec > slowRunSec, "Performance: slow agent run",
+    otherErrors > 0, "Other error",
+    "OK")
+| where diagnosis != "OK"
+| project minute, diagnosis, tokens, releaseGateTokens, throttled, rateLimitFailures, throttledTimeouts, timeouts,
+    otherErrors, runs, maxRunSec, maxSlotWaitSec
+| order by minute desc
+```
+
+Count the diagnoses over the period by adding `| summarize minutes = count() by diagnosis` at the end.
+
+**3. Errors and rate-limited calls**, newest first. A briefing that says "Sorry, something went wrong" or "The service
+is busy" shows its cause here. To follow one briefing from start to end, filter on its `operation`:
+
+```kusto
+let app = "briefing-tool";
+union
+    (union traces, exceptions
+    | where timestamp > ago(30d) and cloud_RoleName == app and severityLevel >= 3
+    | extend error = coalesce(message, outerMessage), exception = innermostMessage),
+    (dependencies
+    | where timestamp > ago(30d) and cloud_RoleName == app and resultCode == "429"
+    | extend error = strcat("HTTP 429 from ", target), exception = "")
+| extend text = strcat(error, " ", exception)
+| extend kind = case(text has "did not finish within", "Timeout",
+    text has "HTTP 429" or text has "rate limit", "Rate limit",
+    "Error")
+| project timestamp, kind, error, exception, operation = operation_Id, instance = cloud_RoleInstance
+| order by timestamp desc
+```
+
+**4. Release gate result per agent**, newest first, with the tokens and cost of the run:
 
 ```kusto
 let app = "briefing-tool";
@@ -322,113 +475,34 @@ customMetrics
     failedCases = make_set_if(testCase, name == "dfe.ai_agents.release_gate.test_cases" and outcome == "failed"),
     groundedness = round(avgif(valueSum / valueCount, name == "dfe.ai_agents.release_gate.score" and metric == "Groundedness"), 2),
     relevance = round(avgif(valueSum / valueCount, name == "dfe.ai_agents.release_gate.score" and metric == "Relevance"), 2),
+    tokens = tolong(sumif(valueSum, name startswith "gen_ai.client.inference.usage.")),
+    cost = round(sumif(valueSum, name == "dfe.ai_agents.cost"), 4),
     gate = take_anyif(outcome, name == "dfe.ai_agents.release_gate.agents")
     by run, agent
 | extend guardrail = case(guardrailPassed > 0, "passed", guardrailChecks > 0, "FAILED", "not checked"),
     releaseGate = case(gate == "passed", "PASSED", gate == "failed", "FAILED", "not finished")
-| project started, run, agent, guardrail, casesPassed, attacksBlocked, failedCases, groundedness, relevance, releaseGate
+| project started, run, agent, releaseGate, guardrail, casesPassed, attacksBlocked, failedCases, groundedness,
+    relevance, tokens, cost
 | order by started desc, agent asc
 ```
 
-**Why a release failed** (set the run id from the query above, or the log line "Release run {id} started"):
+**5. One release run's problems and findings.** Set the run id from query 4, or from the log line "Release run {id}
+started". A problem says why the release failed. Under `severityLevel`, a blocking quality gate finding is an error;
+a warning or an accepted risk is a warning:
 
 ```kusto
 let runId = "<run id>";
 traces
 | where timestamp > ago(30d) and cloud_RoleName == "briefing-tool"
-| where tostring(customDimensions.ReleaseRunId) == runId and isnotempty(customDimensions.ReleaseSection)
-| project agent = tostring(customDimensions.AgentName), section = tostring(customDimensions.ReleaseSection),
-    reason = tostring(customDimensions.ReleaseProblem)
-| order by agent asc, section asc
-```
-
-**Quality gate findings by principle** for a run: blocking failures are errors, warnings and accepted risks warnings:
-
-```kusto
-let runId = "<run id>";
-traces
-| where timestamp > ago(30d) and cloud_RoleName == "briefing-tool"
-| where tostring(customDimensions.ReleaseRunId) == runId and isnotempty(customDimensions.CheckId)
-| project severityLevel, agent = tostring(customDimensions.AgentName), principle = tostring(customDimensions.Principle),
-    check = tostring(customDimensions.CheckId), finding = tostring(customDimensions.Finding)
-| order by severityLevel desc, principle asc
-```
-
-**Tokens and cost per agent, per day:**
-
-```kusto
-customMetrics
-| where timestamp > ago(30d) and tostring(customDimensions["dfe.ai_agents.application"]) == "briefing-tool"
-| where name in ("gen_ai.client.inference.usage.input_tokens", "gen_ai.client.inference.usage.output_tokens", "dfe.ai_agents.cost")
-| summarize inputTokens = tolong(sumif(valueSum, name endswith "input_tokens")),
-    outputTokens = tolong(sumif(valueSum, name endswith "output_tokens")),
-    cost = round(sumif(valueSum, name == "dfe.ai_agents.cost"), 4)
-    by day = bin(timestamp, 1d), agent = tostring(customDimensions["gen_ai.agent.name"])
-| order by day desc, cost desc
-```
-
-**Agent's execution time per sec:**
-
-``` kusto
-customMetrics
-| where cloud_RoleName == "briefing-tool"
-| where name == "gen_ai.invoke_agent.duration"
-| extend agent = tostring(customDimensions["gen_ai.agent.name"])
-| summarize runs = sum(valueCount), totalSec = sum(valueSum), maxSec = max(valueMax) by agent
-| extend avgSec = round(totalSec / iff(runs == 0, 1, runs), 2)
-| project agent, runs, avgSec, maxSec
-| order by avgSec desc
-```
-
-**Concurrency pressure – Hourly average execution-slot wait time:** Sustained increases may require adjusting `MaxRunsPerInstance` or `GlobalConcurrency:MaxRunsAcrossInstances`
-
-| Maximum Waiting Time | Severity | Recommended Action |
-| --- | --- | --- |
-| 0–2 seconds | Low | No action |
-| >2–3 seconds | Moderate | Monitor |
-| >3–5 seconds | High | Investigate capacity limits |
-| >5 seconds | Critical | Consider increasing capacity |
-
-```kusto
-customMetrics
-| where cloud_RoleName == "briefing-tool"
-| where name == "dfe.ai_agents.run_slot.wait.duration"
-| summarize
-    calls = sum(valueCount),
-    totalWaitSec = sum(valueSum),
-    maxWaitSec = max(valueMax)
-    by timestamp = bin(timestamp, 1h)
-| extend avgWaitSec = round(totalWaitSec / iff(calls == 0, 1, calls), 3)
-| extend severity = case(
-    maxWaitSec <= 2, "Low",
-    maxWaitSec <= 3, "Moderate",
-    maxWaitSec <= 5, "High",
-    "Critical"
-)
-| extend recommendedAction = case(
-    severity == "Low", "No action",
-    severity == "Moderate", "Monitor",
-    severity == "High", "Investigate capacity limits",
-    "Consider increasing capacity"
-)
-| project
-    timestamp,
-    calls,
-    avgWaitSec,
-    maxWaitSec = round(maxWaitSec, 3),
-    totalWaitSec = round(totalWaitSec, 3),
-    severity,
-    recommendedAction
-| order by timestamp desc
-```
-
-**Errors**, newest first. A briefing that says "Sorry, something went wrong" shows its cause here:
-
-```kusto
-union traces, exceptions
-| where timestamp > ago(30d) and cloud_RoleName == "briefing-tool" and severityLevel >= 3
-| project timestamp, error = coalesce(message, outerMessage), exception = innermostMessage, instance = cloud_RoleInstance
-| order by timestamp desc
+| where tostring(customDimensions.ReleaseRunId) == runId
+| where isnotempty(customDimensions.ReleaseSection) or isnotempty(customDimensions.CheckId)
+| extend isFinding = isnotempty(customDimensions.CheckId)
+| project severityLevel, agent = tostring(customDimensions.AgentName),
+    kind = iff(isFinding, "Quality gate finding", "Release problem"),
+    area = iff(isFinding, tostring(customDimensions.Principle), tostring(customDimensions.ReleaseSection)),
+    check = tostring(customDimensions.CheckId),
+    detail = iff(isFinding, tostring(customDimensions.Finding), tostring(customDimensions.ReleaseProblem))
+| order by agent asc, kind desc, severityLevel desc, area asc
 ```
 
 More queries, for speed, concurrency and safety, are in the AI agent library's

@@ -27,8 +27,9 @@ internal static partial class WebsiteAddress
         return text == records.Text ? records : records with { Text = text };
     }
 
-    // A website field line ("establishment_website: www.example.org") whose value is a bare domain, with an optional path.
-    [GeneratedRegex(@"^(?<field>(?:establishment_|trust_)?website:[ \t]*)(?<address>(?!https?://)[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:/\S*)?)(?=[ \t]*\r?$)",
+    // A website field line ("establishment_website: www.example.org") whose value is a bare domain, with an optional
+    // path, query or fragment straight after it ("www.example.org?id=1", "www.example.org#contact").
+    [GeneratedRegex(@"^(?<field>(?:establishment_|trust_)?website:[ \t]*)(?<address>(?!https?://)[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:[/?#]\S*)?)(?=[ \t]*\r?$)",
         RegexOptions.Multiline | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 1000)]
     private static partial Regex BareWebsiteRegex();
 }

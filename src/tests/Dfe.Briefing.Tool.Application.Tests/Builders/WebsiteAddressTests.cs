@@ -10,6 +10,9 @@ public sealed class WebsiteAddressTests
     [InlineData("establishment_website: www.example-valley.example.org", "establishment_website: https://www.example-valley.example.org")]
     [InlineData("trust_website: example-trust.org.uk", "trust_website: https://example-trust.org.uk")]
     [InlineData("website: www.example.org/about-us", "website: https://www.example.org/about-us")]
+    [InlineData("website: www.example.org?school=1&tab=2", "website: https://www.example.org?school=1&tab=2")]
+    [InlineData("website: www.example.org#contact", "website: https://www.example.org#contact")]
+    [InlineData("website: www.example.org/about?tab=2#contact", "website: https://www.example.org/about?tab=2#contact")]
     [InlineData("establishment_website: WWW.EXAMPLE.ORG  ", "establishment_website: https://WWW.EXAMPLE.ORG  ")]
     public void WithScheme_AddsHttpsToABareAddress(string line, string expected)
     {

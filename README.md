@@ -442,8 +442,8 @@ Count the diagnoses over the period by adding `| summarize minutes = count() by 
 **3. Low tokens.** Every minute when the gateway had little of its tokens-per-minute limit left, lowest first. The
 library reads the tokens left from each model response. A response with less than `LowRemainingTokensPercent`
 (`AiAgents` setting, 10% by default) of the limit left counts as a low-token response. Low tokens are the warning
-before HTTP 429s, so `throttled` shows whether calls in the same minute were then refused. If the query returns
-nothing at all, the gateway doesn't send the remaining-token headers:
+before HTTP 429s, so `throttled` shows whether calls in the same minute were then refused. An empty result can also mean
+no minute met the thresholds below; remove the final threshold filter before checking for missing remaining-token headers:
 
 ```kusto
 let app = "briefing-tool";

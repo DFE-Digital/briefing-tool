@@ -1,15 +1,10 @@
+using System.Net;
 using System.Text.RegularExpressions;
 
 namespace Dfe.Briefing.Tool.Web.Sanitization;
 
 /// <summary>
-/// Two kinds of source appear inline and repeat: AiAgents.AISearch renders each evidence citation
-/// wrapped in square brackets (plain text or a real link), and agents like the web search agent write
-/// their own Markdown links - either can cite the same source more than once in one document. This
-/// collects each distinct source (a citation by its text, a link by its URL) into a numbered
-/// "References" list once, replacing every inline occurrence with a small link to its entry, so the same
-/// source is never spelled out twice. A reference with a web address is one link named after its source,
-/// e.g. "The Star", or the site's name, e.g. "thestar.co.uk", when the source gives no better name.
+/// Collects distinct sources cited in a Markdown document into a numbered "References" list, replacing each inline occurrence with a link to its entry.
 /// </summary>
 public static partial class CitationReferenceFormatter
 {
@@ -124,21 +119,62 @@ public static partial class CitationReferenceFormatter
         if (url is null)
             return name;
 
-        // A name that says nothing about the source (an address, or "source"/"here") is replaced by the site's name.
-        var text = name.Length == 0 || WebAddresses.IsAddress(name) || GenericLinkTextRegex().IsMatch(name) ? SiteName(url) : name;
-        return Link(url, text);
+        // The link is named after the page itself as well as its source: agents often give every page on one site the
+        // same name, such as "The Star", so that name alone can't tell the references apart. The whole text is the
+        // link. A name that says nothing about the source (an address, or "source"/"here") is left out.
+        var page = PageName(url);
+        return name.Length == 0 || WebAddresses.IsAddress(name) || GenericLinkTextRegex().IsMatch(name)
+               || string.Equals(name, page, StringComparison.OrdinalIgnoreCase)
+            ? Link(url, page)
+            : Link(url, $"{name} - {page}");
     }
 
-    // Each reference is one link, its text naming the source; the address is in the link, not shown beside it. An
-    // address without a scheme would be treated as a page within this app, not the source's own site.
+    // An address without a scheme would be treated as a page within this app, not the source's own site.
     private static string Link(string url, string text)
         => $"""<a href="{WebAddresses.WithScheme(url)}">{text}</a>""";
 
-    // "https://www.thestar.co.uk/news/a-1" is "thestar.co.uk".
-    private static string SiteName(string url)
-        => Uri.TryCreate(WebAddresses.WithScheme(url), UriKind.Absolute, out var address) && address.Host.Length > 0
-            ? (address.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? address.Host[4..] : address.Host)
-            : url;
+    // The page's own name, from the last part of its address - news sites name each article there:
+    // "https://www.gazette-news.co.uk/news/24681357.stanway-school-colchester-welcome-new-headteacher/?utm_source=openai" is
+    // "stanway-school-colchester-welcome-new-headteacher". A last part that names nothing, a number ("/news/12345") or
+    // "index.html", takes the part before it too, and a site's home page is its site name. Tracking parameters
+    // ("utm_...") are left out of the text, though not the link; any other query stays, as it can pick out the page.
+    private static string PageName(string url)
+    {
+        if (!Uri.TryCreate(WebAddresses.WithScheme(url), UriKind.Absolute, out var address) || address.Host.Length == 0)
+            return WebUtility.HtmlEncode(url.Trim());
+
+        var query = string.Join('&', address.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Where(parameter => !parameter.StartsWith("utm_", StringComparison.OrdinalIgnoreCase)));
+        var segments = Uri.UnescapeDataString(address.AbsolutePath).Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        string name;
+        if (segments.Length == 0)
+        {
+            name = address.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? address.Host[4..] : address.Host;
+        }
+        else
+        {
+            var last = ArticleNumberRegex().Replace(PageExtensionRegex().Replace(segments[^1], string.Empty), string.Empty);
+            var isIndex = IndexPageRegex().IsMatch(last);
+            if (segments.Length > 1 && (isIndex || last.Length < 4 || last.All(char.IsDigit)))
+                name = isIndex ? segments[^2] : $"{segments[^2]}/{last}";
+            else
+                name = last;
+        }
+
+        return WebUtility.HtmlEncode(query.Length > 0 ? $"{name}?{query}" : name);
+    }
+
+    // Some news sites put the article's number before its name: "24681357.stanway-school-...". Only removed when a
+    // name with letters follows it.
+    [GeneratedRegex(@"^\d+[.\-_](?=.*[a-z])", RegexOptions.IgnoreCase)]
+    private static partial Regex ArticleNumberRegex();
+
+    [GeneratedRegex(@"\.(?:html?|aspx?|php|jsp)$", RegexOptions.IgnoreCase)]
+    private static partial Regex PageExtensionRegex();
+
+    [GeneratedRegex(@"^(?:index|default|home)$", RegexOptions.IgnoreCase)]
+    private static partial Regex IndexPageRegex();
 
     // A record's citation text is its first field values, e.g. "Eckington School 149825 Academy converter…" or
     // "CHORUS EDUCATION TRUST TR01920 Multi-academy trust…" (see ContentFields in appsettings.json: the name comes
@@ -175,7 +211,7 @@ public static partial class CitationReferenceFormatter
     [GeneratedRegex("""^(?:<|&lt;)a\s+href="(?<url>[^"]+)"[^>]*?(?:>|&gt;)(?<name>.*?)(?:<|&lt;)/a(?:>|&gt;)$""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex AnchorRegex();
 
-    // Link text that says nothing about the source, so only the address is worth showing.
+    // Link text that says nothing about the source, so only the page's name is worth showing.
     [GeneratedRegex(@"^(?:link|source|here|website|read more|click here|more)$", RegexOptions.IgnoreCase)]
     private static partial Regex GenericLinkTextRegex();
 }

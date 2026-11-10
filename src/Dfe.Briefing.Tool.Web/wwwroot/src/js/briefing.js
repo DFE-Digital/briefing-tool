@@ -9,23 +9,66 @@ function setDisabled(button, isDisabled) {
    }
 }
 
-// Each progress message is one step: the newest is in progress (spinner), every earlier one is done (tick).
-function completeCurrentStep(list) {
-   var current = list.querySelector('.app-briefing-status__step--current');
+// The progress is a timeline: each message is one step, the newest in progress (spinner) and every earlier one done
+// (tick), each with how long it took. The current step's time counts up on the page; it's hidden from screen readers,
+// which would otherwise read every tick - they hear the server's "still working" message each minute instead.
+
+function formatDuration(milliseconds) {
+   var seconds = Math.max(0, Math.floor(milliseconds / 1000));
+   if (seconds < 60) {
+      return seconds + 's';
+   }
+   var remainder = seconds % 60;
+   return Math.floor(seconds / 60) + 'm ' + (remainder < 10 ? '0' : '') + remainder + 's';
+}
+
+function currentStep(list) {
+   return list.querySelector('.app-briefing-status__step--current');
+}
+
+function showStepTime(step) {
+   step.querySelector('.app-briefing-status__time').textContent = formatDuration(Date.now() - Number(step.dataset.started));
+}
+
+function stopTimer(list) {
+   if (list.timelineTimer) {
+      clearInterval(list.timelineTimer);
+      list.timelineTimer = null;
+   }
+   if (list.stillWorkingTimer) {
+      clearInterval(list.stillWorkingTimer);
+      list.stillWorkingTimer = null;
+   }
+}
+
+// Ends the current step, with its time as it finished.
+function endCurrentStep(list, className, state) {
+   var current = currentStep(list);
    if (!current) {
       return;
    }
+   showStepTime(current);
    current.classList.remove('app-briefing-status__step--current');
-   current.classList.add('app-briefing-status__step--done');
-   current.querySelector('.govuk-visually-hidden').textContent = 'Done: ';
+   if (className) {
+      current.classList.add(className);
+   }
+   current.querySelector('.govuk-visually-hidden').textContent = state;
+   current.querySelector('.app-briefing-status__hint')?.remove();
+}
+
+function completeCurrentStep(list) {
+   endCurrentStep(list, 'app-briefing-status__step--done', 'Done: ');
+}
+
+// The last step is done too: the timeline stops.
+function completeTimeline(list) {
+   completeCurrentStep(list);
+   stopTimer(list);
 }
 
 function stopCurrentStep(list) {
-   var current = list.querySelector('.app-briefing-status__step--current');
-   if (current) {
-      current.classList.remove('app-briefing-status__step--current');
-      current.querySelector('.govuk-visually-hidden').textContent = 'Stopped: ';
-   }
+   endCurrentStep(list, 'app-briefing-status__step--stopped', 'Stopped: ');
+   stopTimer(list);
 }
 
 function addStep(list, message) {
@@ -33,33 +76,70 @@ function addStep(list, message) {
 
    var item = document.createElement('li');
    item.className = 'app-briefing-status__step app-briefing-status__step--current';
+   item.dataset.started = String(Date.now());
 
    var icon = document.createElement('span');
    icon.className = 'app-briefing-status__icon';
    icon.setAttribute('aria-hidden', 'true');
+
+   var row = document.createElement('span');
+   row.className = 'app-briefing-status__row';
 
    var state = document.createElement('span');
    state.className = 'govuk-visually-hidden';
    state.textContent = 'In progress: ';
 
    var text = document.createElement('span');
+   text.className = 'app-briefing-status__text';
    text.textContent = message;
 
-   item.append(icon, state, text);
+   var time = document.createElement('span');
+   time.className = 'app-briefing-status__time';
+   time.setAttribute('aria-hidden', 'true');
+   time.textContent = formatDuration(0);
+
+   row.append(state, text, time);
+   item.append(icon, row);
    list.appendChild(item);
+
+   if (!list.timelineTimer) {
+      list.timelineTimer = setInterval(function () {
+         var step = currentStep(list);
+         if (step) {
+            showStepTime(step);
+         }
+      }, 1000);
+   }
 }
 
-// A long step says how long it has taken, in its own text, rather than adding a step each minute.
+// A long step says how long it has taken under its own text, rather than adding a step each minute.
 function updateCurrentStep(list, message) {
-   var current = list.querySelector('.app-briefing-status__step--current');
+   var current = currentStep(list);
    if (!current) {
       addStep(list, message);
       return;
    }
-   current.lastElementChild.textContent = message;
+
+   var hint = current.querySelector('.app-briefing-status__hint');
+   if (!hint) {
+      hint = document.createElement('span');
+      hint.className = 'app-briefing-status__hint';
+      current.append(hint);
+   }
+   hint.textContent = message;
+}
+
+// For a step the server reports nothing on until it ends (the web search): each whole minute, the same kind of hint the
+// briefing's stream sends, so screen readers hear it's still working too. It stops with the timeline.
+function startStillWorking(list, messageFor) {
+   var started = Date.now();
+   list.stillWorkingTimer = setInterval(function () {
+      updateCurrentStep(list, messageFor(Math.floor((Date.now() - started) / 60000)));
+   }, 60000);
 }
 
 function startStatus(region, list) {
+   stopTimer(list);
    list.innerHTML = '';
    region.hidden = false;
 }
@@ -255,6 +335,9 @@ export function initBriefingProgress() {
       clearErrorSummary();
       startStatus(webSearchStatus, webSearchStatusList);
       addStep(webSearchStatusList, 'Searching local and national news for ' + request.schoolOrTrustName + '...');
+      startStillWorking(webSearchStatusList, function (minutes) {
+         return 'Still searching the web - ' + minutes + (minutes === 1 ? ' minute' : ' minutes') + ' so far. This can take a couple of minutes.';
+      });
 
       function showWebSearchError(message) {
          stopCurrentStep(webSearchStatusList);
@@ -281,7 +364,7 @@ export function initBriefingProgress() {
             return;
          }
 
-         completeCurrentStep(webSearchStatusList);
+         completeTimeline(webSearchStatusList);
          webSearchStatus.hidden = true;
          renderWebSearchFindings(result.html);
       } catch (error) {
@@ -368,7 +451,7 @@ export function initBriefingProgress() {
       });
 
       source.addEventListener('complete', function (e) {
-         completeCurrentStep(statusList);
+         completeTimeline(statusList);
          statusRegion.hidden = true;
          renderBriefing(e.data);
          finish();

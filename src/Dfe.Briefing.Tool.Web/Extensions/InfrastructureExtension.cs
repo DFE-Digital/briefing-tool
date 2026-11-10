@@ -20,8 +20,11 @@ public static class InfrastructureExtension
         builder.AddSecurityServices();
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IAnalyticsConsentService, AnalyticsConsentService>();
-        if (!builder.AddApplicationInsights() && builder.Configuration.GetValue(RequireTelemetryKey, defaultValue: true))
+        if (builder.AddApplicationInsights())
+            builder.AddWebTelemetry();
+        else if (builder.Configuration.GetValue(RequireTelemetryKey, defaultValue: true))
             throw new AgentConfigurationException(ErrorMessages.ApplicationInsightsMissing);
+        builder.Services.AddHealthChecks();
         builder.Services.AddRazorPages(options =>
         {
             options.Conventions.AuthorizeFolder("/");

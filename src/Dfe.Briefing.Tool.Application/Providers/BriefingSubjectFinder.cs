@@ -1,5 +1,5 @@
-using System.Globalization;
 using System.Text.RegularExpressions;
+using Dfe.Briefing.Tool.Application.Helpers;
 using Dfe.Briefing.Tool.Application.Providers.Interfaces;
 using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
@@ -25,13 +25,9 @@ internal sealed partial class BriefingSubjectFinder(IContextRetriever contextRet
     public const int MaxSearchResults = 10;
 
     // The fields each detail may be in, the first one present winning. GIAS calls the region the government office
-    // region, and the date a record last changed its last changed date.
+    // region. The record's date is read by RecordDateHelper.
     private static readonly string[] RegionFields = ["region", "region_name", "government_office_region", "gor_name"];
     private static readonly string[] WebsiteFields = ["establishment_website", "trust_website", "website"];
-    private static readonly string[] RecordDateFields = ["last_changed_date", "date_last_updated", "last_updated", "data_extract_date", "extract_date"];
-
-    // The evidence writes dates as yyyy-mm-dd; GIAS's own exports use dd-mm-yyyy.
-    private static readonly string[] DateFormats = ["yyyy-MM-dd", "dd-MM-yyyy", "dd/MM/yyyy"];
 
     public async Task<BriefingSubject?> FindAsync(string urnOrTrn, bool isTrust, CancellationToken cancellationToken)
     {
@@ -110,7 +106,7 @@ internal sealed partial class BriefingSubjectFinder(IContextRetriever contextRet
         return new BriefingSubject(reference, name, isTrust,
             Region: FirstOf(fields, RegionFields),
             Website: FirstOf(fields, WebsiteFields) ?? link,
-            RecordDate: ReadDate(FirstOf(fields, RecordDateFields)));
+            RecordDate: RecordDateHelper.Read(fields));
     }
 
     // The search takes a record's first full web address, its website, out of its text as its link (see AISearch).
@@ -127,15 +123,6 @@ internal sealed partial class BriefingSubjectFinder(IContextRetriever contextRet
 
     private static string? FirstOf(Dictionary<string, string> fields, string[] names)
         => names.Select(field => fields.GetValueOrDefault(field)).FirstOrDefault(value => value is not null);
-
-    // Only the date matters: a value may also have a time, e.g. "2026-10-15T06:00:00Z". Every format is 10 characters.
-    private const int DateLength = 10;
-
-    private static DateOnly? ReadDate(string? value)
-        => value is { Length: >= DateLength } && DateOnly.TryParseExact(value[..DateLength], DateFormats, CultureInfo.InvariantCulture,
-            DateTimeStyles.None, out var date)
-            ? date
-            : null;
 
     // Search evidence labels each value with its field, one per line, e.g. "trust_name: EXAMPLE TRUST". Only the first
     // record's value counts, and a blank or "Not applicable" value isn't worth showing.
@@ -164,15 +151,16 @@ internal sealed partial class BriefingSubjectFinder(IContextRetriever contextRet
     [GeneratedRegex(@"^\d{6}$")]
     private static partial Regex UrnRegex();
 
-    [GeneratedRegex(@"^TR\d{5}$")]
+    // Almost every TRN starts "TR"; a few, rarely, start "UT" (e.g. UT00018).
+    [GeneratedRegex(@"^(?:TR|UT)\d{5}$")]
     private static partial Regex TrnRegex();
 
-    // The start of a URN or TRN, at least 4 characters as the Find page asks for (e.g. "1234" or "TR00"): enough to
-    // narrow it down, but not the whole.
+    // The start of a URN or TRN, at least 4 characters as the Find page asks for (e.g. "1234", "TR00" or "UT00"):
+    // enough to narrow it down, but not the whole.
     [GeneratedRegex(@"^\d{4,5}$")]
     private static partial Regex PartialUrnRegex();
 
-    [GeneratedRegex(@"^TR\d{2,4}$")]
+    [GeneratedRegex(@"^(?:TR|UT)\d{2,4}$")]
     private static partial Regex PartialTrnRegex();
 
     [GeneratedRegex(@"\s+")]

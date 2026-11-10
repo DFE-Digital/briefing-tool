@@ -33,6 +33,7 @@ public sealed class BriefingQualityGateTests : IDisposable
 
     private readonly string _root = Directory.CreateTempSubdirectory("briefing-quality-gate-").FullName;
     private readonly IAgentService _agents = Substitute.For<IAgentService>();
+    private IReadOnlyList<AgentTestCase> _cases = [];
 
     public void Dispose() => Directory.Delete(_root, recursive: true);
 
@@ -61,8 +62,31 @@ public sealed class BriefingQualityGateTests : IDisposable
         Assert.Contains("Planted value: A9***********", leak.Result.Evidence);
     }
 
+    [Fact]
+    public async Task Blocks_release_when_any_briefing_has_text_the_settings_ban_from_every_briefing()
+    {
+        // "As an AI" is in ReleaseGate:MustNotMention, not in any case file.
+        var report = await DecideAsync(addToEveryBriefing: "As an AI, I can confirm this [Evidence 1].");
+
+        Assert.Equal(ReleaseDecision.Fail, report.Decision);
+        var banned = report.Agents[0].Findings.Where(f => f.Result.CheckId == QualityCheckIds.Scenario && f.Result.NotMet).ToList();
+        Assert.Equal(_cases.Count(c => !c.GuardrailMustBlock), banned.Count);
+        Assert.All(banned, f => Assert.Contains("Mentions \"As an AI\"", f.Result.Summary, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Gives_every_case_the_same_date_as_today_so_its_dates_never_age_out_of_the_concerns_window()
+    {
+        await DecideAsync();
+
+        // TestCases:Today in appsettings.json, built into each prompt by the app's own builder.
+        var briefed = _cases.Where(c => c.Evidence is not null).ToList();
+        Assert.NotEmpty(briefed);
+        Assert.All(briefed, c => Assert.Contains("Today's date: 6 November 2026", c.Prompt, StringComparison.Ordinal));
+    }
+
     /// <summary>The gate command's host, with Foundry faked: agents, judge, guardrail check and clean-up.</summary>
-    private async Task<QualityGateReport> DecideAsync(bool leakPersonalData = false)
+    private async Task<QualityGateReport> DecideAsync(bool leakPersonalData = false, string? addToEveryBriefing = null)
     {
         var prepared = Path.Combine(_root, "prepared");
         var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { ContentRootPath = AppContext.BaseDirectory, DisableDefaults = true });
@@ -99,7 +123,8 @@ public sealed class BriefingQualityGateTests : IDisposable
 
         using var host = builder.Build();
         await TestCasePreparer.PrepareAsync(host.Services, prepared, Token);
-        AnswerEveryCase(await AgentTestCase.LoadAsync(Path.Combine(prepared, "briefing-agent"), Token), leakPersonalData);
+        _cases = await AgentTestCase.LoadAsync(Path.Combine(prepared, "briefing-agent"), Token);
+        AnswerEveryCase(_cases, leakPersonalData, addToEveryBriefing);
 
         return await host.Services.GetRequiredService<IResponsibleAiQualityGate>().DecideReleaseAsync(
             Application.Providers.BriefingAgents.All, Token);
@@ -109,7 +134,7 @@ public sealed class BriefingQualityGateTests : IDisposable
     /// A stand-in for the briefing agent: blocked on every attack, as the guardrail would, and otherwise a briefing of
     /// exactly the facts the case must mention, each cited, in plain sentences.
     /// </summary>
-    private void AnswerEveryCase(IReadOnlyList<AgentTestCase> cases, bool leakPersonalData)
+    private void AnswerEveryCase(IReadOnlyList<AgentTestCase> cases, bool leakPersonalData, string? addToEveryBriefing)
     {
         var byEvidence = cases.GroupBy(c => c.Evidence ?? string.Empty).ToDictionary(g => g.Key, g => g.First());
         _agents.RunAsync(default!, default!, default, Arg.Any<CancellationToken>()).ReturnsForAnyArgs(call =>
@@ -123,6 +148,11 @@ public sealed class BriefingQualityGateTests : IDisposable
 
             // A heading has a fact under it, or the app takes it out as an empty section, as it would for a user.
             var lines = testCase.MustMention.Select(fact => fact.StartsWith('#') ? $"{fact}\n\nThe records give this [Evidence 1].\n" : $"It says {fact} [Evidence 1].").ToList();
+            if (addToEveryBriefing is not null)
+            {
+                lines.Add(addToEveryBriefing);
+            }
+
             if (leakPersonalData && testCase.Name == PrivacyCase)
             {
                 lines.Add("It was raised for the pupil with UPN A900001250017 [Evidence 1].");

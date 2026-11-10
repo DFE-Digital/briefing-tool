@@ -1,9 +1,12 @@
+using System.Globalization;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Dfe.Briefing.Tool.Application.Builders.Interfaces;
 using Dfe.Briefing.Tool.Application.Helpers;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
 using Dfe.Briefing.Tool.ReleaseGate.Constants;
 using GovUK.Dfe.AI.Agents.ValueObjects;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfe.Briefing.Tool.ReleaseGate;
@@ -12,7 +15,7 @@ namespace Dfe.Briefing.Tool.ReleaseGate;
 /// Prepares the test cases for the release gate by adding the prompt and evidence the app would build from each case's
 /// records, so that the gate can run them without needing to run the app.
 /// </summary>
-internal static class TestCasePreparer
+internal static partial class TestCasePreparer
 { 
     /// <summary>
     /// Prepares test case files by processing source files, updating their content, and writing them to the specified
@@ -30,7 +33,7 @@ internal static class TestCasePreparer
         string? sourceDirectory = null)
     {
         await using var scope = services.CreateAsyncScope();
-        var briefingBuilder = scope.ServiceProvider.GetRequiredService<IBriefingBuilder>();
+        var briefingBuilder = BuilderFor(scope.ServiceProvider);
         var source = sourceDirectory ?? Path.Combine(AppContext.BaseDirectory, TestCaseFields.SourceDirectory);
 
         foreach (var file in Directory.Exists(source) ? Directory.GetFiles(source, TestCaseFields.FilePattern, SearchOption.AllDirectories) : [])
@@ -84,6 +87,54 @@ internal static class TestCasePreparer
 
         testCase[TestCaseFields.Prompt] = briefingBuilder.BuildBriefingPrompt(parameters);
         testCase[TestCaseFields.Evidence] = briefingBuilder.BuildBriefingEvidence(parameters, records).Text;
+        if (!isAttack)
+            MustNotShowRawValues(testCase, records);
+    }
+
+    // The briefing always rewrites the records' dates and academic years ("2023-03-14" as "14 March 2023", "202324" as
+    // "2023/24"), so each case's own raw values must never appear in its briefing. Found from its records, so no case has
+    // to list them; one the case expects itself is left alone.
+    private static void MustNotShowRawValues(JsonObject testCase, BriefingRecords records)
+    {
+        var text = string.Join('\n', new[] { records.Subject, records.Related, records.RiseConcerns, records.RecastConcerns }.Select(static r => r.Text));
+        var expected = testCase[TestCaseFields.MustMention]?.AsArray().Select(static node => node?.GetValue<string>() ?? string.Empty).ToList() ?? [];
+        if (testCase[TestCaseFields.MustNotMention] is not JsonArray mustNotMention)
+            testCase[TestCaseFields.MustNotMention] = mustNotMention = [];
+        var listed = mustNotMention.Select(static node => node?.GetValue<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var value in RawDateRegex().Matches(text).Concat(RawAcademicYearRegex().Matches(text)).Select(static m => m.Groups["value"].Value))
+        {
+            if (listed.Add(value) && !expected.Exists(e => e.Contains(value, StringComparison.OrdinalIgnoreCase)))
+                mustNotMention.Add(value);
+        }
+    }
+
+    // Not between word boundaries: a timestamp's date ("2025-03-03T09:30:00Z") is followed by a letter, and is raw too.
+    [GeneratedRegex(@"(?<![\d-])(?<value>\d{4}-\d{2}-\d{2})(?![\d-])", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex RawDateRegex();
+
+    [GeneratedRegex(@"""academic_year"":\s*""(?<value>\d{6})""", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex RawAcademicYearRegex();
+
+    // The app's builder, giving TestCases:Today as today's date in every prompt when it's set. Only the prompt's date is
+    // fixed: the gate's own clock, which decides when a risk acceptance expires, stays real.
+    private static IBriefingBuilder BuilderFor(IServiceProvider services)
+    {
+        var builder = services.GetRequiredService<IBriefingBuilder>();
+        var setting = services.GetService<IConfiguration>()?[Settings.TestCasesTodayKey];
+        if (string.IsNullOrWhiteSpace(setting))
+            return builder;
+
+        if (!DateOnly.TryParseExact(setting.Trim(), Settings.TestCasesTodayFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var today))
+            throw new InvalidDataException($"{Settings.TestCasesTodayKey} must be a date written {Settings.TestCasesTodayFormat}, not \"{setting}\".");
+
+        return (IBriefingBuilder)ActivatorUtilities.CreateInstance(services, builder.GetType(), new FixedDateTimeProvider(today));
+    }
+
+    /// <summary>A clock that always gives midday (UTC) on one day.</summary>
+    private sealed class FixedDateTimeProvider(DateOnly today) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => new(today.ToDateTime(new TimeOnly(12, 0)), TimeSpan.Zero);
     }
 
     private static bool IsQuestionAttack(JsonObject testCase)

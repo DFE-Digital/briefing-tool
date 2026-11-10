@@ -28,8 +28,6 @@ public static class DependencyInjection
         {
             agents.AddAgents(BriefingAgents.All).AddAISearch();
 
-            // Guardrails are only added if the subscription ID is set in configuration,
-            // so that the release gate can run without guardrails.
             if (!string.IsNullOrWhiteSpace(configuration[GuardrailsSubscriptionIdKey]))
                 agents.AddGuardrails();
 

@@ -28,48 +28,30 @@ public sealed class BriefingBuilderTests
     private static AgentResult Result(string agentName, string output)
         => new() { AgentName = agentName, Output = output, TotalTokens = 10 };
 
-    [Fact]
-    public void BuildNoEvidenceResult_ForATrust_ReturnsNoTrustInformationFoundMessage()
+    [Theory]
+    [InlineData("TR12345", "Test Trust", true, "No trust information found.")]
+    [InlineData("123456", "Smith & Jones Academy", false, "No school or academy found.")]
+    public void BuildNoEvidenceResult_GivesAHeadingOfTheSubjectName_AndSaysNothingWasFound_ForItsType(
+        string reference, string name, bool isTrust, string message)
     {
-        var result = _sut.BuildNoEvidenceResult(new BriefingParameters("TR12345", "Test Trust", IsTrust: true));
+        var result = _sut.BuildNoEvidenceResult(new BriefingParameters(reference, name, isTrust));
 
-        Assert.Contains("No trust information found.", result.Output, StringComparison.Ordinal);
+        Assert.Equal($"# {name}\n\n{message}", result.Output);
         Assert.Equal(0, result.TotalTokens);
     }
 
-    [Fact]
-    public void BuildNoEvidenceResult_ForASchool_ReturnsNoSchoolOrAcademyFoundMessage()
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("Coventry", "located in or near Coventry")]
+    public void BuildWebSearchInstruction_NamesTheSubject_WithALocationHintOnlyWhenThereIsACity(string? city, string? hint)
     {
-        var result = _sut.BuildNoEvidenceResult(new BriefingParameters("123456", "Test Academy", IsTrust: false));
+        var instruction = _sut.BuildWebSearchInstruction(new BriefingParameters("123456", "Test Academy", IsTrust: false), city);
 
-        Assert.Contains("No school or academy found.", result.Output, StringComparison.Ordinal);
-        Assert.Equal(0, result.TotalTokens);
-    }
-
-    [Fact]
-    public void BuildNoEvidenceResult_StartsWithAMarkdownHeadingOfTheSubjectName()
-    {
-        var result = _sut.BuildNoEvidenceResult(new BriefingParameters("123456", "Smith & Jones Academy", IsTrust: false));
-
-        Assert.StartsWith("# Smith & Jones Academy", result.Output, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void BuildWebSearchInstruction_WithNoCity_OmitsTheLocationHint()
-    {
-        var instruction = _sut.BuildWebSearchInstruction(new BriefingParameters("123456", "Test Academy", IsTrust: false), city: null);
-
-        Assert.DoesNotContain("located in or near", instruction, StringComparison.Ordinal);
-        Assert.Contains("Test Academy", instruction, StringComparison.Ordinal);
-        Assert.Contains("123456", instruction, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void BuildWebSearchInstruction_WithACity_IncludesTheLocationHint()
-    {
-        var instruction = _sut.BuildWebSearchInstruction(new BriefingParameters("123456", "Test Academy", IsTrust: false), city: "Coventry");
-
-        Assert.Contains("located in or near Coventry", instruction, StringComparison.Ordinal);
+        Assert.Contains("\"Test Academy\" (URN/TRN: 123456)", instruction, StringComparison.Ordinal);
+        if (hint is null)
+            Assert.DoesNotContain("located in or near", instruction, StringComparison.Ordinal);
+        else
+            Assert.Contains(hint, instruction, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -240,5 +222,82 @@ public sealed class BriefingBuilderTests
 
         Assert.StartsWith("=== Trust record ===\n\n[Evidence 1]\ntrust_name: Test Trust\n\n=== Rise concerns ===", evidence.Text, StringComparison.Ordinal);
         Assert.EndsWith("=== Its academies' records ===\n\nNo records were found.", evidence.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("=== Academy counts ===", evidence.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildBriefingEvidence_ForATrust_PutsItsAcademyCountsStraightAfterItsOwnRecord_AsTheyreNeverCut()
+    {
+        var none = new ContextResult(string.Empty, HasEvidence: false);
+        var trust = new ContextResult("[Evidence 1]\ntrust_name: Test Trust", HasEvidence: true);
+        var academies = new ContextResult(
+            "[Evidence 1]\nestablishment_urn: 900001\nphase_of_education: Primary\nlocal_authority_name: Exampleshire\n" +
+            "ofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"overall_effectiveness\": \"Good\"}]\n\n" +
+            "[Evidence 2]\nestablishment_urn: 900002\nphase_of_education: Secondary\nlocal_authority_name: Exampleshire", HasEvidence: true);
+
+        var evidence = _sut.BuildBriefingEvidence(new BriefingParameters("TR12345", "Test Trust", IsTrust: true), new BriefingRecords(trust, academies, none, none));
+
+        Assert.StartsWith(
+            "=== Trust record ===\n\n[Evidence 1]\ntrust_name: Test Trust\n\n" +
+            "=== Academy counts ===\n\nacademies_counted: 2\nby_phase: Primary 1, Secondary 1\n" +
+            "by_latest_ofsted_inspection: Good 1, Not available 1\nby_local_authority: Exampleshire 2\n\n" +
+            "=== Rise concerns ===",
+            evidence.Text, StringComparison.Ordinal);
+        // The counts have no record numbers, so the academies still number on from the trust's record.
+        Assert.Contains("=== Its academies' records ===\n\n[Evidence 2]\nestablishment_urn: 900001", evidence.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildBriefingEvidence_SendsOnlyTheConcernsFromTheLast3Years_EachDatedInWords()
+    {
+        // Today is 3 November 2026, so the window starts on 3 November 2023 (see ConcernWindowTests for the rules).
+        var school = new ContextResult("[Evidence 1]\nestablishment_urn: 123456", HasEvidence: true);
+        var rise = new ContextResult("[Evidence 1]\nconcern_date: 2019-05-01\nsummary: Old\n\n[Evidence 2]\nconcern_date: 2025-02-11\nsummary: Recent", HasEvidence: true);
+        var recast = new ContextResult("[Evidence 1]\nconcern_date: 2021-02-02\nsummary: Also old\n\n[Evidence 2]\nconcern_date: 2025-03-03T09:30:00Z\nconcern: Falling roll", HasEvidence: true);
+        var none = new ContextResult(string.Empty, HasEvidence: false);
+
+        var evidence = _sut.BuildBriefingEvidence(Subject, new BriefingRecords(school, none, rise, recast));
+
+        Assert.Contains("=== Rise concerns ===\n\n[Evidence 3]\nconcern_date: 11 February 2025\nsummary: Recent\n\n", evidence.Text, StringComparison.Ordinal);
+        Assert.Contains("concern_date: 3 March 2025\nconcern: Falling roll", evidence.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("2019-05-01", evidence.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("2021-02-02", evidence.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildBriefingEvidence_ForASpecialSchoolWithNoResults_SaysKeyStageResultsDoNotApply_StraightAfterItsRecord()
+    {
+        // When the fact is given at all is covered by KeyStageResultsTests.
+        var school = new ContextResult("[Evidence 1]\nestablishment_urn: 123456\nphase_of_education: Not applicable", HasEvidence: true);
+        var none = new ContextResult(string.Empty, HasEvidence: false);
+
+        var evidence = _sut.BuildBriefingEvidence(Subject, new BriefingRecords(school, none, none, none));
+
+        Assert.Contains($"phase_of_education: Not applicable\n\n=== {EvidenceLabels.KeyStageResults} ===\n\nTest Academy is a special school or alternative provision",
+            evidence.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildBriefingEvidence_GivesEachWebsiteItsHttps_SoTheAgentCannotCopyABareAddress()
+    {
+        var school = new ContextResult("[Evidence 1]\nestablishment_urn: 123456\nestablishment_website: www.example-valley.example.org", HasEvidence: true);
+        var trust = new ContextResult("[Evidence 1]\ntrust_name: Example Learning Trust\ntrust_website: example-trust.example.org", HasEvidence: true);
+        var none = new ContextResult(string.Empty, HasEvidence: false);
+
+        var evidence = _sut.BuildBriefingEvidence(Subject, new BriefingRecords(school, trust, none, none));
+
+        Assert.Contains("establishment_website: https://www.example-valley.example.org\n", evidence.Text, StringComparison.Ordinal);
+        Assert.Contains("trust_website: https://example-trust.example.org", evidence.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildBriefingEvidence_ForASchool_GivesNoAcademyCounts()
+    {
+        var school = new ContextResult("[Evidence 1]\nestablishment_urn: 123456\nphase_of_education: Primary", HasEvidence: true);
+        var none = new ContextResult(string.Empty, HasEvidence: false);
+
+        var evidence = _sut.BuildBriefingEvidence(Subject, new BriefingRecords(school, none, none, none));
+
+        Assert.DoesNotContain("=== Academy counts ===", evidence.Text, StringComparison.Ordinal);
     }
 }

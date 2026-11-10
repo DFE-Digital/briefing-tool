@@ -1,3 +1,4 @@
+using System.Globalization;
 using Dfe.Briefing.Tool.Application.Services.Base;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -10,6 +11,14 @@ public sealed class BaseBackgroundDailyJobTests
 
     private readonly CancellationToken cancellationToken = TestContext.Current.CancellationToken;
     private readonly RecordingLogger _logger = new();
+
+    [Theory]
+    [InlineData("2026-10-26T00:30:00Z", "01:00", 0.5)]   // later today
+    [InlineData("2026-10-26T02:00:00Z", "02:00", 24)]    // exactly now: tomorrow's
+    [InlineData("2026-10-26T03:30:00Z", "02:00", 22.5)]  // passed today: tomorrow's
+    public void UntilNext_GivesTheTimeToTheNextRun(string now, string at, double hours)
+        => Assert.Equal(TimeSpan.FromHours(hours),
+            BaseBackgroundDailyJob.UntilNext(TimeOnly.Parse(at, CultureInfo.InvariantCulture), DateTimeOffset.Parse(now, CultureInfo.InvariantCulture)));
 
     [Fact]
     public async Task Stopping_while_waiting_for_the_next_run_logs_no_failure()

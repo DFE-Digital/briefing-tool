@@ -5,7 +5,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Dfe.Briefing.Tool.Infrastructure.Extensions;
@@ -16,8 +18,9 @@ public static class ApplicationInsightExtension
 {
     /// <summary>
     /// Logs one line per message to the console, at the levels in the "Logging" section. When
-    /// APPLICATIONINSIGHTS_CONNECTION_STRING is set, also sends the logs and the AI agent library's traces and metrics
-    /// to Application Insights; returns whether it's set.
+    /// APPLICATIONINSIGHTS_CONNECTION_STRING is set, also sends to Application Insights the logs, the AI agent
+    /// library's traces and metrics, and each outgoing HTTP call (the "dependencies" table and http.client.* metrics),
+    /// Azure services such as AI Search and Foundry included; returns whether it's set.
     /// </summary>
     /// <param name="roleInstance">The cloud_RoleInstance that tells this app's telemetry apart; null: one per process.</param>
     public static bool AddApplicationInsights(this IHostApplicationBuilder builder, string? roleInstance = null)
@@ -40,8 +43,12 @@ public static class ApplicationInsightExtension
 
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource => resource.AddService(applicationName, serviceInstanceId: roleInstance))
-            .WithTracing(tracing => tracing.AddSource(AgentTelemetry.SourceName))
-            .WithMetrics(metrics => metrics.AddMeter(AgentTelemetry.SourceName))
+            .WithTracing(tracing => tracing
+                .AddSource(AgentTelemetry.SourceName)
+                .AddHttpClientInstrumentation())
+            .WithMetrics(metrics => metrics
+                .AddMeter(AgentTelemetry.SourceName)
+                .AddHttpClientInstrumentation())
             .WithLogging(configureBuilder: null, configureOptions: logs =>
             {
                 logs.IncludeFormattedMessage = true;

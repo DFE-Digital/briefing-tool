@@ -66,23 +66,16 @@ public sealed class BriefingSubjectFinderTests
     }
 
     [Theory]
-    [InlineData("last_changed_date: 15-10-2026")]
-    [InlineData("last_updated: 2026-10-15T06:00:00Z")]
-    public async Task RecordDate_IsReadInEitherFormat(string dateLine)
+    [InlineData("last_changed_date: 15-10-2026", true)]
+    [InlineData("last_updated: 2026-10-15T06:00:00Z", true)]
+    [InlineData("last_changed_date: unknown", false)]
+    public async Task RecordDate_IsReadInEitherFormat_AndLeftOutWhenUnreadable(string dateLine, bool readable)
     {
         IndexReturns($"[Evidence 1]\nestablishment_name: Exampleton School\n{dateLine}");
 
         var school = await _sut.FindAsync("900001", isTrust: false, _cancellationToken);
 
-        Assert.Equal(new DateOnly(2026, 10, 15), school!.RecordDate);
-    }
-
-    [Fact]
-    public async Task UnreadableRecordDate_IsLeftOut()
-    {
-        IndexReturns("[Evidence 1]\nestablishment_name: Exampleton School\nlast_changed_date: unknown");
-
-        Assert.Null((await _sut.FindAsync("900001", isTrust: false, _cancellationToken))!.RecordDate);
+        Assert.Equal(readable ? new DateOnly(2026, 10, 15) : null, school!.RecordDate);
     }
 
     [Fact]
@@ -116,26 +109,20 @@ public sealed class BriefingSubjectFinderTests
             trusts);
     }
 
-    [Fact]
-    public async Task Search_ForAWholeUrn_FindsThatSchool()
+    [Theory]
+    [InlineData("900001", false, "establishment_urn eq '900001'", "Exampleton Primary School")]
+    [InlineData("tr 09002", true, "trust_reference_number eq 'TR09002'", "Example Coast Trust")]
+    [InlineData("ut00018", true, "trust_reference_number eq 'UT00018'", "Example Coast Trust")]   // rare, but a TRN too
+    public async Task Search_ForAWholeUrnOrTrn_FindsThatSchoolOrTrust(string typed, bool isTrust, string filter, string name)
     {
-        IndexReturns(SchoolRecord);
+        IndexReturns(isTrust ? TrustRecord : SchoolRecord);
 
-        var schools = await _sut.SearchAsync("900001", isTrust: false, _cancellationToken);
+        var found = Assert.Single(await _sut.SearchAsync(typed, isTrust, _cancellationToken));
 
-        Assert.Equal("Exampleton Primary School", Assert.Single(schools).Name);
-    }
-
-    [Fact]
-    public async Task Search_ForAWholeTrn_FindsThatTrust()
-    {
-        IndexReturns(TrustRecord);
-
-        var trusts = await _sut.SearchAsync("tr 09002", isTrust: true, _cancellationToken);
-
-        await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.Trust, "*", 1,
-            Arg.Is<ODataFilter>(f => f.ToString() == "trust_reference_number eq 'TR09002'"), Arg.Any<CancellationToken>());
-        Assert.True(Assert.Single(trusts).IsTrust);
+        await _contextRetriever.Received(1).GetContextAsync(isTrust ? EvidenceCategory.Trust : EvidenceCategory.Establishment, "*", 1,
+            Arg.Is<ODataFilter>(f => f.ToString() == filter), Arg.Any<CancellationToken>());
+        Assert.Equal(name, found.Name);
+        Assert.Equal(isTrust, found.IsTrust);
     }
 
     [Theory]
@@ -157,6 +144,7 @@ public sealed class BriefingSubjectFinderTests
     [InlineData("1234", false, "establishment_index", "establishment_urn ge '123400' and establishment_urn le '123499'")]
     [InlineData("90012", false, "establishment_index", "establishment_urn ge '900120' and establishment_urn le '900129'")]
     [InlineData("tr001", true, "trust_index", "trust_reference_number ge 'TR00100' and trust_reference_number le 'TR00199'")]
+    [InlineData("ut000", true, "trust_index", "trust_reference_number ge 'UT00000' and trust_reference_number le 'UT00099'")]
     public async Task Search_ForTheStartOfAReference_FindsEveryReferenceStartingWithIt(string typed, bool isTrust, string index, string filter)
     {
         IndexReturns(string.Empty, hasEvidence: false);
@@ -185,18 +173,12 @@ public sealed class BriefingSubjectFinderTests
         await _contextRetriever.DidNotReceiveWithAnyArgs().GetContextAsync(default!, default!, default, default, _cancellationToken);
     }
 
-    [Fact]
-    public async Task NoRecord_IsNotFound()
+    [Theory]
+    [InlineData("", false)]                                      // no record
+    [InlineData("[Evidence 1]\nestablishment_urn: 900001", true)] // a record without a name
+    public async Task NoRecord_OrARecordWithoutAName_IsNotFound(string text, bool hasEvidence)
     {
-        IndexReturns(string.Empty, hasEvidence: false);
-
-        Assert.Null(await _sut.FindAsync("900001", isTrust: false, _cancellationToken));
-    }
-
-    [Fact]
-    public async Task RecordWithoutAName_IsNotFound()
-    {
-        IndexReturns("[Evidence 1]\nestablishment_urn: 900001");
+        IndexReturns(text, hasEvidence);
 
         Assert.Null(await _sut.FindAsync("900001", isTrust: false, _cancellationToken));
     }

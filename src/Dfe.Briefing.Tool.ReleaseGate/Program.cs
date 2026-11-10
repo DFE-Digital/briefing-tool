@@ -47,7 +47,12 @@ builder.Configuration
 var preparedCases = Path.Combine(Path.GetTempPath(), Settings.PreparedCasesFolder, Guid.NewGuid().ToString(Telemetry.RunIdFormat));
 builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
 {
-    [Settings.TestCasesDirectoryKey] = preparedCases
+    [Settings.TestCasesDirectoryKey] = preparedCases,
+
+    // Turn off the web app's shared run slots for the gate. Both lines are needed: a MaxRunsAcrossInstances left in
+    // secrets or environment variables turns the slots on, and then the library requires the container URI.
+    [Settings.GlobalConcurrencyRunsKey] = null,
+    [Settings.GlobalConcurrencyContainerKey] = null
 });
 
 // The judge, the release gate that runs the test cases, and the quality gate that decides the release under the six

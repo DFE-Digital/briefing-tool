@@ -17,6 +17,9 @@
       },
       "mustMention": [
         "# Exampleton Primary School",
+        "## About the school",
+        "## Ofsted summary",
+        "## KS2 summary",
         "## Concerns and support",
         "### Key issues",
         "### Rise concerns",
@@ -27,13 +30,61 @@
         "No Recast concerns were found"
       ],
       "mustNotMention": [
-        "More background information",
-        "Information not available",
-        "News and media coverage",
-        "overall absence",
-        "2023-03-14"
+        "overall absence"
       ],
       "group": "primary"
+    },
+    {
+      "id": "INC-002",
+      "name": "Secondary briefing in plain Markdown",
+      "description": "Shows raw dates, raw academic years, scores as percentages or a bare website, which screen readers read badly",
+      "expectedOutcome": "Writes the website with https://, dates and years in words, and Attainment 8 as a plain number",
+      "subject": {
+        "name": "Example Valley Academy",
+        "urnOrTrn": "900002"
+      },
+      "records": {
+        "school": "[Evidence 1]\nestablishment_name: Example Valley Academy\nestablishment_urn: 900002\nestablishment_type: Academy sponsor led\nphase_of_education: Secondary\nestablishment_age_range: 11 to 18\nestablishment_address: 5 Valley Road, Exampleton, EX2 3CC\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1200\nnumber_on_roll: 1104\nestablishment_website: www.example-valley.example.org\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"academic_year\": \"202324\", \"attainment_8_score\": \"46.2\", \"grade_5_or_above_english_and_maths\": \"44%\"}"
+      },
+      "mustMention": [
+        "https://www.example-valley.example.org",
+        "28 November 2022",
+        "2023/24",
+        "46.2"
+      ],
+      "mustNotMention": [
+        "46.2%"
+      ],
+      "group": "secondary"
+    },
+    {
+      "id": "INC-003",
+      "name": "Trust briefing structure",
+      "description": "The trust headings readers and screen readers navigate by are missing, or school-only headings are used",
+      "expectedOutcome": "Uses the trust headings, with no school-only heading",
+      "subject": {
+        "name": "Example Learning Trust",
+        "urnOrTrn": "TR09001"
+      },
+      "records": {
+        "trust": "[Evidence 1]\ntrust_name: Example Learning Trust\ntrust_reference_number: TR09001\ntrust_type: Multi-academy trust\ngroup_status: Open\ndate_established: 2014-09-01\ntrust_address: 1 Example Road, Exampleton, EX1 1AA\nnumber_in_trust: 2\npipeline_count: 0\ntrust_governance: Chief executive: Alex Example; Accounting officer: Alex Example; Chair of trustees: Sam Sample",
+        "academies": "[Evidence 1]\nestablishment_name: Exampleton Primary School\nestablishment_urn: 900001\nphase_of_education: Primary\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 420\nnumber_on_roll: 431\nofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"overall_effectiveness\": \"Requires improvement\", \"safeguarding_effective\": \"Yes\"}]\n\n[Evidence 2]\nestablishment_name: Example Ridge Academy\nestablishment_urn: 900008\nphase_of_education: Secondary\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1000\nnumber_on_roll: 870\nofsted_all_inspections: [{\"inspection_date\": \"2025-12-02\", \"inclusion\": \"Expected standard\", \"achievement\": \"Needs attention\", \"safeguarding\": \"Met\"}]"
+      },
+      "mustMention": [
+        "# Example Learning Trust",
+        "## Trust overview",
+        "## School summary",
+        "## Ofsted summary",
+        "## Concerns and support",
+        "### Key issues",
+        "### Rise concerns",
+        "### Recast concerns",
+        "## Financial health"
+      ],
+      "mustNotMention": [
+        "## About the school"
+      ],
+      "group": "trust"
     }
   ]
 }

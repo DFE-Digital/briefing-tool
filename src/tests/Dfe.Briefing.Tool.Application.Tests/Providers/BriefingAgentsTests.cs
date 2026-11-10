@@ -14,38 +14,15 @@ public sealed class BriefingAgentsTests
         => Assert.All(BriefingAgents.All, definition => Assert.NotNull(definition.Validate));
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void Validate_EmptyOrWhitespaceOutput_Fails(string? output)
+    [InlineData(null, "Output must not be empty.")]
+    [InlineData("", "Output must not be empty.")]
+    [InlineData("   ", "Output must not be empty.")]
+    [InlineData("<h1>Heading</h1><p>Some HTML text</p>", "Output must be valid Markdown, starting with a heading.")]
+    [InlineData("Plain text with no heading", "Output must be valid Markdown, starting with a heading.")]
+    [InlineData("# Test Academy\n\nContent", null)]
+    public void Validate_PassesOnlyMarkdownStartingWithAHeading_ForEveryAgent(string? output, string? failure)
     {
         foreach (var definition in BriefingAgents.All)
-        {
-            var failure = definition.Validate!(Result(definition.Name, output!));
-
-            Assert.Equal("Output must not be empty.", failure);
-        }
-    }
-
-    [Fact]
-    public void Validate_HtmlOrPlainTextOutput_FailsForEveryAgent()
-    {
-        foreach (var definition in BriefingAgents.All)
-        {
-            var failure = definition.Validate!(Result(definition.Name, "<h1>Heading</h1><p>Some HTML text</p>"));
-
-            Assert.Equal("Output must be valid Markdown, starting with a heading.", failure);
-        }
-    }
-
-    [Fact]
-    public void Validate_MarkdownOutput_PassesForEveryAgent()
-    {
-        foreach (var definition in BriefingAgents.All)
-        {
-            var failure = definition.Validate!(Result(definition.Name, "# Test Academy\n\nContent"));
-
-            Assert.Null(failure);
-        }
+            Assert.Equal(failure, definition.Validate!(Result(definition.Name, output!)));
     }
 }

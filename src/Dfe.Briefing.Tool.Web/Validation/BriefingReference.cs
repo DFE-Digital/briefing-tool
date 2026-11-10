@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace Dfe.Briefing.Tool.Web.Validation;
 
 /// <summary>
-/// The formats of a school's URN (6 digits) and a trust's TRN (TR and 5 digits). Every page that takes one from the
+/// The formats of a school's URN (6 digits) and a trust's TRN (TR, or rarely UT, and 5 digits). Every page that takes one from the
 /// person or the URL checks it before it's looked up.
 /// </summary>
 public static partial class BriefingReference
@@ -30,9 +30,10 @@ public static partial class BriefingReference
     [GeneratedRegex(@"^\d{6}$")]
     private static partial Regex UrnRegex();
 
-    [GeneratedRegex(@"^TR\d{5}$")]
+    // Almost every TRN starts "TR"; a few, rarely, start "UT" (e.g. UT00018).
+    [GeneratedRegex(@"^(?:TR|UT)\d{5}$")]
     private static partial Regex TrnRegex();
 
-    [GeneratedRegex(@"\((?:URN|TRN) (?<reference>\d{6}|TR\d{5})\)$", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"\((?:URN|TRN) (?<reference>\d{6}|(?:TR|UT)\d{5})\)$", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 1000)]
     private static partial Regex SuggestionRegex();
 }

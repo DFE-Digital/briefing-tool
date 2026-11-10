@@ -4,6 +4,7 @@ using Dfe.Briefing.Tool.Application.Providers.Interfaces;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
 using Dfe.Briefing.Tool.Web.Sanitization;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Threading.Channels;
 
@@ -68,7 +69,7 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
             {
                 logger.LogError(ex, "Failed to generate briefing for {SchoolOrTrustName}", Subject!.Name);
                 // Not about a field, so it's shown in the error summary unlinked.
-                ModelState.AddModelError(string.Empty, "Sorry, something went wrong generating this summary. Please try again.");
+                ModelState.AddModelError(string.Empty, BriefingFailed(ex));
             }
 
             return Page();
@@ -102,12 +103,10 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
 
             var parameters = Subject!.ToParameters();
             var channel = Channel.CreateUnbounded<string>();
+            var started = Stopwatch.GetTimestamp();
             var briefingTask = RunBriefingAsync(parameters, channel.Writer, cancellationToken);
 
-            await foreach (var message in channel.Reader.ReadAllAsync(cancellationToken))
-            {
-                await WriteEventAsync("progress", message, cancellationToken);
-            }
+            await StreamProgressAsync(channel.Reader, started, cancellationToken);
 
             try
             {
@@ -123,7 +122,7 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 logger.LogError(ex, "Failed to generate briefing for {SchoolOrTrustName}", parameters.SchoolOrTrustName);
-                await WriteEventAsync("error-message", "Sorry, something went wrong generating this summary. Please try again.", cancellationToken);
+                await WriteEventAsync("error-message", BriefingFailed(ex), cancellationToken);
             }
         }
 
@@ -154,7 +153,7 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 logger.LogError(ex, "Failed to search the web for {SchoolOrTrustName}", request.SchoolOrTrustName);
-                return StatusCode(StatusCodes.Status500InternalServerError, new { error = WebSearchFailed });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { error = WebSearchFailedMessage(ex) });
             }
         }
 
@@ -182,7 +181,7 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 logger.LogError(ex, "Failed to search the web for {SchoolOrTrustName}", Subject!.Name);
-                ModelState.AddModelError(string.Empty, WebSearchFailed);
+                ModelState.AddModelError(string.Empty, WebSearchFailedMessage(ex));
                 OfferWebSearch(Briefing, City);
             }
 
@@ -191,6 +190,17 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
 
         private const string BriefingNotSearchable = "This summary can't be searched for more information. Generate it again and try once more.";
         private const string WebSearchFailed = "Sorry, something went wrong searching the web. Your summary is unchanged - please try again.";
+
+        // The model's gateway limits the tokens used each minute; once the library's retries are used up, it's busy
+        // rather than broken, so the person is told to wait a few minutes rather than to try again at once.
+        private const string BriefingBusy = "The service is busy. Please try again in a few minutes.";
+        private const string WebSearchBusy = "The service is busy. Your summary is unchanged - please try the web search again in a few minutes.";
+
+        private static string BriefingFailed(Exception ex)
+            => AgentFailureHelper.IsRateLimited(ex) ? BriefingBusy : "Sorry, something went wrong generating this summary. Please try again.";
+
+        private static string WebSearchFailedMessage(Exception ex)
+            => AgentFailureHelper.IsRateLimited(ex) ? WebSearchBusy : WebSearchFailed;
 
         private bool CanBeSearched(string? briefing)
             => !string.IsNullOrWhiteSpace(briefing) && briefing.Length <= MaxBriefingCharacters
@@ -224,6 +234,54 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
             {
                 writer.TryComplete();
             }
+        }
+
+        // How often the stream shows it's alive while the agent writes, which takes minutes for a large trust: often
+        // enough that no proxy closes a quiet connection.
+        private static readonly TimeSpan KeepAliveInterval = TimeSpan.FromSeconds(15);
+
+        /// <summary>
+        /// Sends each progress message as it comes, until the briefing's run ends. In between, a comment every
+        /// <see cref="KeepAliveInterval"/> keeps the connection open, and a "still-working" event each whole minute
+        /// tells the person how long it has taken, so a long run isn't mistaken for one that has stopped.
+        /// </summary>
+        private async Task StreamProgressAsync(ChannelReader<string> progress, long started, CancellationToken cancellationToken)
+        {
+            Task<bool>? nextMessage = null;
+            var minutesShown = 0;
+            while (true)
+            {
+                nextMessage ??= progress.WaitToReadAsync(cancellationToken).AsTask();
+                if (await Task.WhenAny(nextMessage, Task.Delay(KeepAliveInterval, cancellationToken)) != nextMessage)
+                {
+                    await WriteKeepAliveAsync(cancellationToken);
+                    var minutes = (int)Stopwatch.GetElapsedTime(started).TotalMinutes;
+                    if (minutes > minutesShown)
+                    {
+                        minutesShown = minutes;
+                        await WriteEventAsync("still-working", StillWorking(minutes), cancellationToken);
+                    }
+
+                    continue;
+                }
+
+                if (!await nextMessage)
+                    return;
+
+                nextMessage = null;
+                while (progress.TryRead(out var message))
+                    await WriteEventAsync("progress", message, cancellationToken);
+            }
+        }
+
+        internal static string StillWorking(int minutes)
+            => $"Still working on the summary - {minutes} {(minutes == 1 ? "minute" : "minutes")} so far. A large trust can take a few minutes.";
+
+        // An SSE comment: the browser ignores it, but it's traffic on the connection.
+        private async Task WriteKeepAliveAsync(CancellationToken cancellationToken)
+        {
+            await Response.WriteAsync(": keep-alive\n\n", cancellationToken);
+            await Response.Body.FlushAsync(cancellationToken);
         }
 
         private async Task WriteEventAsync(string eventName, string data, CancellationToken cancellationToken)

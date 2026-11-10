@@ -33,8 +33,10 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
             ["SchoolUrnOrTrustTrn"] = parameters.SchoolUrnOrTrustTrn,
             ["SubjectType"] = parameters.IsTrust ? "trust" : "school",
             // The agent can't know the date itself, and needs it for "the last 3 years" of concerns.
-            ["Today"] = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime).ToString("d MMMM yyyy", EnglishCulture)
+            ["Today"] = Today().ToString("d MMMM yyyy", EnglishCulture)
         });
+
+    private DateOnly Today() => DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
 
     // Each search numbers its own records from 1, so they're renumbered to run on across the sets, each set under its
     // own label: every [Evidence n] the agent cites then points at one record, and at its source.
@@ -44,13 +46,20 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
         ArgumentNullException.ThrowIfNull(records);
 
         // Evidence over AiAgents:MaxEvidenceCharacters is cut from the end, so the related records - a large trust's
-        // academies can be hundreds of records - go last, after the subject's own record and its concerns.
+        // academies can be hundreds of records - go last, after the subject's own record and its concerns. A trust's
+        // academy counts, made in code from all of those records, go straight after its own record, so they're never cut.
+        var academyCounts = parameters.IsTrust && records.Related.HasEvidence ? AcademyCounter.Count(records.Related.Text) : null;
+        // For a special school or alternative provision with no results, so the agent doesn't call them "not available".
+        var keyStageResults = parameters.IsTrust ? null : KeyStageResults.NotApplicable(records.Subject, parameters.SchoolUrnOrTrustTrn, parameters.SchoolOrTrustName);
         (string Label, ContextResult Result)[] sets =
         [
-            (parameters.IsTrust ? EvidenceLabels.TrustRecord : EvidenceLabels.SchoolRecord, records.Subject),
-            (EvidenceLabels.RiseConcerns, records.RiseConcerns),
-            (EvidenceLabels.RecastConcerns, records.RecastConcerns),
-            (parameters.IsTrust ? EvidenceLabels.AcademyRecords : EvidenceLabels.SchoolsTrustRecord, records.Related)
+            // Websites with their https:// already added (see WebsiteAddress).
+            (parameters.IsTrust ? EvidenceLabels.TrustRecord : EvidenceLabels.SchoolRecord, WebsiteAddress.WithScheme(records.Subject)),
+            .. academyCounts is null ? [] : new[] { (EvidenceLabels.AcademyCounts, new ContextResult(academyCounts, HasEvidence: true)) },
+            .. keyStageResults is null ? [] : new[] { (EvidenceLabels.KeyStageResults, new ContextResult(keyStageResults, HasEvidence: true)) },
+            (EvidenceLabels.RiseConcerns, Concerns(records.RiseConcerns)),
+            (EvidenceLabels.RecastConcerns, Concerns(records.RecastConcerns)),
+            (parameters.IsTrust ? EvidenceLabels.AcademyRecords : EvidenceLabels.SchoolsTrustRecord, WebsiteAddress.WithScheme(records.Related))
         ];
 
         var text = new StringBuilder();
@@ -77,6 +86,9 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
 
         return new AgentEvidence(text.ToString().TrimEnd(), sources);
     }
+
+    // Only concerns from the last 3 years, the period the briefing reports, each dated in words (see ConcernWindow).
+    private ContextResult Concerns(ContextResult concerns) => ConcernWindow.WithDatesInWords(ConcernWindow.Recent(concerns, Today()));
 
     private static int Number(string digits) => int.Parse(digits, CultureInfo.InvariantCulture);
 

@@ -32,36 +32,23 @@ public sealed class GateCommandTests
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    [Fact]
-    public async Task Permits_release_when_the_quality_gate_passes_and_decides_every_agent_inside_one_release_run()
+    [Theory]
+    [InlineData(ReleaseDecision.Pass, true, 0)]
+    [InlineData(ReleaseDecision.Warning, true, 0)]   // a warning whose risks are accepted
+    [InlineData(ReleaseDecision.Warning, false, 1)]
+    [InlineData(ReleaseDecision.Fail, false, 1)]
+    public async Task Exits_0_only_when_the_quality_gate_permits_release_deciding_every_agent_inside_one_release_run(
+        ReleaseDecision decision, bool permitted, int exitCode)
     {
-        var exitCode = await GateCommand.RunAsync(Services(), Token);
+        Decides(decision, permitted);
 
-        Assert.Equal(0, exitCode);
+        Assert.Equal(exitCode, await GateCommand.RunAsync(Services(), Token));
         Received.InOrder(() =>
         {
             _releaseGate.BeginRun();
             _qualityGate.DecideReleaseAsync(BriefingAgents.All, Token);
             _run.Dispose();
         });
-    }
-
-    [Fact]
-    public async Task Permits_release_on_a_warning_whose_risks_are_accepted()
-    {
-        Decides(ReleaseDecision.Warning, permitted: true);
-
-        Assert.Equal(0, await GateCommand.RunAsync(Services(), Token));
-    }
-
-    [Theory]
-    [InlineData(ReleaseDecision.Warning)]
-    [InlineData(ReleaseDecision.Fail)]
-    public async Task Blocks_release_when_the_quality_gate_does_not_permit_it(ReleaseDecision decision)
-    {
-        Decides(decision, permitted: false);
-
-        Assert.Equal(1, await GateCommand.RunAsync(Services(), Token));
     }
 
     private void Decides(ReleaseDecision decision, bool permitted)

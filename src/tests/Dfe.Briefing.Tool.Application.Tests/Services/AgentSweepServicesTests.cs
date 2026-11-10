@@ -2,7 +2,6 @@ using System.Globalization;
 using Dfe.Briefing.Tool.Application.Options;
 using Dfe.Briefing.Tool.Application.Providers;
 using Dfe.Briefing.Tool.Application.Services;
-using Dfe.Briefing.Tool.Application.Services.Base;
 using GovUK.Dfe.AI.Agents.Factories.Interfaces;
 using GovUK.Dfe.AI.Agents.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
@@ -47,22 +46,16 @@ public sealed class AgentSweepServicesTests
             NullLogger<AgentSweepService>.Instance);
     }
 
-    [Fact]
-    public async Task AgentSweep_OnTheVersionSweepDay_RunsBothSweeps()
+    [Theory]
+    [InlineData(false, true)]   // the version sweep day: both sweeps, keeping the configured number of versions
+    [InlineData(true, false)]   // another day: only orphans
+    public async Task AgentSweep_DeletesOrphansEveryDay_AndPrunesVersionsOnlyOnTheVersionSweepDay(bool onMonday, bool prunes)
     {
-        await CreateSweep(versionSweepDay: DayOfWeek.Sunday, now: Sunday).RunAsync(cancellationToken);
+        await CreateSweep(versionSweepDay: DayOfWeek.Sunday, now: onMonday ? Monday : Sunday).RunAsync(cancellationToken);
 
         await _agentRuntime.Received(1).DeleteOrphanedEphemeralAgentsAsync(TimeSpan.FromHours(2), cancellationToken);
-        await _agentFactory.ReceivedWithAnyArgs(BriefingAgents.All.Length).PruneVersionsAsync(default!, default, cancellationToken);
-    }
-
-    [Fact]
-    public async Task AgentSweep_OnAnotherDay_OnlyDeletesOrphans()
-    {
-        await CreateSweep(versionSweepDay: DayOfWeek.Sunday, now: Monday).RunAsync(cancellationToken);
-
-        await _agentRuntime.Received(1).DeleteOrphanedEphemeralAgentsAsync(TimeSpan.FromHours(2), cancellationToken);
-        await _agentFactory.DidNotReceiveWithAnyArgs().PruneVersionsAsync(default!, default, cancellationToken);
+        foreach (var agent in BriefingAgents.All)
+            await _agentFactory.Received(prunes ? 1 : 0).PruneVersionsAsync(agent.Name, 3, cancellationToken);
     }
 
     [Theory]
@@ -88,16 +81,6 @@ public sealed class AgentSweepServicesTests
     }
 
     [Fact]
-    public async Task AgentSweep_RunsBothSweeps_KeepingTheConfiguredNumberOfVersions()
-    {
-        await CreateSweep().RunAsync(cancellationToken);
-
-        await _agentRuntime.Received(1).DeleteOrphanedEphemeralAgentsAsync(TimeSpan.FromHours(2), cancellationToken);
-        foreach (var agent in BriefingAgents.All)
-            await _agentFactory.Received(1).PruneVersionsAsync(agent.Name, 3, cancellationToken);
-    }
-
-    [Fact]
     public async Task AgentSweep_DeletesOrphansOlderThanTheConfiguredMinimumAge()
     {
         await CreateSweep(orphanMinimumAgeSeconds: 2700).RunAsync(cancellationToken);
@@ -105,22 +88,15 @@ public sealed class AgentSweepServicesTests
         await _agentRuntime.Received(1).DeleteOrphanedEphemeralAgentsAsync(TimeSpan.FromMinutes(45), cancellationToken);
     }
 
-    [Fact]
-    public async Task AgentSweep_WithOrphanSweepOff_OnlyPrunesVersions()
+    [Theory]
+    [InlineData(false, true)]   // orphan sweep off: only versions are pruned
+    [InlineData(true, false)]   // version sweep off: only orphans are deleted
+    public async Task AgentSweep_RunsOnlyTheSweepThatIsOn(bool orphanSweepEnabled, bool versionSweepEnabled)
     {
-        await CreateSweep(orphanSweepEnabled: false).RunAsync(cancellationToken);
+        await CreateSweep(orphanSweepEnabled, versionSweepEnabled).RunAsync(cancellationToken);
 
-        await _agentRuntime.DidNotReceiveWithAnyArgs().DeleteOrphanedEphemeralAgentsAsync(default, cancellationToken);
-        await _agentFactory.ReceivedWithAnyArgs(BriefingAgents.All.Count()).PruneVersionsAsync(default!, default, cancellationToken);
-    }
-
-    [Fact]
-    public async Task AgentSweep_WithVersionSweepOff_OnlyDeletesOrphans()
-    {
-        await CreateSweep(versionSweepEnabled: false).RunAsync(cancellationToken);
-
-        await _agentRuntime.Received(1).DeleteOrphanedEphemeralAgentsAsync(TimeSpan.FromHours(2), cancellationToken);
-        await _agentFactory.DidNotReceiveWithAnyArgs().PruneVersionsAsync(default!, default, cancellationToken);
+        await _agentRuntime.ReceivedWithAnyArgs(orphanSweepEnabled ? 1 : 0).DeleteOrphanedEphemeralAgentsAsync(default, cancellationToken);
+        await _agentFactory.ReceivedWithAnyArgs(versionSweepEnabled ? BriefingAgents.All.Length : 0).PruneVersionsAsync(default!, default, cancellationToken);
     }
 
     [Fact]
@@ -156,12 +132,4 @@ public sealed class AgentSweepServicesTests
 
         await _agentFactory.DidNotReceiveWithAnyArgs().PruneVersionsAsync(default!, default, cancellationToken);
     }
-
-    [Theory]
-    [InlineData("2026-10-26T00:30:00Z", "01:00", 0.5)]   // later today
-    [InlineData("2026-10-26T02:00:00Z", "02:00", 24)]    // exactly now: tomorrow's
-    [InlineData("2026-10-26T03:30:00Z", "02:00", 22.5)]  // passed today: tomorrow's
-    public void UntilNext_GivesTheTimeToTheNextRun(string now, string at, double hours)
-        => Assert.Equal(TimeSpan.FromHours(hours),
-            BaseBackgroundDailyJob.UntilNext(TimeOnly.Parse(at, CultureInfo.InvariantCulture), DateTimeOffset.Parse(now, CultureInfo.InvariantCulture)));
 }

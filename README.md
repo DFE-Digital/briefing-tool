@@ -47,6 +47,7 @@ variables elsewhere, e.g. `AiAgents__Authentication__ClientSecret`. The console 
 | `AiAgents:Guardrails:SubscriptionId`, `ResourceGroup` | The guardrail (off while empty) |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Telemetry |
 | `DataProtection:Path` | Web app outside Development: a folder every instance mounts, holding the keys for sign-in and form cookies |
+| `AiAgents:GlobalConcurrency:BlobContainerUri` | Web app, Development included: the blob container for the run slots every instance shares, so no more than `MaxRunsAcrossInstances` (2) briefings run at once. Without it, the web app won't start |
 
 The web app keeps nothing between requests on the instance itself: each page has the school or trust's type and
 reference in its URL, and the summary page's requests carry them too. So any instance can answer any request, as long
@@ -61,7 +62,7 @@ stored unencrypted there, so only the app should be able to read the folder.
 | Search Index Data Reader | AI Search service | Searching for evidence |
 | Reader | Foundry resource | Checking the guardrail at startup | 
 | Cognitive Services Contributor | Foundry resource | Prompt Shields (`ScanPrompts`, `ScanEvidence`); Creating or updating the guardrail (`gate --apply-guardrails`) |
-| Storage Blob Data Contributor | Storage container | Only if `GlobalConcurrency` is set |
+| Storage Blob Data Contributor | Run slot storage container | Web app (`GlobalConcurrency`) |
 
 ## Console tool
 

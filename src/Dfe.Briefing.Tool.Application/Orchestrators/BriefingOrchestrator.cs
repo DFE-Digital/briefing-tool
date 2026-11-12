@@ -32,7 +32,6 @@ public class BriefingOrchestrator(IBriefingEvidenceProvider evidenceProvider, IA
         var result = await agentService.RunAsync(BriefingAgents.Briefing, briefingBuilder.BuildBriefingPrompt(parameters),
             briefingBuilder.BuildBriefingEvidence(parameters, records), cancellationToken);
 
-        // The town is for a later web search, so it's taken out of the briefing itself.
         var (briefing, city) = briefingBuilder.PresentBriefing(result.Output);
         return new AIResult(briefing, result.TotalTokens, city);
     }

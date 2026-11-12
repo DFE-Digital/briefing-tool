@@ -13,6 +13,8 @@ module "azure_container_apps_hosting" {
   registry_admin_enabled                = local.registry_admin_enabled
 
   enable_dns_zone      = local.enable_dns_zone
+  dns_zone_domain_name = local.dns_zone_domain_name
+  dns_txt_records      = local.dns_txt_records
 
   image_name                             = local.image_name
   container_command                      = local.container_command

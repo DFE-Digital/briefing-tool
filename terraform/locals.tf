@@ -15,6 +15,8 @@ locals {
   registry_admin_enabled                = var.registry_admin_enabled
 
   enable_dns_zone      = var.enable_dns_zone
+  dns_zone_domain_name = var.dns_zone_domain_name
+  dns_txt_records      = var.dns_txt_records
 
   image_name                             = var.image_name
   container_command                      = var.container_command

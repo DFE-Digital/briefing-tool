@@ -181,24 +181,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Encrypts the data protection keys at rest with a Key Vault key (DataProtection:KeyVaultKey). -->
     <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.5" />
-    <!-- Microsoft.Identity.Web.Certificate (via Microsoft.Identity.Web) also pulls in Azure.Identity
-         transitively, and newer Azure.Core versions duplicate its credential types (e.g.
-         DefaultAzureCredential) under the same namespace - referencing both makes that type
-         ambiguous (CS0433). Excluding Azure.Identity's compile assets here resolves it to the
-         Azure.Core copy at compile time while leaving the runtime assembly untouched. -->
     <PackageReference Include="Azure.Identity" Version="1.21.0" ExcludeAssets="compile" />
     <PackageReference Include="GovUk.Frontend.AspNetCore" Version="5.1.0" />
     <PackageReference Include="HtmlSanitizer" Version="11.0.26" />
     <PackageReference Include="Markdig" Version="1.6.0" />
     <PackageReference Include="Microsoft.Identity.Web" Version="4.18.0" />
-    <!-- Overrides the vulnerable 10.0.10 that Microsoft.Identity.Web.TokenCache 4.16.0 brings in (GHSA-846f-f764-76mx). -->
-    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="11.0.0" />
     <PackageReference Include="NetEscapades.AspNetCore.SecurityHeaders" Version="1.3.1" />
     <PackageReference Include="NetEscapades.AspNetCore.SecurityHeaders.TagHelpers" Version="1.3.1" />
-    <!-- Page requests in Application Insights (see ObservabilityExtension); outgoing calls are traced by Infrastructure. -->
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.20.2" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.21.0" />
   </ItemGroup>
 
   <ItemGroup>

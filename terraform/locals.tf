@@ -17,6 +17,7 @@ locals {
   enable_dns_zone      = var.enable_dns_zone
   dns_zone_domain_name = var.dns_zone_domain_name
   dns_txt_records      = var.dns_txt_records
+  dns_alias_records    = var.dns_alias_records
 
   image_name                             = var.image_name
   container_command                      = var.container_command

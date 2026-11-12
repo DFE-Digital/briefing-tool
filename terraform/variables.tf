@@ -140,6 +140,17 @@ variable "dns_txt_records" {
   )
 }
 
+variable "dns_alias_records" {
+  description = "DNS ALIAS records to add to the DNS Zone"
+  type = map(
+    object({
+      ttl : optional(number, 300),
+      target_resource_id : string
+    })
+  )
+  default = {}
+}
+
 variable "dns_mx_records" {
   description = "DNS MX records to add to the DNS Zone"
   type = map(

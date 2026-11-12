@@ -46,13 +46,13 @@ variables elsewhere, e.g. `AiAgents__Authentication__ClientSecret`. The console 
 | `AiAgents:AISearch:Endpoint` | The evidence search |
 | `AiAgents:Guardrails:SubscriptionId`, `ResourceGroup` | The guardrail (off while empty) |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Telemetry |
-| `DataProtection:Path` | Web app outside Development: a folder every instance mounts, holding the keys for sign-in and form cookies |
 | `AiAgents:GlobalConcurrency:BlobContainerUri` | Web app, Development included: the blob container for the run slots every instance shares, so no more than `MaxRunsAcrossInstances` (2) briefings run at once. Without it, the web app won't start |
 
 The web app keeps nothing between requests on the instance itself: each page has the school or trust's type and
 reference in its URL, and the summary page's requests carry them too. So any instance can answer any request, as long
-as they all share `DataProtection:Path`. Without it, outside Development, the web app won't start. The keys are
-stored unencrypted there, so only the app should be able to read the folder.
+as they all share the keys for sign-in and form cookies. Each instance keeps its own in its container, so run one
+replica: with more, a sign-in or form can fail when the next request reaches another, and every restart or deploy
+signs everyone out.
 
 ### Roles
 

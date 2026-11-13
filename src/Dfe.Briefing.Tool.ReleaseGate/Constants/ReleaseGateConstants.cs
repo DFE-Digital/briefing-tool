@@ -122,6 +122,11 @@ internal static class Telemetry
 internal static class ReleaseLog
 {
     public const string RunStarted = "Release gate run {0}";
+
+    // Each phase as it starts, so a log (or a pipeline that's still running) shows where the gate is.
+    public const string PreparingTestCases = "[1/3] Preparing the test cases";
+    public const string RunningTestCases = "[2/3] Checking the guardrail, running every test case and scoring it with the judge (this takes a while)";
+    public const string Deciding = "[3/3] Deciding the release under the Responsible AI policy";
     public const string StoppedTemplate = "Release gate stopped: {Reason}";
 
     public const string ItemSeparator = ", ";

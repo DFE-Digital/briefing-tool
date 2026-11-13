@@ -78,6 +78,7 @@ var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(G
 
 try
 {
+    Console.WriteLine(ReleaseLog.PreparingTestCases);
     await TestCasePreparer.PrepareAsync(services, preparedCases, cancellationToken);
     return await GateCommand.RunAsync(services, cancellationToken);
 }

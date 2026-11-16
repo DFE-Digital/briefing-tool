@@ -163,12 +163,12 @@ public sealed class BriefingBuilderTests
     }
 
     [Fact]
-    public void BuildBriefingPrompt_GivesTodaysDate_SoTheAgentKnowsWhichConcernsAreFromTheLast3Years()
+    public void BuildBriefingPrompt_GivesNoDate_AsTheEvidenceAlreadyHoldsOnlyTheLast3YearsConcerns()
     {
         _sut.BuildBriefingPrompt(Subject);
 
         _promptBuilder.Received(1).Build(UserPromptType.Briefing,
-            Arg.Is<IReadOnlyDictionary<string, string>>(values => values["Today"] == "3 November 2026"));
+            Arg.Is<IReadOnlyDictionary<string, string>>(values => !values.ContainsKey("Today")));
     }
 
     [Theory]

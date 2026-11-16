@@ -116,8 +116,9 @@ internal static partial class TestCasePreparer
     [GeneratedRegex(@"""academic_year"":\s*""(?<value>\d{6})""", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex RawAcademicYearRegex();
 
-    // The app's builder, giving TestCases:Today as today's date in every prompt when it's set. Only the prompt's date is
-    // fixed: the gate's own clock, which decides when a risk acceptance expires, stays real.
+    // The app's builder, measuring the 3-year concerns window from TestCases:Today when it's set, so the test cases'
+    // concerns never age out of it. Only the builder's date is fixed: the gate's own clock, which decides when a risk
+    // acceptance expires, stays real.
     private static IBriefingBuilder BuilderFor(IServiceProvider services)
     {
         var builder = services.GetRequiredService<IBriefingBuilder>();

@@ -113,8 +113,8 @@ be overruled.
 - Report a fact held in several records once, citing every record it came from (for example
   `[Evidence 2] [Evidence 5]`). Where the records disagree, keep the most recent and cite it.
 - Keep a trust's current academies separate from those due to join it.
-- Rise concerns come only from the Rise concerns set, and Recast concerns only from the Recast concerns set, covering
-  the 3 years up to today's date, given in the request. Leave out a concern dated before then.
+- Rise concerns come only from the Rise concerns set, and Recast concerns only from the Recast concerns set. Those sets
+  already hold only the concerns from the last 3 years, so report every concern in them.
 
 ### Never
 
@@ -448,8 +448,7 @@ Check your draft against each of these, and fix anything that fails:
    example in its `trust_governance` line). For a school, its Ofsted judgements, KS2 and KS4 results and pupil
    characteristics are each under their own heading - Ofsted summary, KS2 summary, KS4 summary, Pupil
    characteristics - as bullets, and none of them is in the About the school paragraph.
-6. Every concern in the Rise and Recast concerns records from the 3 years up to today's date appears once, and no
-   concern from then is left out.
+6. Every concern in the Rise and Recast concerns records appears once, and none is left out.
 7. Every fact ends with an `[Evidence n]` citation for a record that exists - never a number above the last record
    you were given - and you haven't written a References list, a warning line, a link or any other square bracket of
    your own. A sentence saying nothing was found ("No Recast concerns were found in the provided sources.", "No issues

@@ -39,6 +39,7 @@ jobs:
     timeout-minutes: 90
     env:
       DOTNET_NOLOGO: true
+      Logging__Console__LogLevel__Default: Information
       APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
       AiAgents__Foundry__Endpoint: ${{ secrets.AI_FOUNDRY_ENDPOINT }}
       AiAgents__Foundry__DefaultModel: ${{ secrets.AI_FOUNDRY_DEFAULT_MODEL }}
@@ -62,14 +63,48 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # Before anything is built: names every secret this environment is missing (never a value), so a wrong or
+      # empty environment fails here in seconds rather than inside the gate.
+      - name: Check the environment's secrets
+        run: |
+          missing=()
+          for pair in \
+            AI_FOUNDRY_ENDPOINT=AiAgents__Foundry__Endpoint \
+            AI_FOUNDRY_DEFAULT_MODEL=AiAgents__Foundry__DefaultModel \
+            AI_AGENTS_TENANT_ID=AiAgents__Authentication__TenantId \
+            AI_AGENTS_CLIENT_ID=AiAgents__Authentication__ClientId \
+            AI_AGENTS_CLIENT_SECRET=AiAgents__Authentication__ClientSecret \
+            AI_SEARCH_ENDPOINT=AiAgents__AISearch__Endpoint \
+            AI_SEARCH_TENANT_ID=AiAgents__AISearch__Authentication__TenantId \
+            AI_SEARCH_CLIENT_ID=AiAgents__AISearch__Authentication__ClientId \
+            AI_SEARCH_CLIENT_SECRET=AiAgents__AISearch__Authentication__ClientSecret; do
+            variable=${pair#*=}
+            [ -n "${!variable}" ] || missing+=("${pair%%=*}")
+          done
+          if [ -z "$AiAgents__Guardrails__SubscriptionId" ] || [ -z "$AiAgents__Guardrails__ResourceGroup" ]; then
+            echo "::warning::AI_GUARDRAILS_SUBSCRIPTION_ID or AI_GUARDRAILS_RESOURCE_GROUP is empty in '${{ inputs.environment }}', so the guardrail is off and the gate's guardrail check won't pass."
+          fi
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::'${{ inputs.environment }}' is missing these secrets, or they're empty: ${missing[*]}"
+            exit 1
+          fi
+          echo "Every secret the gate needs is set in '${{ inputs.environment }}'."
+
       - name: Add nuget package source
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: dotnet nuget add source --username USERNAME --password $GH_TOKEN --store-password-in-clear-text --name github "https://nuget.pkg.github.com/DFE-Digital/index.json"
 
-      # Exit 1: the release is blocked; exit 2: the gate couldn't run. Either fails the job.
+      - name: Restore packages
+        run: dotnet restore
+
+      - name: Build the release gate
+        run: dotnet build -c Release --no-restore
+
+      # Exit 1: the release is blocked; exit 2: the gate couldn't run. Either fails the job. The log shows each phase
+      # as it starts: [1/3] preparing the test cases, [2/3] guardrail, test cases and judge, [3/3] the decision.
       - name: Run the release gate
-        run: dotnet run -c Release -- gate
+        run: dotnet run -c Release --no-build -- gate
 
       - name: Add the gate's report to the run summary
         if: always()

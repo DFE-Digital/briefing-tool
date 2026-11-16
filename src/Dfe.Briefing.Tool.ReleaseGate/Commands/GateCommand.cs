@@ -26,7 +26,10 @@ internal static class GateCommand
         using var run = releaseGate.BeginRun();
         Console.WriteLine(string.Format(CultureInfo.InvariantCulture, ReleaseLog.RunStarted, run.Id));
 
+        Console.WriteLine(ReleaseLog.RunningTestCases);
         var report = await qualityGate.DecideReleaseAsync(BriefingAgents.All, cancellationToken);
+
+        Console.WriteLine(ReleaseLog.Deciding);
         Write(report);
         return report.ExitCode;
     }

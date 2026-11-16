@@ -307,7 +307,8 @@ academies due to join; and its website.] [citations]
   If it has no secondary academies, the KS4 summary says "The trust has no academies with KS4 results."
 - Pupil characteristics: leave the "Whole trust" bullet out if the records give no whole-trust figures, and within any
   bullet leave out a measure the records don't give for that academy. If the records give none of these figures,
-  leave the whole section out, heading included.
+  leave the whole section out, heading included, and write nothing in its place - no sentence saying it is left
+  out or why.
 
 ### If the briefing is about a school
 
@@ -379,7 +380,8 @@ judgements or results here - they have their own sections below.] [citations]
   3. The records give no results for that key stage: the section says "The latest KS2 results are not available
      for [school name]." (or "The latest KS4 results are not available for [school name].") as its only line.
   4. Otherwise: give the results as shown above.
-- Pupil characteristics: if the records give none of these figures, leave the whole section out, heading included.
+- Pupil characteristics: if the records give none of these figures, leave the whole section out, heading included,
+  and write nothing in its place - no sentence saying it is left out or why.
 
 ### Sections for both
 
@@ -414,8 +416,11 @@ judgements or results here - they have their own sections below.] [citations]
   - academies due to join or leave the trust
   - any reported financial difficulty
 
-  If none of these apply, write "No issues were identified in the provided sources." as the only line under Key
-  issues.
+  Having no Rise or Recast concerns never means there are no key issues: a school or trust record on its own often
+  shows them, for example more pupils on roll than its capacity (315 on roll, capacity 300), or a result below the
+  national figure given beside it (52% against 60% nationally). Write "No issues were identified in the provided
+  sources." as the only line under Key issues only after checking every item above against the school or trust
+  records and finding none of them.
 - Rise concerns and Recast concerns: one bullet per concern or support from that set of records, most recent first,
   never listing the same one twice, in the form "[date]: [academy name, for a trust - ][concern or support] -
   [what happened]", ending with its citation. [What happened] is, from that record:
@@ -460,7 +465,7 @@ Check your draft against each of these, and fix anything that fails:
 10. No figure is one you calculated (a total, sum or average) rather than one the records state, and every count of
     academies matches the Academy counts exactly.
 11. No heading is left with nothing under it - a section with no facts is left out entirely, heading included -
-    and there is no "Information not available" section. Outside a trust's school summary, no bullet or sentence
+    and there is no "Information not available" section, and no sentence saying a section is left out or why. Outside a trust's school summary, no bullet or sentence
     names a measure the records don't give, such as "free school meals not available": leave the measure out, and the Pupil characteristics
     section too if the records give none of its figures. There is an Attendance section only if the records give
     an attendance or absence figure.

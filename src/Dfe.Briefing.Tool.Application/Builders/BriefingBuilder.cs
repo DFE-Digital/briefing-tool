@@ -31,9 +31,9 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
         {
             ["SchoolOrTrustName"] = parameters.SchoolOrTrustName,
             ["SchoolUrnOrTrustTrn"] = parameters.SchoolUrnOrTrustTrn,
-            ["SubjectType"] = parameters.IsTrust ? "trust" : "school",
-            // The agent can't know the date itself, and needs it for "the last 3 years" of concerns.
-            ["Today"] = Today().ToString("d MMMM yyyy", EnglishCulture)
+            // No date: the evidence already holds only the last 3 years' concerns (see Concerns), so the agent needn't
+            // work out which are recent.
+            ["SubjectType"] = parameters.IsTrust ? "trust" : "school"
         });
 
     private DateOnly Today() => DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);

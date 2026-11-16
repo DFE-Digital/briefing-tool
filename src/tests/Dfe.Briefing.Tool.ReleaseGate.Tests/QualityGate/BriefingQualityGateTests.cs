@@ -75,18 +75,24 @@ public sealed class BriefingQualityGateTests : IDisposable
     }
 
     [Fact]
-    public async Task Gives_every_case_the_same_date_as_today_so_its_dates_never_age_out_of_the_concerns_window()
+    public async Task Measures_the_concerns_window_from_test_cases_today_so_its_dates_never_age_out()
     {
+        // TestCases:Today in appsettings.json (6 November 2026): FAIR-001's concern of 25 November 2024 is in the window.
         await DecideAsync();
+        Assert.Contains("Pupil places", Fair001Evidence(), StringComparison.Ordinal);
 
-        // TestCases:Today in appsettings.json, built into each prompt by the app's own builder.
-        var briefed = _cases.Where(c => c.Evidence is not null).ToList();
-        Assert.NotEmpty(briefed);
-        Assert.All(briefed, c => Assert.Contains("Today's date: 6 November 2026", c.Prompt, StringComparison.Ordinal));
+        // Ten years on, the same concern is outside it: the window follows the setting, not the clock.
+        await DecideAsync(today: "2036-11-06");
+        Assert.DoesNotContain("Pupil places", Fair001Evidence(), StringComparison.Ordinal);
+
+        // The agent isn't given the date: its evidence already holds only the window's concerns.
+        Assert.All(_cases, c => Assert.DoesNotContain("Today's date", c.Prompt, StringComparison.Ordinal));
+
+        string Fair001Evidence() => _cases.Single(c => c.Name.EndsWith("FAIR-001", StringComparison.Ordinal)).Evidence ?? string.Empty;
     }
 
     /// <summary>The gate command's host, with Foundry faked: agents, judge, guardrail check and clean-up.</summary>
-    private async Task<QualityGateReport> DecideAsync(bool leakPersonalData = false, string? addToEveryBriefing = null)
+    private async Task<QualityGateReport> DecideAsync(bool leakPersonalData = false, string? addToEveryBriefing = null, string? today = null)
     {
         var prepared = Path.Combine(_root, "prepared");
         var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { ContentRootPath = AppContext.BaseDirectory, DisableDefaults = true });
@@ -107,6 +113,8 @@ public sealed class BriefingQualityGateTests : IDisposable
                 ["AiAgents:Evaluation:ReleaseGate:PublishToFoundry"] = "false",
                 ["AiAgents:Evaluation:ReleaseGate:Repeats"] = "1",
             });
+        if (today is not null)
+            builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["TestCases:Today"] = today });
 
         // As Program.cs does, with a stand-in credential.
         builder.Services.AddInfrastructure(builder.Configuration, agents => agents

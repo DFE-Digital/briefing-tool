@@ -3,5 +3,3 @@ Write the briefing about this {{SubjectType}}, using only its records, supplied 
 Name: {{SchoolOrTrustName}}
 
 School URN or trust TRN: {{SchoolUrnOrTrustTrn}}
-
-Today's date: {{Today}}

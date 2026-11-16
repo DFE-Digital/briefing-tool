@@ -31,6 +31,7 @@ RUN --mount=type=secret,id=github_token dotnet nuget add source --username USERN
 
 # - Copy over csprojs and restore nuget packages separately so they can be cached by Docker
 COPY ./src/Dfe.Briefing.Tool.Domain/Dfe.Briefing.Tool.Domain.csproj                 /build/Dfe.Briefing.Tool.Domain/
+COPY ./src/Dfe.Briefing.Tool.Data/Dfe.Briefing.Tool.Data.csproj                     /build/Dfe.Briefing.Tool.Data/
 COPY ./src/Dfe.Briefing.Tool.Application/Dfe.Briefing.Tool.Application.csproj       /build/Dfe.Briefing.Tool.Application/
 COPY ./src/Dfe.Briefing.Tool.Infrastructure/Dfe.Briefing.Tool.Infrastructure.csproj /build/Dfe.Briefing.Tool.Infrastructure/
 COPY ./src/Dfe.Briefing.Tool.Web/Dfe.Briefing.Tool.Web.csproj                       /build/Dfe.Briefing.Tool.Web/
@@ -38,6 +39,7 @@ RUN dotnet restore Dfe.Briefing.Tool.Web
 
 # - Only copy over relevant C# code so this can be cached independently to other app changes
 COPY ./src/Dfe.Briefing.Tool.Domain/         /build/Dfe.Briefing.Tool.Domain/
+COPY ./src/Dfe.Briefing.Tool.Data/           /build/Dfe.Briefing.Tool.Data/
 COPY ./src/Dfe.Briefing.Tool.Application/    /build/Dfe.Briefing.Tool.Application/
 COPY ./src/Dfe.Briefing.Tool.Infrastructure/ /build/Dfe.Briefing.Tool.Infrastructure/
 COPY ./src/Dfe.Briefing.Tool.Web/            /build/Dfe.Briefing.Tool.Web/

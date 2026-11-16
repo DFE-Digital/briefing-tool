@@ -69,6 +69,7 @@ jobs:
         run: |
           missing=()
           for pair in \
+            APPLICATIONINSIGHTS_CONNECTION_STRING=APPLICATIONINSIGHTS_CONNECTION_STRING \
             AI_FOUNDRY_ENDPOINT=AiAgents__Foundry__Endpoint \
             AI_FOUNDRY_DEFAULT_MODEL=AiAgents__Foundry__DefaultModel \
             AI_AGENTS_TENANT_ID=AiAgents__Authentication__TenantId \

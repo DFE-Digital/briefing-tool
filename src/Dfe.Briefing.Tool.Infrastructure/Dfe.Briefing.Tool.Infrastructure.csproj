@@ -25,6 +25,9 @@
   <ItemGroup>
     <!-- Copied into the output of every app that references this project; loaded by AddSharedSettings. -->
     <None Update="appsettings.shared.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- The agents' prompts, found through AiAgents:SystemPrompts and AiAgents:UserPrompts in appsettings.shared.json, so
+         the web app and the release gate run the agents with the same prompts. -->
+    <None Update="Prompts\**\*.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

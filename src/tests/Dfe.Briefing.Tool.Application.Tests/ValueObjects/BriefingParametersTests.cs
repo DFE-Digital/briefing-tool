@@ -1,4 +1,5 @@
 using Dfe.Briefing.Tool.Domain.ValueObjects;
+using Dfe.Briefing.Tool.Domain.ValueObjects.Requests;
 using Xunit;
 
 namespace Dfe.Briefing.Tool.Application.Tests.ValueObjects;

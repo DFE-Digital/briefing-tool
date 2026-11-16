@@ -5,6 +5,7 @@ using Dfe.Briefing.Tool.Application.Builders.Interfaces;
 using Dfe.Briefing.Tool.Application.Helpers;
 using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
+using Dfe.Briefing.Tool.Domain.ValueObjects.Requests;
 using GovUK.Dfe.AI.Agents.Prompts.Interfaces;
 using GovUK.Dfe.AI.Agents.Tools;
 using GovUK.Dfe.AI.Agents.ValueObjects;

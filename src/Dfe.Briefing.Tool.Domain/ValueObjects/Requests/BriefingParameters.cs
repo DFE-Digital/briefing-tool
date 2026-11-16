@@ -1,4 +1,4 @@
-namespace Dfe.Briefing.Tool.Domain.ValueObjects;
+namespace Dfe.Briefing.Tool.Domain.ValueObjects.Requests;
 
 /// <summary>What a briefing is about.</summary>
 /// <param name="SchoolUrnOrTrustTrn">The school's URN or the trust's TRN.</param>

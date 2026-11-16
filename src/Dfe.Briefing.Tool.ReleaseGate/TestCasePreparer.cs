@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Dfe.Briefing.Tool.Application.Builders.Interfaces;
 using Dfe.Briefing.Tool.Application.Helpers;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
+using Dfe.Briefing.Tool.Domain.ValueObjects.Requests;
 using Dfe.Briefing.Tool.ReleaseGate.Constants;
 using GovUK.Dfe.AI.Agents.ValueObjects;
 using Microsoft.Extensions.Configuration;

@@ -4,6 +4,7 @@ using Dfe.Briefing.Tool.Application.Orchestrators.Interfaces;
 using Dfe.Briefing.Tool.Application.Providers;
 using Dfe.Briefing.Tool.Application.Providers.Interfaces;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
+using Dfe.Briefing.Tool.Domain.ValueObjects.Requests;
 using GovUK.Dfe.AI.Agents.Services.Interfaces;
 using GovUK.Dfe.AI.Agents.Tools.WebSearch;
 using GovUK.Dfe.AI.Agents.ValueObjects;

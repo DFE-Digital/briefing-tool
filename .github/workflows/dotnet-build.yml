@@ -79,6 +79,8 @@ jobs:
 
     - name: End Sonar analysis
       if: env.SONAR_TOKEN != ''
+      # Source generators ([GeneratedRegex], logging) add code that is compiled from memory, never written to disk, so
+      # Sonar fails on its coverage ("File ... RegexGenerator.g.cs does not exist"): it's left out of the report.
       run: |
-        reportgenerator -reports:"**/TestResults/*.cobertura.xml" -targetdir:./CoverageReport -reporttypes:SonarQube
+        reportgenerator -reports:"**/TestResults/*.cobertura.xml" -targetdir:./CoverageReport -reporttypes:SonarQube "-filefilters:-*.g.cs;-*/obj/*"
         dotnet-sonarscanner end /d:sonar.token=$SONAR_TOKEN

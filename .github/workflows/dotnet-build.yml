@@ -67,16 +67,11 @@ jobs:
 
     - name: Begin Sonar analysis
       if: env.SONAR_TOKEN != ''
-      # qualitygate.wait: End Sonar analysis waits for SonarCloud's quality gate and fails the job if the PR's new code
-      # fails it (new issues, hotspots, coverage or duplication), so a PR with Sonar issues can't pass this check.
-      # projectBaseDir: the repository root, so every project and the coverage report's paths are found from one place.
       run: dotnet-sonarscanner begin /d:sonar.token=$SONAR_TOKEN /o:dfe-digital /k:$SONAR_PROJECT_KEY /d:sonar.projectBaseDir=$GITHUB_WORKSPACE /d:sonar.coverageReportPaths=./CoverageReport/SonarQube.xml /d:sonar.qualitygate.wait=true
 
     - name: Build
       run: dotnet build ${{ env.SOLUTION }} --no-restore -c Release
 
-    # The tests run on Microsoft Testing Platform (global.json), so coverage comes from its own --coverage option. Each
-    # test project writes its own uniquely named .cobertura.xml: a fixed --coverage-output name would overwrite the first.
     - name: Test
       run: dotnet test --solution ${{ env.SOLUTION }} --no-build -c Release --coverage --coverage-output-format cobertura
 

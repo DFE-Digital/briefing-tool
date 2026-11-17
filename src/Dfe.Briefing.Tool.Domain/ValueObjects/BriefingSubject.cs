@@ -1,3 +1,5 @@
+using Dfe.Briefing.Tool.Domain.ValueObjects.Requests;
+
 namespace Dfe.Briefing.Tool.Domain.ValueObjects;
 
 /// <summary>The school or trust a briefing is about, as its record shows it, for the person to confirm.</summary>

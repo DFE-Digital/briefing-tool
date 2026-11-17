@@ -1,6 +1,6 @@
 using System.Text;
 using System.Text.Json.Nodes;
-using Dfe.Briefing.Tool.Domain.ValueObjects;
+using Dfe.Briefing.Tool.Domain.ValueObjects.Requests;
 using Dfe.Briefing.Tool.ReleaseGate.Constants;
 
 namespace Dfe.Briefing.Tool.ReleaseGate.Commands;

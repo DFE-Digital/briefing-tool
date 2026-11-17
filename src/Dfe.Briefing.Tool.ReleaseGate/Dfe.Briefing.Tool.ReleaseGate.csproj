@@ -19,10 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The gate tests the agents exactly as the web app runs them: the shared settings (appsettings.shared.json, copied
-         from Infrastructure) and the web app's prompt files. The prompts stay in the web app (edit them there); they're
-         only copied into the gate's output, so they're hidden here. -->
-    <None Include="..\Dfe.Briefing.Tool.Web\Prompts\**\*.md" Link="Prompts\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <!-- The gate tests the agents exactly as the web app runs them: the shared settings and prompts both come from
+         Infrastructure (appsettings.shared.json and Prompts), copied in through its project reference. -->
     <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestCases\**\*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Baselines\**\*.json" CopyToOutputDirectory="PreserveNewest" />

@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Dfe.Briefing.Tool.Application.Builders.Interfaces;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
+using Dfe.Briefing.Tool.Domain.ValueObjects.Requests;
 using GovUK.Dfe.AI.Agents.ValueObjects;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

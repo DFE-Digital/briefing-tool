@@ -19,7 +19,7 @@ docker-compose.dcproj
 
 ### Docs
 docs
-# Only the Markdown at the root: the agents' prompts (src/Dfe.Briefing.Tool.Web/Prompts/**/*.md) must stay in the image,
+# Only the Markdown at the root: the agents' prompts (src/Dfe.Briefing.Tool.Infrastructure/Prompts/**/*.md) must stay in the image,
 # so never change this to **/*.md
 *.md
 CODEOWNERS

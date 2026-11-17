@@ -197,16 +197,4 @@
     <ProjectReference Include="..\Dfe.Briefing.Tool.Infrastructure\Dfe.Briefing.Tool.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="Prompts\Systems\Briefing.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Prompts\Systems\WebSearch.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Prompts\Briefing.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>

@@ -1,7 +1,7 @@
 using Dfe.Briefing.Tool.Application.Options;
 using Dfe.Briefing.Tool.Application.Providers;
 using Dfe.Briefing.Tool.Domain.Constants;
-using Dfe.Briefing.Tool.Domain.ValueObjects;
+using Dfe.Briefing.Tool.Domain.ValueObjects.Requests;
 using GovUK.Dfe.AI.Agents.Context.Interfaces;
 using GovUK.Dfe.AI.Agents.Filters;
 using GovUK.Dfe.AI.Agents.ValueObjects;

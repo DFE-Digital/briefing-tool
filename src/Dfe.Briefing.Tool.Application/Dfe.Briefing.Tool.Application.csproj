@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Dfe.Briefing.Tool.Data\Dfe.Briefing.Tool.Data.csproj" />
     <ProjectReference Include="..\Dfe.Briefing.Tool.Domain\Dfe.Briefing.Tool.Domain.csproj" />
   </ItemGroup>
 

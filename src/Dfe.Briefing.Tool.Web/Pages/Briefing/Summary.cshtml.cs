@@ -2,6 +2,7 @@ using Dfe.Briefing.Tool.Application.Helpers;
 using Dfe.Briefing.Tool.Application.Orchestrators.Interfaces;
 using Dfe.Briefing.Tool.Application.Providers.Interfaces;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
+using Dfe.Briefing.Tool.Domain.ValueObjects.Requests;
 using Dfe.Briefing.Tool.Web.Sanitization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;

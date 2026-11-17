@@ -158,9 +158,11 @@ public sealed class BriefingEvidenceProviderTests
     // Progress<T> reports on the thread pool, so a test can't rely on it; this reports as it's called.
     private sealed class SynchronousProgress(Action<string> report) : IProgress<string>
     {
+        private readonly Lock _gate = new();
+
         public void Report(string value)
         {
-            lock (this)
+            lock (_gate)
                 report(value);
         }
     }

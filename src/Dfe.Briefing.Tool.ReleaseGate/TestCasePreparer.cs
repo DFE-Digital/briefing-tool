@@ -45,8 +45,6 @@ internal static partial class TestCasePreparer
             if (testsFile.ContainsKey(TestCaseFields.Tests))
                 throw new InvalidDataException(TestCaseErrors.UseSections(relativePath));
 
-            // The file keeps its principle's "type", "description" and sections, which the library reads as they are;
-            // only each case's subject and records change.
             foreach (var (section, isAttack) in new[] { (TestCaseFields.EvaluationSection, false), (TestCaseFields.GuardrailSection, true) })
             {
                 var tests = testsFile[section]?.AsArray() ?? [];
@@ -103,11 +101,11 @@ internal static partial class TestCasePreparer
             testCase[TestCaseFields.MustNotMention] = mustNotMention = [];
         var listed = mustNotMention.Select(static node => node?.GetValue<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var value in RawDateRegex().Matches(text).Concat(RawAcademicYearRegex().Matches(text)).Select(static m => m.Groups["value"].Value))
-        {
-            if (listed.Add(value) && !expected.Exists(e => e.Contains(value, StringComparison.OrdinalIgnoreCase)))
-                mustNotMention.Add(value);
-        }
+        var rawValues = RawDateRegex().Matches(text).Concat(RawAcademicYearRegex().Matches(text))
+            .Select(static m => m.Groups["value"].Value)
+            .Where(value => !expected.Exists(e => e.Contains(value, StringComparison.OrdinalIgnoreCase)) && listed.Add(value));
+        foreach (var value in rawValues)
+            mustNotMention.Add(value);
     }
 
     // Not between word boundaries: a timestamp's date ("2025-03-03T09:30:00Z") is followed by a letter, and is raw too.

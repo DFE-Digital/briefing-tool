@@ -108,8 +108,6 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
             End every finding with a link in the form [publisher](full address of the page) - never a publisher's name alone. Start every finding with the date the page was published, as d mmmm yyyy, or "Date not given:" - never "today", "3 days ago" or any other relative date.
             """;
     }
-    // The briefing's own citations are bracketed record names with no address, e.g. "[Silverdale School 139167 …]";
-    // left in, the web search agent copies that style and cites news without a link. Only the facts are needed.
     public string BuildWebSearchEvidence(string briefing) => CitationRegex().Replace(briefing, string.Empty);
 
     [GeneratedRegex(@"[ \t]*\[[^\[\]\r\n]+\](?:\([^()\s]+\))?")]

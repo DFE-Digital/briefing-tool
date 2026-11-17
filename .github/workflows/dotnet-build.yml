@@ -13,22 +13,49 @@ permissions:
   packages: read
 
 env:
+  JAVA_VERSION: '21'
   DOTNET_VERSION: '10.0.x'
   DOTNET_NOLOGO: true
   SOLUTION: src/Dfe.Briefing.Tool.slnx
 
-# Sonar analysis is in sonarcloud.yml.
 jobs:
   build:
-    name: Build .NET and Test
+    name: Build .NET, Test and Analyse
     runs-on: ubuntu-latest
+    env:
+      # Sonar analysis runs only when the token is set, so the build and tests still run (and gate PRs) without it.
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || 'DFE-Digital_briefing-tool' }}
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      with:
+        fetch-depth: 0 # Shallow clones disabled for a better relevancy of SC analysis
 
     - name: Setup .NET ${{ env.DOTNET_VERSION }}
       uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      if: env.SONAR_TOKEN != ''
+      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'microsoft'
+
+    - name: Cache SonarCloud packages
+      if: env.SONAR_TOKEN != ''
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: ~/.sonar
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+
+    - name: Install SonarCloud scanner and report generator
+      if: env.SONAR_TOKEN != ''
+      run: |
+        dotnet tool install --global dotnet-sonarscanner
+        dotnet tool install --global dotnet-reportgenerator-globaltool
 
     - name: Add nuget package source
       env:
@@ -38,8 +65,24 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION }}
 
+    - name: Begin Sonar analysis
+      if: env.SONAR_TOKEN != ''
+      # qualitygate.wait: End Sonar analysis waits for SonarCloud's quality gate and fails the job if the PR's new code
+      # fails it (new issues, hotspots, coverage or duplication), so a PR with Sonar issues can't pass this check.
+      run: dotnet-sonarscanner begin /d:sonar.token=$SONAR_TOKEN /o:dfe-digital /k:$SONAR_PROJECT_KEY /d:sonar.coverageReportPaths=./CoverageReport/SonarQube.xml /d:sonar.qualitygate.wait=true
+
     - name: Build
       run: dotnet build ${{ env.SOLUTION }} --no-restore -c Release
 
+    # The tests run on Microsoft Testing Platform (global.json), so coverage comes from its own --coverage option. Each
+    # test project writes its own uniquely named .cobertura.xml: a fixed --coverage-output name would overwrite the first.
     - name: Test
-      run: dotnet test --solution ${{ env.SOLUTION }} --no-build -c Release
+      run: dotnet test --solution ${{ env.SOLUTION }} --no-build -c Release --coverage --coverage-output-format cobertura
+
+    - name: End Sonar analysis
+      if: env.SONAR_TOKEN != ''
+      # Source generators ([GeneratedRegex], logging) add code that is compiled from memory, never written to disk, so
+      # Sonar fails on its coverage ("File ... RegexGenerator.g.cs does not exist"): it's left out of the report.
+      run: |
+        reportgenerator -reports:"**/TestResults/*.cobertura.xml" -targetdir:./CoverageReport -reporttypes:SonarQube "-filefilters:-*.g.cs;-*/obj/*"
+        dotnet-sonarscanner end /d:sonar.token=$SONAR_TOKEN

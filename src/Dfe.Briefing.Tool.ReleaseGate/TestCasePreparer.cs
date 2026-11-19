@@ -154,10 +154,11 @@ internal static partial class TestCasePreparer
             throw new InvalidDataException(TestCaseErrors.UnknownRecords(relativePath, unknown, allowed));
 
         var subjectRecord = isTrust ? TestCaseFields.TrustRecords : TestCaseFields.SchoolRecords;
-        if (records[subjectRecord]?.GetValue<string>() is not { Length: > 0 })
+        if (string.IsNullOrWhiteSpace(records[subjectRecord]?.GetValue<string>()))
             throw new InvalidDataException(TestCaseErrors.SubjectRecordNeeded(relativePath, subjectRecord));
 
-        ContextResult Set(string key) => records[key]?.GetValue<string>() is { Length: > 0 } text
+        // A set given as null, "" or only spaces has no records, as when the Rise or Recast index finds none.
+        ContextResult Set(string key) => records[key]?.GetValue<string>() is { } text && !string.IsNullOrWhiteSpace(text)
             ? new ContextResult(text, HasEvidence: true)
             : new ContextResult(string.Empty, HasEvidence: false);
 

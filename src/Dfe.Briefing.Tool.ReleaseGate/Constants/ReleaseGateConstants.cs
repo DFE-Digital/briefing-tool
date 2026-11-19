@@ -3,12 +3,10 @@ using GovUK.Dfe.AI.Agents.Evaluation.ResponsibleAI.Enums;
 
 namespace Dfe.Briefing.Tool.ReleaseGate.Constants;
 
-/// <summary>The release gate's commands and their options.</summary>
+/// <summary>The release gate's commands.</summary>
 internal static class CommandNames
 {
     public const string Gate = "gate";
-    public const string ExportCopilotStudio = "export-copilot-studio";
-    public const string DefaultExportFolder = "copilot-studio";
 }
 
 /// <summary>Configuration keys and the files the gate reads.</summary>
@@ -60,27 +58,6 @@ internal static class TestCaseFields
     public const string RecastConcerns = "recastConcerns";
     public const string MustMention = "mustMention";
     public const string MustNotMention = "mustNotMention";
-
-    public const string CopilotStudio = "copilotStudio";
-    public const string CopilotStudioQuestion = "question";
-    public const string CopilotStudioExpectedResponse = "expectedResponse";
-}
-
-/// <summary>The Copilot Studio test set file, in the format its evaluation imports.</summary>
-internal static class CopilotStudioTestSet
-{
-    // Copilot Studio's limits for an imported single-response test set.
-    public const int MaxQuestions = 100;
-    public const int MaxQuestionLength = 1000;
-
-    public const string TestSetFile = "test-set.csv";
-
-    // The import takes exactly these two headings, in this order.
-    public const string QuestionHeading = "Question";
-    public const string ExpectedResponseHeading = "Expected response";
-
-    public const string ListSeparator = "; ";
-    public const string MarkdownHeadingPrefix = "#";
 }
 
 /// <summary>

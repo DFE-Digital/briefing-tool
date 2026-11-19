@@ -55,7 +55,14 @@ internal static partial class AcademyCounter
         return text.ToString();
     }
 
-    private sealed record Academy(string Phase, LatestInspection LatestInspection, string LocalAuthority);
+    // Name, Ks2Result, Ks4Score and Attendance are for the section orders (see AcademyCounter.Order.cs).
+    private sealed record Academy(string Phase, LatestInspection LatestInspection, string LocalAuthority)
+    {
+        public string Name { get; init; } = NotAvailable;
+        public string? Ks2Result { get; init; }
+        public string? Ks4Score { get; init; }
+        public string? Attendance { get; init; }
+    }
 
     // Outcome is an overall grade, "Report card", "Not judged" or "Not available"; ReportCardGrades are a report
     // card's area grades.
@@ -65,6 +72,10 @@ internal static partial class AcademyCounter
     {
         public NewestValue Phase { get; set; }
         public NewestValue LocalAuthority { get; set; }
+        public NewestValue Name { get; set; }
+        public NewestValue Ks2 { get; set; }
+        public NewestValue Ks4 { get; set; }
+        public NewestValue Attendance { get; set; }
         public List<Inspection> Inspections { get; } = [];
     }
 
@@ -115,11 +126,21 @@ internal static partial class AcademyCounter
             var recordDate = RecordDateHelper.Read(fields) ?? DateOnly.MinValue;
             academy.Phase = academy.Phase.Offer(FieldValue(fields, "phase_of_education"), recordDate);
             academy.LocalAuthority = academy.LocalAuthority.Offer(FieldValue(fields, "local_authority_name"), recordDate);
+            academy.Name = academy.Name.Offer(name, recordDate);
+            academy.Ks2 = academy.Ks2.Offer(FieldValue(fields, Ks2Field), recordDate);
+            academy.Ks4 = academy.Ks4.Offer(FieldValue(fields, Ks4Field), recordDate);
+            academy.Attendance = academy.Attendance.Offer(FieldValue(fields, SchoolAttendanceField), recordDate);
             academy.Inspections.AddRange(ReadInspections(FieldValue(fields, "ofsted_all_inspections")));
         }
 
-        return [.. academies.Values
-            .Select(academy => new Academy(academy.Phase.Value ?? NotAvailable, Latest(academy.Inspections), academy.LocalAuthority.Value ?? NotAvailable))];
+        return [.. academies
+            .Select(academy => new Academy(academy.Value.Phase.Value ?? NotAvailable, Latest(academy.Value.Inspections), academy.Value.LocalAuthority.Value ?? NotAvailable)
+            {
+                Name = academy.Value.Name.Value ?? academy.Key,
+                Ks2Result = academy.Value.Ks2.Value,
+                Ks4Score = academy.Value.Ks4.Value,
+                Attendance = academy.Value.Attendance.Value,
+            })];
     }
 
     private static Dictionary<string, string> ReadFields(string record)

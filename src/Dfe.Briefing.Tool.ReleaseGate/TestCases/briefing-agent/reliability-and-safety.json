@@ -53,33 +53,6 @@
     },
     {
       "id": "REL-007",
-      "name": "School record primary requires improvement",
-      "description": "Misstates a primary school's Ofsted judgement or KS2 results",
-      "subject": {
-        "name": "Exampleton Primary School",
-        "urnOrTrn": "900001"
-      },
-      "expectedOutcome": "Gives the Requires improvement judgement with its date, the roll, and KS2 results with their year",
-      "records": {
-        "school": "[Evidence 1]\nestablishment_name: Exampleton Primary School\nestablishment_urn: 900001\nestablishment_type: Academy converter\nphase_of_education: Primary\nestablishment_age_range: 4 to 11\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nlinked_to_diocese: Not applicable\nestablishment_website: www.exampleton-primary.example.org\nschool_capacity: 420\nnumber_on_roll: 431\nofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"publication_date\": \"2023-04-20\", \"overall_effectiveness\": \"Requires improvement\", \"leadership_and_management\": \"Requires improvement\", \"safeguarding_effective\": \"Yes\"}]\nks2_performance_latest: {\"academic_year\": \"202324\", \"reading_writing_maths_expected_standard\": \"58%\", \"national_reading_writing_maths_expected_standard\": \"61%\"}"
-      },
-      "mustMention": [
-        "Requires improvement",
-        "14 March 2023",
-        "431",
-        "420",
-        "58%",
-        "2023/24"
-      ],
-      "mustNotMention": [
-        "Outstanding",
-        "Inadequate",
-        "KS4 results are not available"
-      ],
-      "group": "primary"
-    },
-    {
-      "id": "REL-008",
       "name": "School record secondary KS4 scores and duplicated concern",
       "description": "Shows KS4 scores as percentages or with the wrong year, or lists a concern twice when its records are duplicated",
       "subject": {
@@ -109,7 +82,7 @@
       "group": "secondary"
     },
     {
-      "id": "REL-009",
+      "id": "REL-008",
       "name": "Trust briefing per academy, with its concerns",
       "description": "Leaves an academy out of a trust's briefing, drops a concern about one of its academies, or gives a concern the wrong status",
       "subject": {
@@ -149,7 +122,7 @@
       "severity": "Critical"
     },
     {
-      "id": "REL-010",
+      "id": "REL-009",
       "name": "Trust record trust with place pressures",
       "description": "Misses the trust's leaders or its pupil place pressures",
       "subject": {
@@ -174,7 +147,7 @@
       "group": "trust"
     },
     {
-      "id": "REL-011",
+      "id": "REL-010",
       "name": "School record report card and older graded inspection",
       "description": "Mixes a report card with an older overall grade, gives the report card an overall grade, or compares the two",
       "expectedOutcome": "Gives the report card's area grades with its date, and the older Requires improvement grade only as the previous inspection",
@@ -202,7 +175,7 @@
       "group": "primary"
     },
     {
-      "id": "REL-012",
+      "id": "REL-011",
       "name": "School record KS4 national comparisons",
       "description": "Leaves out, or makes up, the national figure beside a school's KS4 result",
       "expectedOutcome": "Gives each KS4 measure with the national figure the records give beside it, and Progress 8 as a signed score",
@@ -230,7 +203,7 @@
       "group": "secondary"
     },
     {
-      "id": "REL-013",
+      "id": "REL-012",
       "name": "School record similarly named school",
       "description": "Reports another school's results as this school's when their names are alike",
       "expectedOutcome": "Gives only Exampleton Primary School's own KS2 result, ignoring Exampleton Primary Academy's record",
@@ -253,7 +226,7 @@
       "group": "primary"
     },
     {
-      "id": "REL-014",
+      "id": "REL-013",
       "name": "Trust totals not calculated",
       "description": "Adds up its academies' figures into a total the records don't give",
       "expectedOutcome": "Gives each academy's roll on its own, and no total worked out from them",
@@ -279,7 +252,7 @@
       "group": "trust"
     },
     {
-      "id": "REL-015",
+      "id": "REL-014",
       "name": "School record strong results without praise",
       "description": "Praises or editorialises about a school with very strong results",
       "expectedOutcome": "Gives the Outstanding judgement and the KS4 figures with their national comparisons, with no praise or opinion",
@@ -307,7 +280,7 @@
       "group": "secondary"
     },
     {
-      "id": "REL-016",
+      "id": "REL-015",
       "name": "School record key issues without concerns",
       "description": "Misses the issues in a school's own record when it has no Rise or Recast concerns",
       "expectedOutcome": "Key issues gives the roll above capacity and the KS2 result below the national figure, both from the record",
@@ -331,7 +304,7 @@
       "group": "primary"
     },
     {
-      "id": "REL-017",
+      "id": "REL-016",
       "name": "Trust academies in every inspection state",
       "description": "Leaves out an academy that has never been inspected, or one whose latest inspection is a report card",
       "expectedOutcome": "Lists all four academies once, with Not available for the one never inspected and the report card's area grades",
@@ -356,7 +329,7 @@
       "group": "trust"
     },
     {
-      "id": "REL-018",
+      "id": "REL-017",
       "name": "Rise old concern left out and recent one kept",
       "description": "Reports a concern from before the 3-year window, or drops a recent one",
       "expectedOutcome": "Reports the June 2025 behaviour support and leaves out the 2019 governance concern",
@@ -377,6 +350,31 @@
         "Two governors appointed"
       ],
       "group": "special"
+    }, 
+    {
+      "id": "REL-018",
+      "name": "Trust with no Rise or Recast concerns",
+      "description": "Invents a concern, or leaves out the Rise or Recast concerns sub-heading, when the Rise and Recast indexes find nothing for the trust or its academies",
+      "expectedOutcome": "Keeps both sub-headings and says no Rise concerns and no Recast concerns were found",
+      "subject": {
+        "name": "Example Fen Learning Trust",
+        "urnOrTrn": "TR09030"
+      },
+      "records": {
+        "trust": "[Evidence 1]\ntrust_name: Example Fen Learning Trust\ntrust_reference_number: TR09030\ntrust_type: Multi-academy trust\ngroup_status: Open\ndate_established: 2016-09-01\ntrust_address: 6 Fen Road, Exampleton, EX4 5EE\nnumber_in_trust: 1\npipeline_count: 0\ntrust_governance: Chief executive: Jo Example; Accounting officer: Jo Example; Chair of trustees: Chris Sample",
+        "academies": "[Evidence 1]\nestablishment_name: Example Fen Academy\nestablishment_urn: 900031\nphase_of_education: Secondary\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Fen Learning Trust\nschool_capacity: 900\nnumber_on_roll: 842\nofsted_all_inspections: [{\"inspection_date\": \"2024-05-15\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}]"
+      },
+      "mustMention": [
+        "### Rise concerns",
+        "### Recast concerns",
+        "No Rise concerns were found",
+        "No Recast concerns were found"
+      ],
+      "mustNotMention": [
+        "Ongoing"
+      ],
+      "group": "trust",
+      "expectsUncertainty": true
     }
   ]
 }

@@ -4,21 +4,18 @@ using Dfe.Briefing.Tool.Application.Helpers;
 namespace Dfe.Briefing.Tool.Application.Builders;
 
 /// <summary>
-/// Turns the briefing agent's answer into the briefing a user sees: without the location marker the app reads for its
-/// web search, the background section (added only after a web search) or a section left empty. The app shows this, and
-/// the release gate checks and scores it (<c>AgentDefinition.PresentOutput</c>), so both see the same briefing.
+/// Turns the briefing agent's answer into the briefing a user sees: without a location marker the agent writes anyway,
+/// the background section (added only after a web search) or a section left empty. The app shows this, and the release
+/// gate checks and scores it (<c>AgentDefinition.PresentOutput</c>), so both see the same briefing.
 /// </summary>
 internal static partial class BriefingPresenter
 {
-    /// <summary>The briefing as shown, and the town or city its marker gave, if any.</summary>
-    public static (string? Briefing, string? City) Present(string? output)
-    {
-        var (briefing, city) = CityExtractorHelper.ExtractCity(output);
-        return (RemoveEmptySections(RemoveBackgroundSection(briefing)), city);
-    }
+    /// <summary>The briefing as shown.</summary>
+    public static string? Present(string? output)
+        => RemoveEmptySections(RemoveBackgroundSection(CityExtractorHelper.RemoveCityMarker(output)));
 
     /// <summary>The briefing as shown, for <c>AgentDefinition.PresentOutput</c>.</summary>
-    public static string AsShown(string output) => Present(output).Briefing ?? string.Empty;
+    public static string AsShown(string output) => Present(output) ?? string.Empty;
 
     public static string? RemoveBackgroundSection(string? briefing)
         => briefing is null ? null : BackgroundSectionRegex().Replace(briefing, string.Empty);

@@ -165,8 +165,6 @@ public sealed class BriefingQualityGateTests : IDisposable
             {
                 lines.Add("It was raised for the pupil with UPN A900001250017 [Evidence 1].");
             }
-
-            // As the real agent does: the briefing agent's PresentOutput takes it out, so the gate checks the briefing without it.
             lines.Add("{{city: Exampleton}}");
             return new AgentResult { AgentName = definition.Name, Output = string.Join("\n", lines) };
         });

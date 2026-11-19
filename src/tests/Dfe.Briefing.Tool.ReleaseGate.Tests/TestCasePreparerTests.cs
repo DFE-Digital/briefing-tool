@@ -167,6 +167,56 @@ public sealed class TestCasePreparerTests : IDisposable
         }
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(""", "riseConcerns": "", "recastConcerns": "" """)]
+    [InlineData(""", "riseConcerns": null, "recastConcerns": null """)]
+    [InlineData(""", "riseConcerns": "  ", "recastConcerns": "\n\t" """)]
+    public async Task Rise_and_Recast_concerns_left_out_or_empty_are_built_as_no_records(string concerns)
+    {
+        var root = Directory.CreateTempSubdirectory("briefing-no-concerns-");
+        try
+        {
+            var agent = Directory.CreateDirectory(Path.Combine(root.FullName, "briefing-agent"));
+            await File.WriteAllTextAsync(Path.Combine(agent.FullName, "reliability-and-safety.json"), $$"""
+                { "type": "reliability-and-safety", "evaluation": [
+                  { "id": "REL-900", "description": "d", "subject": { "name": "Exampleton Primary School", "urnOrTrn": "900001" },
+                    "records": { "school": "[Evidence 1]\nestablishment_urn: 900001" {{concerns}} }, "mustMention": [ "x" ] },
+                  { "id": "REL-901", "description": "d", "subject": { "name": "Example Learning Trust", "urnOrTrn": "TR09001" },
+                    "records": { "trust": "[Evidence 1]\ntrust_reference_number: TR09001" {{concerns}} }, "mustMention": [ "x" ] } ] }
+                """, TestContext.Current.CancellationToken);
+
+            await TestCasePreparer.PrepareAsync(new ServiceCollection().AddScoped(_ => _builder).BuildServiceProvider(), _prepared.FullName,
+                TestContext.Current.CancellationToken, root.FullName);
+
+            Assert.Equal([false, true], _built.Select(built => built.Parameters.IsTrust));
+            Assert.All(_built, built => Assert.True(built.Records.Subject.HasEvidence));
+            Assert.All(_built.SelectMany(built => new[] { built.Records.RiseConcerns, built.Records.RecastConcerns }), set =>
+            {
+                Assert.False(set.HasEvidence);
+                Assert.Empty(set.Text);
+            });
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("Example Fen Primary School", false)]
+    [InlineData("Example Fen Learning Trust", true)]
+    public async Task A_school_and_a_trust_case_have_no_Rise_or_Recast_concerns(string subject, bool isTrust)
+    {
+        await PrepareAsync();
+
+        // REL-019 and REL-020 are the only cases about these subjects.
+        var built = Assert.Single(_built, built => built.Parameters.SchoolOrTrustName == subject);
+        Assert.Equal(isTrust, built.Parameters.IsTrust);
+        Assert.False(built.Records.RiseConcerns.HasEvidence);
+        Assert.False(built.Records.RecastConcerns.HasEvidence);
+    }
+
     private static List<string> MustNotMention(JsonObject testCase)
         => testCase["mustNotMention"]?.AsArray().Select(node => node!.GetValue<string>()).ToList() ?? [];
 

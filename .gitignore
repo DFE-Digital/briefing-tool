@@ -430,4 +430,3 @@ FodyWeavers.xsd
 
 # Release gate reports (copy a passing one into src/Dfe.Briefing.Tool.ReleaseGate/Baselines to keep it)
 evaluation-reports/
-copilot-studio/

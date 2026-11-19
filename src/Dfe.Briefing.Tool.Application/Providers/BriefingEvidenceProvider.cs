@@ -58,6 +58,10 @@ internal partial class BriefingEvidenceProvider(IContextRetriever contextRetriev
     /// <summary>
     /// Builds a query string from a normalized name and a reference token.
     /// </summary>
+    /// <remarks>
+    /// A full-text search for now: filtering the concerns indexes on establishment_urn or trust_reference_number waits
+    /// until their schema is confirmed to have those fields, filterable.
+    /// </remarks>
     /// <param name="name">Name text to normalize by replacing phrase breaks with spaces and trimming surrounding whitespace.</param>
     /// <param name="reference">Reference text appended after the quoted name.</param>
     /// <returns>A string containing the normalized name in double quotes followed by a space and the reference text.</returns>
@@ -65,7 +69,8 @@ internal partial class BriefingEvidenceProvider(IContextRetriever contextRetriev
         => $"\"{PhraseBreakingRegex().Replace(name, " ").Trim()}\" {reference}";
 
     [GeneratedRegex(@"[""\\]", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex PhraseBreakingRegex(); 
+    private static partial Regex PhraseBreakingRegex();
+
     private static async Task<ContextResult> ReportedAsync(string name, string noneFound, Task<ContextResult> search, IProgress<string>? progress)
     {
         var result = await search;

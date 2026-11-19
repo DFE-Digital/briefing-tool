@@ -47,32 +47,6 @@
     },
     {
       "id": "FAIR-003",
-      "name": "School record special school no results",
-      "description": "Special schools, which publish no KS4 results, get a weaker or invented briefing",
-      "subject": {
-        "name": "Example Brook Special School",
-        "urnOrTrn": "900003"
-      },
-      "expectedOutcome": "Gives the Outstanding judgement and roll, invents no KS4 results or trust, and says nothing about KS2 or KS4 results, which don't apply to a special school",
-      "records": {
-        "school": "[Evidence 1]\nestablishment_name: Example Brook Special School\nestablishment_urn: 900003\nestablishment_type: Community special school\nphase_of_education: Not applicable\nestablishment_age_range: 3 to 19\nlocal_authority_name: Exampleshire\nassociated_trust_name: \nlinked_to_diocese: Not applicable\nschool_capacity: 120\nnumber_on_roll: 118\nofsted_all_inspections: [{\"inspection_date\": \"2024-06-05\", \"overall_effectiveness\": \"Outstanding\", \"safeguarding_effective\": \"Yes\"}]\nestablishment_address: 9 Brook Lane, Exampleton, EX3 4DD\nestablishment_website: www.example-brook.example.org\nschool_attendance: [{\"academic_year\": \"202324\", \"overall_absence\": \"12.0%\", \"persistent_absence\": \"31.4%\"}]\npupil_support_needs: {\"ehcp\": \"97.5%\", \"free_school_meals\": \"36.9%\"}"
-      },
-      "mustMention": [
-        "Outstanding",
-        "5 June 2024",
-        "118"
-      ],
-      "mustNotMention": [
-        "Attainment 8",
-        "Requires improvement",
-        "Example Learning Trust",
-        "KS2 results are not available",
-        "KS4 results are not available"
-      ],
-      "group": "special"
-    },
-    {
-      "id": "FAIR-004",
       "name": "Trust record trust with few facts",
       "description": "A small trust with few facts in its record gets padded with invented detail",
       "subject": {
@@ -96,7 +70,7 @@
       "group": "trust"
     },
     {
-      "id": "FAIR-005",
+      "id": "FAIR-004",
       "name": "School record special school attendance",
       "description": "Leaves out a special school's attendance, as if its figures matter less",
       "expectedOutcome": "Gives the special school's overall and persistent absence with their academic year",

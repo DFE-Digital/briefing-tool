@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Dfe.Briefing.Tool.Application.Builders.Interfaces;
-using Dfe.Briefing.Tool.Application.Helpers;
 using Dfe.Briefing.Tool.Domain.Constants;
 using Dfe.Briefing.Tool.Domain.ValueObjects;
 using Dfe.Briefing.Tool.Domain.ValueObjects.Requests;
@@ -19,48 +18,62 @@ namespace Dfe.Briefing.Tool.Application.Builders;
 internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTemplateBuilder promptBuilder, TimeProvider timeProvider)
     : IBriefingBuilder
 {
+    private const string EstablishmentUrnField = "establishment_urn";
+    private const string TrustReferenceNumberField = "trust_reference_number";
     public AIResult BuildNoEvidenceResult(BriefingParameters parameters)
     {
         var message = parameters.IsTrust ? ErrorMessages.NoTrustInformationFound : ErrorMessages.NoSchoolOrAcademyFound;
         return new AIResult($"# {parameters.SchoolOrTrustName}\n\n{message}", TotalTokens: 0);
     }
 
-    public (string? Briefing, string? City) PresentBriefing(string? output) => BriefingPresenter.Present(output);
+    public string? PresentBriefing(string? output) => BriefingPresenter.Present(output);
+
+    public string? FindTown(BriefingParameters parameters, BriefingRecords records) => TownFinder.Find(parameters, records);
+
+    public string? OrderAcademies(string? briefing, BriefingParameters parameters, BriefingRecords records)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        ArgumentNullException.ThrowIfNull(records);
+
+        return parameters.IsTrust && records.Related.HasEvidence
+            ? AcademyListOrder.Apply(briefing, AcademyCounter.Order(records.Related.Text, records.Subject.Text))
+            : briefing;
+    }
 
     public string BuildBriefingPrompt(BriefingParameters parameters)
         => promptBuilder.Build(UserPromptType.Briefing, new Dictionary<string, string>
         {
             ["SchoolOrTrustName"] = parameters.SchoolOrTrustName,
-            ["SchoolUrnOrTrustTrn"] = parameters.SchoolUrnOrTrustTrn,
-            // No date: the evidence already holds only the last 3 years' concerns (see Concerns), so the agent needn't
-            // work out which are recent.
+            ["SchoolUrnOrTrustTrn"] = parameters.SchoolUrnOrTrustTrn, 
             ["SubjectType"] = parameters.IsTrust ? "trust" : "school"
         });
 
     private DateOnly Today() => DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
 
-    // Each search numbers its own records from 1, so they're renumbered to run on across the sets, each set under its
-    // own label: every [Evidence n] the agent cites then points at one record, and at its source.
+    /// <summary>
+    /// Builds briefing evidence text and source mappings from subject, concerns, and related records.
+    /// </summary>
+    /// <param name="parameters">Defines briefing context, including subject type and identifiers used to label and shape evidence sections.</param>
+    /// <param name="records">Provides subject, concern, and related record sets used to compose evidence content and sources.</param>
+    /// <returns>An AgentEvidence instance containing merged, labeled evidence text and renumbered sources with consistent
+    /// offsets.</returns>
     public AgentEvidence BuildBriefingEvidence(BriefingParameters parameters, BriefingRecords records)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         ArgumentNullException.ThrowIfNull(records);
-
-        // Evidence over AiAgents:MaxEvidenceCharacters is cut from the end, so the related records - a large trust's
-        // academies can be hundreds of records - go last, after the subject's own record and its concerns. A trust's
-        // academy counts, made in code from all of those records, go straight after its own record, so they're never cut.
+         
         var academyCounts = parameters.IsTrust && records.Related.HasEvidence ? AcademyCounter.Count(records.Related.Text) : null;
-        // For a special school or alternative provision with no results, so the agent doesn't call them "not available".
         var keyStageResults = parameters.IsTrust ? null : KeyStageResults.NotApplicable(records.Subject, parameters.SchoolUrnOrTrustTrn, parameters.SchoolOrTrustName);
         (string Label, ContextResult Result)[] sets =
         [
-            // Websites with their https:// already added (see WebsiteAddress).
-            (parameters.IsTrust ? EvidenceLabels.TrustRecord : EvidenceLabels.SchoolRecord, WebsiteAddress.WithScheme(records.Subject)),
+            (parameters.IsTrust ? EvidenceLabels.TrustRecord : EvidenceLabels.SchoolRecord,
+                Records(records.Subject, parameters.IsTrust ? TrustReferenceNumberField : EstablishmentUrnField)),
             .. academyCounts is null ? [] : new[] { (EvidenceLabels.AcademyCounts, new ContextResult(academyCounts, HasEvidence: true)) },
             .. keyStageResults is null ? [] : new[] { (EvidenceLabels.KeyStageResults, new ContextResult(keyStageResults, HasEvidence: true)) },
             (EvidenceLabels.RiseConcerns, Concerns(records.RiseConcerns)),
             (EvidenceLabels.RecastConcerns, Concerns(records.RecastConcerns)),
-            (parameters.IsTrust ? EvidenceLabels.AcademyRecords : EvidenceLabels.SchoolsTrustRecord, WebsiteAddress.WithScheme(records.Related))
+            (parameters.IsTrust ? EvidenceLabels.AcademyRecords : EvidenceLabels.SchoolsTrustRecord,
+                Records(records.Related, parameters.IsTrust ? EstablishmentUrnField : TrustReferenceNumberField))
         ];
 
         var text = new StringBuilder();
@@ -69,9 +82,9 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
         foreach (var (label, result) in sets)
         {
             text.Append($"=== {label} ===\n\n");
-            if (!result.HasEvidence)
+            // A search can find nothing, or report evidence with no text: either way the set says no records were found.
+            if (!result.HasEvidence || string.IsNullOrWhiteSpace(result.Text))
             {
-                // Says why there's nothing, e.g. "This school is not part of a trust.", so it isn't read as missing data.
                 text.Append(string.IsNullOrWhiteSpace(result.Text) ? EvidenceLabels.NoRecords : result.Text.Trim()).Append("\n\n");
                 continue;
             }
@@ -88,19 +101,41 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
         return new AgentEvidence(text.ToString().TrimEnd(), sources);
     }
 
-    // Only concerns from the last 3 years, the period the briefing reports, each dated in words (see ConcernWindow).
-    private ContextResult Concerns(ContextResult concerns) => ConcernWindow.WithDatesInWords(ConcernWindow.Recent(concerns, Today()));
+    /// <summary>
+    /// Removes duplicate evidence records by key field, formats the records, and ensures website addresses include a URI scheme.
+    /// </summary>
+    /// <param name="records">The records to process.</param>
+    /// <param name="keyField">The field name used to identify duplicate records.</param>
+    /// <returns>A processed result with duplicates removed, records formatted, and website addresses normalized with a scheme.</returns>
+    private static ContextResult Records(ContextResult records, string keyField)
+        => WebsiteAddress.WithScheme(RecordFormatter.Format(EvidenceRecords.WithoutDuplicates(records, keyField)));
+
+    /// <summary>
+    /// Builds a formatted concerns result from recent entries by applying redaction, duplicate removal, and
+    /// newest-first ordering.
+    /// </summary>
+    /// <param name="concerns">Source concerns context used to select recent entries.</param>
+    /// <returns>A formatted concerns result containing redacted, deduplicated, and newest-first recent entries.</returns>
+    private ContextResult Concerns(ContextResult concerns)
+        => RecordFormatter.Format(ConcernWindow.NewestFirst(EvidenceRecords.WithoutDuplicates(
+            ConcernRedactor.Redact(ConcernWindow.Recent(concerns, Today())), keyField: null)));
 
     private static int Number(string digits) => int.Parse(digits, CultureInfo.InvariantCulture);
 
-    // A record's own number, in the line that starts it: "--- trust_index Evidence 2 ---", or "[Evidence 2]".
+    /// <summary>
+    /// Matches the numeric evidence identifier in evidence header lines formatted as either markdown-style (`--- ...
+    /// Evidence {number} ---`) or bracket-style (`[Evidence {number}]`).
+    /// </summary>  
     [GeneratedRegex(@"(?<=^---[^\r\n]*\bEvidence |^\[Evidence )\d+(?=(?: ---|\])\r?$)", RegexOptions.Multiline, matchTimeoutMilliseconds: 1000)]
     private static partial Regex EvidenceNumberRegex();
+
+    // With no town, the search is biased to its default location (London) but the agent isn't told the school is there.
+    private const string UnknownTownHint = " Its town isn't known, so give priority to national sources.";
 
     public string BuildWebSearchInstruction(BriefingParameters parameters, string? city)
     {
         var subject = $"\"{parameters.SchoolOrTrustName}\" (URN/TRN: {parameters.SchoolUrnOrTrustTrn})";
-        var locationHint = city is null ? string.Empty : $" It is located in or near {city}.";
+        var locationHint = city is null ? UnknownTownHint : $" It is located in or near {city}.";
         return $"""
             We already have the internal-record findings supplied as evidence below about {subject}.{locationHint}
             Search the web for current, genuinely new, publicly available information about this subject that is not already covered by those findings. Do not repeat or re-confirm anything already listed.

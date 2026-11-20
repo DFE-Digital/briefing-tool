@@ -94,7 +94,7 @@ public sealed class AcademyCounterTests
             Academy(1, "900001", "Primary", "Exampleshire",
                 "[{\"inspection_date\": \"2025-01-20\"}, {\"inspection_date\": \"2022-01-01\", \"overall_effectiveness\": \"Good\"}]") +
             Academy(2, "900002", "Primary", "Exampleshire", "[]") +
-            Academy(3, "900003", "Primary", "Exampleshire", "not json") +
+            Academy(3, "900003", "Primary", "Exampleshire", "{}") +
             Academy(4, "900004", "Primary", "Exampleshire", Judged("2023-01-01", "Good"));
 
         Assert.Contains("by_latest_ofsted_inspection: Good 1, Not judged 1, Not available 2\n",
@@ -181,6 +181,53 @@ public sealed class AcademyCounterTests
         // A report card grade, even where an overall grade would be, makes it a report card - never an overall grade.
         Assert.Contains("by_latest_ofsted_inspection: Report card 1\n", counts, StringComparison.Ordinal);
         Assert.Contains("report_card_academies_with_an_area_graded: Strong Standard 1, Exceptional 1\n", counts, StringComparison.Ordinal);
+    }
+
+    // The index's own shape: inspections keyed by publication date, each with its grades under "inspection_details".
+    private static string ByPublicationDate(params (string Published, string Details)[] inspections)
+        => "{" + string.Join(",", inspections.Select(inspection =>
+            $"\"{inspection.Published}\":{{\"inspection_details\":{{{inspection.Details}}}}}")) + "}";
+
+    [Fact]
+    public void Count_ReadsInspectionsKeyedByPublicationDate_WithTheirDetailsNested()
+    {
+        var records =
+            Academy(1, "900001", "Secondary", "Exampleshire", ByPublicationDate(
+                ("2012-03-29", "\"inspection_start_date\":\"2012-03-07\",\"ofsted_system\":\"old\",\"overall_effectiveness\":\"Good\",\"quality_of_education\":\"No Judgement\""),
+                ("2026-03-25", "\"inspection_start_date\":\"2026-01-27\",\"ofsted_system\":\"report_cards\",\"achievement\":\"Expected standard\"," +
+                               "\"post_16_provision_where_applicable\":\"Strong standard\",\"early_years_where_applicable\":\"Not applicable\",\"safeguarding_standards\":\"Met\""))) +
+            Academy(2, "900002", "Secondary", "Exampleshire", ByPublicationDate(
+                ("2023-12-18", "\"inspection_start_date\":\"2023-11-21\",\"ofsted_system\":\"old\",\"overall_effectiveness\":\"Good\""))) +
+            // A later inspection with no overall grade, such as a monitoring visit, is the latest.
+            Academy(3, "900003", "Secondary", "Exampleshire", ByPublicationDate(
+                ("2019-05-01", "\"inspection_start_date\":\"2019-04-02\",\"ofsted_system\":\"old\",\"overall_effectiveness\":\"Inadequate\""),
+                ("2024-12-02", "\"inspection_start_date\":\"2024-11-05\",\"ofsted_system\":\"old\",\"overall_effectiveness\":\"No Judgement\""))) +
+            // A report card marked only by its system, with no area grade given.
+            Academy(4, "900004", "Primary", "Exampleshire", ByPublicationDate(
+                ("2026-02-10", "\"inspection_start_date\":\"2026-01-13\",\"ofsted_system\":\"report_cards\",\"safeguarding_standards\":\"Met\""))) +
+            Academy(5, "900005", "Primary", "Exampleshire", "{}");
+
+        var counts = AcademyCounter.Count(records);
+
+        Assert.Contains("by_latest_ofsted_inspection: Good 1, Report card 2, Not judged 1, Not available 1\n", counts, StringComparison.Ordinal);
+        Assert.Contains("report_card_academies_with_an_area_graded: Expected standard 1, Strong standard 1\n", counts, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("""{"inspection_date": "2023-01-01", "overall_effectiveness": "Good"}""")]   // one inspection, not keyed by date
+    [InlineData("\"Good\"")]
+    public void Count_LeavesOutTheInspectionCounts_WhenAnAcademysInspectionsCantBeRead(string unreadable)
+    {
+        var records =
+            Academy(1, "900001", "Primary", "Exampleshire", Judged("2023-01-01", "Good")) +
+            Academy(2, "900002", "Primary", "Exampleshire", unreadable);
+
+        Assert.Equal(
+            "academies_counted: 2\n" +
+            "by_phase: Primary 2\n" +
+            "by_local_authority: Exampleshire 2",
+            AcademyCounter.Count(records));
     }
 
     [Fact]

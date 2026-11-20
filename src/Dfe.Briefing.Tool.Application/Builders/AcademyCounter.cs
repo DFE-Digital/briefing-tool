@@ -29,6 +29,12 @@ internal static partial class AcademyCounter
     // After the overall grades (and any other wording the records use for one) come the outcomes that aren't one.
     private static readonly string[] NotOverallGrades = [ReportCard, NotJudged, NotAvailable];
 
+    private static readonly string[] NoOverallGrade = ["No Judgement", NotJudged];
+    private const string InspectionsField = "ofsted_all_inspections";
+    private const string InspectionDetailsName = "inspection_details";
+    private const string OfstedSystemName = "ofsted_system";
+    private const string ReportCardSystem = "report_cards";
+
     /// <summary>
     /// Counts the academies in a trust's academies' records, each academy once however many records it has.
     /// </summary>
@@ -43,6 +49,20 @@ internal static partial class AcademyCounter
         var text = new StringBuilder();
         text.Append(CultureInfo.InvariantCulture, $"academies_counted: {academies.Count}\n");
         text.Append("by_phase: ").Append(Tally(academies.Select(academy => academy.Phase), ByCountThenName)).Append('\n');
+        if (academies.TrueForAll(static academy => academy.InspectionsReadable))
+            AppendInspectionCounts(text, academies);
+
+        text.Append("by_local_authority: ").Append(Tally(academies.Select(academy => academy.LocalAuthority), ByCountThenName));
+        return text.ToString();
+    }
+
+    /// <summary>
+    /// Appends inspection counts for the given academies to the provided text builder.
+    /// </summary>
+    /// <param name="text">The text builder to which the inspection counts will be appended.</param>
+    /// <param name="academies">The list of academies for which inspection counts are to be appended.</param>
+    private static void AppendInspectionCounts(StringBuilder text, List<Academy> academies)
+    {
         text.Append("by_latest_ofsted_inspection: ")
             .Append(Tally(academies.Select(academy => academy.LatestInspection.Outcome), ByOverallSeverity)).Append('\n');
 
@@ -50,18 +70,19 @@ internal static partial class AcademyCounter
         var reportCardGrades = academies.SelectMany(academy => academy.LatestInspection.ReportCardGrades.Distinct(StringComparer.OrdinalIgnoreCase)).ToList();
         if (reportCardGrades.Count > 0)
             text.Append("report_card_academies_with_an_area_graded: ").Append(Tally(reportCardGrades, ByReportCardGrade)).Append('\n');
-
-        text.Append("by_local_authority: ").Append(Tally(academies.Select(academy => academy.LocalAuthority), ByCountThenName));
-        return text.ToString();
     }
 
-    // Name, Ks2Result, Ks4Score and Attendance are for the section orders (see AcademyCounter.Order.cs).
+    // Name, Ks2Result, Ks4Score and the attendance fields are for the section orders (see AcademyCounter.Order.cs).
     private sealed record Academy(string Phase, LatestInspection LatestInspection, string LocalAuthority)
     {
         public string Name { get; init; } = NotAvailable;
+        public string Key { get; init; } = string.Empty;   // its URN, or its name where its records give none
+        public bool InspectionsReadable { get; init; } = true;
         public string? Ks2Result { get; init; }
         public string? Ks4Score { get; init; }
         public string? Attendance { get; init; }
+        public string? AttendanceLatest { get; init; }
+        public string? AttendanceHistoric { get; init; }
     }
 
     // Outcome is an overall grade, "Report card", "Not judged" or "Not available"; ReportCardGrades are a report
@@ -76,7 +97,10 @@ internal static partial class AcademyCounter
         public NewestValue Ks2 { get; set; }
         public NewestValue Ks4 { get; set; }
         public NewestValue Attendance { get; set; }
+        public NewestValue AttendanceLatest { get; set; }
+        public NewestValue AttendanceHistoric { get; set; }
         public List<Inspection> Inspections { get; } = [];
+        public bool InspectionsUnreadable { get; set; }
     }
 
     /// <summary>
@@ -90,7 +114,7 @@ internal static partial class AcademyCounter
             => value is not null && (Value is null || date > Date) ? new NewestValue(value, date) : this;
     }
 
-    private sealed record Inspection(DateOnly Date, string? OverallEffectiveness, IReadOnlyList<string> ReportCardGrades);
+    private sealed record Inspection(DateOnly Date, string? OverallEffectiveness, IReadOnlyList<string> ReportCardGrades, bool IsReportCard);
 
     /// <summary>
     /// Reads academy records and returns a list of Academy objects, taking each field from the newest record that provides it and collecting all inspections.
@@ -130,16 +154,22 @@ internal static partial class AcademyCounter
             academy.Ks2 = academy.Ks2.Offer(FieldValue(fields, Ks2Field), recordDate);
             academy.Ks4 = academy.Ks4.Offer(FieldValue(fields, Ks4Field), recordDate);
             academy.Attendance = academy.Attendance.Offer(FieldValue(fields, SchoolAttendanceField), recordDate);
-            academy.Inspections.AddRange(ReadInspections(FieldValue(fields, "ofsted_all_inspections")));
+            academy.AttendanceLatest = academy.AttendanceLatest.Offer(FieldValue(fields, AttendanceLatestField), recordDate);
+            academy.AttendanceHistoric = academy.AttendanceHistoric.Offer(FieldValue(fields, AttendanceHistoricField), recordDate);
+            academy.InspectionsUnreadable |= !TryReadInspections(FieldValue(fields, InspectionsField), academy.Inspections);
         }
 
         return [.. academies
             .Select(academy => new Academy(academy.Value.Phase.Value ?? NotAvailable, Latest(academy.Value.Inspections), academy.Value.LocalAuthority.Value ?? NotAvailable)
             {
                 Name = academy.Value.Name.Value ?? academy.Key,
+                Key = academy.Key,
+                InspectionsReadable = !academy.Value.InspectionsUnreadable,
                 Ks2Result = academy.Value.Ks2.Value,
                 Ks4Score = academy.Value.Ks4.Value,
                 Attendance = academy.Value.Attendance.Value,
+                AttendanceLatest = academy.Value.AttendanceLatest.Value,
+                AttendanceHistoric = academy.Value.AttendanceHistoric.Value,
             })];
     }
 
@@ -169,37 +199,63 @@ internal static partial class AcademyCounter
         var latestDate = inspections.Max(inspection => inspection.Date);
         var latest = inspections.Where(inspection => inspection.Date == latestDate).ToList();
 
-        var reportCardGrades = latest.SelectMany(inspection => inspection.ReportCardGrades).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        if (reportCardGrades.Count > 0)
-            return new LatestInspection(ReportCard, reportCardGrades);
+        if (latest.Exists(static inspection => inspection.IsReportCard))
+            return new LatestInspection(ReportCard, [.. latest.SelectMany(inspection => inspection.ReportCardGrades).Distinct(StringComparer.OrdinalIgnoreCase)]);
 
         var overall = latest.Select(inspection => inspection.OverallEffectiveness).OfType<string>()
             .OrderBy(OverallRank).ThenBy(grade => grade, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
         return new LatestInspection(overall ?? NotJudged, []);
     }
 
-    // ofsted_all_inspections is a JSON array, e.g. [{"inspection_date": "2023-03-14", "overall_effectiveness": "Good"}].
-    // A value that isn't one gives no inspections rather than failing the briefing.
-    private static List<Inspection> ReadInspections(string? json)
+    // ofsted_all_inspections is a JSON object of inspections keyed by their publication date, each with its grades under
+    // "inspection_details", e.g. {"2023-04-20": {"inspection_details": {"inspection_start_date": "2023-03-14",
+    // "ofsted_system": "old", "overall_effectiveness": "Good"}}}; or a JSON array of inspections, e.g.
+    // [{"inspection_date": "2023-03-14", "overall_effectiveness": "Good"}]. No value, {} or [] is no inspections.
+    // Anything else is unreadable (false), rather than failing the briefing or passing for an academy never inspected.
+    private static bool TryReadInspections(string? json, List<Inspection> inspections)
     {
         if (json is null)
-            return [];
+            return true;
 
         try
         {
             using var document = JsonDocument.Parse(json);
-            if (document.RootElement.ValueKind != JsonValueKind.Array)
-                return [];
+            var root = document.RootElement;
+            List<(string? Key, JsonElement Inspection)> entries = root.ValueKind switch
+            {
+                JsonValueKind.Array => [.. root.EnumerateArray().Select(static inspection => ((string?)null, inspection))],
+                JsonValueKind.Object => [.. root.EnumerateObject().Select(static property => ((string?)property.Name, property.Value))],
+                _ => [],
+            };
+            if (root.ValueKind is not (JsonValueKind.Array or JsonValueKind.Object)
+                || entries.Exists(static entry => entry.Inspection.ValueKind != JsonValueKind.Object))
+                return false;
 
-            return [.. document.RootElement.EnumerateArray()
-                .Where(inspection => inspection.ValueKind == JsonValueKind.Object)
-                .Select(inspection => new Inspection(InspectionDate(inspection), Text(inspection, "overall_effectiveness"), FindReportCardGrades(inspection)))];
+            inspections.AddRange(entries.Select(static entry => ReadInspection(entry.Key, entry.Inspection)));
+            return true;
         }
         catch (JsonException)
         {
-            return [];
+            return false;
         }
     }
+
+    // A report card is marked by "ofsted_system": "report_cards", or known by any of its area grades.
+    private static Inspection ReadInspection(string? key, JsonElement inspection)
+    {
+        var details = inspection.TryGetProperty(InspectionDetailsName, out var nested) && nested.ValueKind == JsonValueKind.Object
+            ? nested
+            : inspection;
+        var reportCardGrades = FindReportCardGrades(details);
+        var isReportCard = reportCardGrades.Count > 0
+            || string.Equals(Text(details, OfstedSystemName), ReportCardSystem, StringComparison.OrdinalIgnoreCase);
+        return new Inspection(InspectionDate(details, key), OverallGrade(details), reportCardGrades, isReportCard);
+    }
+
+    private static string? OverallGrade(JsonElement inspection)
+        => Text(inspection, "overall_effectiveness") is { } grade && !NoOverallGrade.Contains(grade, StringComparer.OrdinalIgnoreCase)
+            ? grade
+            : null;
 
     // A report card's areas could be named anything, or nested, so every value in the inspection is checked for one
     // of its grades, in the records' own wording.
@@ -231,11 +287,12 @@ internal static partial class AcademyCounter
     private static bool IsReportCardGrade(string text)
         => ReportCardGradeNames.Contains(text, StringComparer.OrdinalIgnoreCase);
 
-    // An inspection with no date, or one that can't be read, counts as the oldest.
-    private static DateOnly InspectionDate(JsonElement inspection)
-        => DateOnly.TryParseExact(Text(inspection, "inspection_date"), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
-            ? date
-            : DateOnly.MinValue;
+    // The day the inspection started, as the briefing gives it; failing that, its date, or the publication date it's
+    // keyed by. An inspection with none, or none that can be read, counts as the oldest.
+    private static DateOnly InspectionDate(JsonElement inspection, string? key)
+        => new[] { Text(inspection, "inspection_start_date"), Text(inspection, "inspection_date"), key }
+            .Select(static text => DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) ? date : (DateOnly?)null)
+            .FirstOrDefault(static date => date is not null) ?? DateOnly.MinValue;
 
     private static string? Text(JsonElement element, string name)
         => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String && value.GetString()?.Trim() is { Length: > 0 } text

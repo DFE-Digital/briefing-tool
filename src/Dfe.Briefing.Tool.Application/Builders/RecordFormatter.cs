@@ -21,6 +21,7 @@ internal static partial class RecordFormatter
 
         var text = DateRegex().Replace(records.Text, DateInWords);
         text = AcademicYearRegex().Replace(text, AcademicYear);
+        text = AcademicYearKeyRegex().Replace(text, AcademicYear);
         text = PercentScoreRegex().Replace(text, "${field}${score}");
         return text == records.Text ? records : records with { Text = text };
     }
@@ -48,6 +49,10 @@ internal static partial class RecordFormatter
     // "academic_year": "202324" inside a result's JSON, or academic_year: 202324 on its own line.
     [GeneratedRegex(@"(?<field>""?[a-z0-9_]*academic_year""?[ \t]*:[ \t]*""?)(?<start>\d{4})(?<end>\d{2})(?!\d)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex AcademicYearRegex();
+
+    // A JSON key that is an academic year, as results by year give them: {"202425": {...}}.
+    [GeneratedRegex(@"(?<field>"")(?<start>\d{4})(?<end>\d{2})(?=""[ \t]*:)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex AcademicYearKeyRegex();
 
     // Attainment 8, Progress 8, the EBacc average point score and the Attainment 8 English and maths elements are
     // scores, not percentages, whatever the records label them.

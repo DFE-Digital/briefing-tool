@@ -112,7 +112,8 @@ internal static partial class TestCasePreparer
     [GeneratedRegex(@"(?<![\d-])(?<value>\d{4}-\d{2}-\d{2})(?![\d-])", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex RawDateRegex();
 
-    [GeneratedRegex(@"""academic_year"":\s*""(?<value>\d{6})""", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    // An academic year's value ("academic_year": "202324"), or a key in results given by year ({"202324": {...}}).
+    [GeneratedRegex(@"""academic_year"":\s*""(?<value>\d{6})""|""(?<value>\d{6})""\s*:", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex RawAcademicYearRegex();
 
     // The app's builder, measuring the 3-year concerns window from TestCases:Today when it's set, so the test cases'

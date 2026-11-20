@@ -33,6 +33,10 @@ public sealed class RecordFormatterTests
     [InlineData("ks4_academic_year: 199900", "ks4_academic_year: 1999/00")]
     [InlineData("academic_year: 202399", "academic_year: 202399")]
     [InlineData("pupil_count: 202324", "pupil_count: 202324")]
+    [InlineData("""ks4_performance_latest: {"202324":{"x":{"school":"56"}}, "202425" : {}}""",
+        """ks4_performance_latest: {"2023/24":{"x":{"school":"56"}}, "2024/25" : {}}""")]
+    [InlineData("""attendance_historic: {"202399":{"pct_overall_absence":"5%"}}""", """attendance_historic: {"202399":{"pct_overall_absence":"5%"}}""")]
+    [InlineData("""{"note": "202324"}""", """{"note": "202324"}""")]
     public void Format_WritesAcademicYearsWithASlash_OnlyWhereTheYearsFollowOn(string line, string expected)
         => Assert.Equal(expected, Format(line));
 

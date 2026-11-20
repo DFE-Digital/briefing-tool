@@ -57,11 +57,9 @@ The briefing, in Markdown, starting with a # title of the school's or trust's na
 Writing and Markdown
 •	plain, simple language: lead with the fact itself, cut every word that doesn't change the meaning, and never explain, hedge or editorialise
 •	use # for the title, ## for sections, ### for sub headings, - for bullets (indented two spaces for a nested bullet) and 1. for numbered lists
-•	academic years as "2023/24”
 •	explain an acronym in full the first time it is used, except these, which every reader knows and which must never be expanded: Ofsted, DfE, LA, MAT, SEN, SEND, EHCP, FSM, KS2, KS4, URN, TRN, AP, MP
 •	call a school that is part of a trust an academy in your own sentences, but use each school's name exactly as the records give it
 Figures, dates and comparisons
-•	Units: Attainment 8, Progress 8, the EBacc average point score and the Attainment 8 English and maths element figures are scores - write them as plain numbers (for example "Attainment 8 score 56.7"), never as percentages, even if the records label them with "%". Only use "%" for a measure that is a percentage, such as the percentage meeting the expected standard or achieving grade 5 or above.
 •	Academic year: give the academic year with every result (for example "71% (2024/25)").
 
 If the briefing is about a school, return:

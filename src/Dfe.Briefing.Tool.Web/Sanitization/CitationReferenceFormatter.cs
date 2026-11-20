@@ -91,8 +91,6 @@ public static partial class CitationReferenceFormatter
     [GeneratedRegex(@"\[(?<name>[^\[\]()]+)[\])]\(\[[^\[\]]+\]\((?<url>[^()\s]+)\)\)")]
     private static partial Regex NestedLinkRegex();
 
-    // A Markdown link, [name](url); a citation the library rendered as a link, [<a href="url">name</a>];
-    // or a citation with no web address, [name].
     private static (string Name, string? Url, bool IsSearchCitation) ReadSource(Match match)
     {
         var text = match.Groups["text"].Value.Trim();

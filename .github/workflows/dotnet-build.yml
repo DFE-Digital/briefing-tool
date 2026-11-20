@@ -67,18 +67,18 @@ jobs:
 
     - name: Begin Sonar analysis
       if: env.SONAR_TOKEN != ''
-      run: dotnet-sonarscanner begin /d:sonar.token=$SONAR_TOKEN /o:dfe-digital /k:$SONAR_PROJECT_KEY /d:sonar.coverageReportPaths=./CoverageReport/SonarQube.xml
+      run: dotnet-sonarscanner begin /d:sonar.token=$SONAR_TOKEN /o:dfe-digital /k:$SONAR_PROJECT_KEY /d:sonar.projectBaseDir=$GITHUB_WORKSPACE /d:sonar.coverageReportPaths=./CoverageReport/SonarQube.xml /d:sonar.qualitygate.wait=true
 
     - name: Build
       run: dotnet build ${{ env.SOLUTION }} --no-restore -c Release
 
-    # The tests run on Microsoft Testing Platform (global.json), so coverage comes from its own --coverage option. Each
-    # test project writes its own uniquely named .cobertura.xml: a fixed --coverage-output name would overwrite the first.
     - name: Test
       run: dotnet test --solution ${{ env.SOLUTION }} --no-build -c Release --coverage --coverage-output-format cobertura
 
     - name: End Sonar analysis
       if: env.SONAR_TOKEN != ''
+      # Source generators ([GeneratedRegex], logging) add code that is compiled from memory, never written to disk, so
+      # Sonar fails on its coverage ("File ... RegexGenerator.g.cs does not exist"): it's left out of the report.
       run: |
-        reportgenerator -reports:"**/TestResults/*.cobertura.xml" -targetdir:./CoverageReport -reporttypes:SonarQube
+        reportgenerator -reports:"**/TestResults/*.cobertura.xml" -targetdir:./CoverageReport -reporttypes:SonarQube "-filefilters:-*.g.cs;-*/obj/*"
         dotnet-sonarscanner end /d:sonar.token=$SONAR_TOKEN

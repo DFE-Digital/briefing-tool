@@ -10,21 +10,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-if (args.Length == 0 && !Console.IsInputRedirected)
-    args = ChooseCommand();
-
 var command = args.FirstOrDefault() ?? CommandNames.Gate;
-var options = args.Skip(1).ToArray();
-
-if (command == CommandNames.ExportCopilotStudio)
-    return await ExportCopilotStudioCommand.RunAsync(options.FirstOrDefault() ?? CommandNames.DefaultExportFolder, CancellationToken.None);
 
 if (command != CommandNames.Gate)
 {
     await Console.Error.WriteLineAsync($"""
         Usage:
-          {CommandNames.Gate}                           Run the Responsible AI quality gate: guardrail, test cases, checks (exit 1 if release is blocked)
-          {CommandNames.ExportCopilotStudio} [folder]   Write the evaluation and guardrail test cases as Copilot Studio test sets
+          {CommandNames.Gate}   Run the Responsible AI quality gate: guardrail, test cases, checks (exit 1 if release is blocked)
         """);
     return 2;
 }
@@ -106,24 +98,4 @@ finally
 
     if (Directory.Exists(preparedCases))
         Directory.Delete(preparedCases, recursive: true);
-}
-
-static string[] ChooseCommand()
-{
-    Console.WriteLine("""
-        What do you want to do?
-          1. Run the Responsible AI quality gate (guardrail, evaluation and release decision)
-          2. Export the test cases as Copilot Studio test sets
-        """);
-
-    while (true)
-    {
-        Console.Write("Choose 1 or 2: ");
-        switch (Console.ReadLine()?.Trim())
-        { 
-            case "1": return [CommandNames.Gate];
-            case "2": return [CommandNames.ExportCopilotStudio, CommandNames.DefaultExportFolder];
-            case null: return [CommandNames.Gate];
-        }
-    }
 }

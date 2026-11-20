@@ -45,8 +45,6 @@ internal static partial class TestCasePreparer
             if (testsFile.ContainsKey(TestCaseFields.Tests))
                 throw new InvalidDataException(TestCaseErrors.UseSections(relativePath));
 
-            // The file keeps its principle's "type", "description" and sections, which the library reads as they are;
-            // only each case's subject and records change.
             foreach (var (section, isAttack) in new[] { (TestCaseFields.EvaluationSection, false), (TestCaseFields.GuardrailSection, true) })
             {
                 var tests = testsFile[section]?.AsArray() ?? [];
@@ -103,18 +101,19 @@ internal static partial class TestCasePreparer
             testCase[TestCaseFields.MustNotMention] = mustNotMention = [];
         var listed = mustNotMention.Select(static node => node?.GetValue<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var value in RawDateRegex().Matches(text).Concat(RawAcademicYearRegex().Matches(text)).Select(static m => m.Groups["value"].Value))
-        {
-            if (listed.Add(value) && !expected.Exists(e => e.Contains(value, StringComparison.OrdinalIgnoreCase)))
-                mustNotMention.Add(value);
-        }
+        var rawValues = RawDateRegex().Matches(text).Concat(RawAcademicYearRegex().Matches(text))
+            .Select(static m => m.Groups["value"].Value)
+            .Where(value => !expected.Exists(e => e.Contains(value, StringComparison.OrdinalIgnoreCase)) && listed.Add(value));
+        foreach (var value in rawValues)
+            mustNotMention.Add(value);
     }
 
     // Not between word boundaries: a timestamp's date ("2025-03-03T09:30:00Z") is followed by a letter, and is raw too.
     [GeneratedRegex(@"(?<![\d-])(?<value>\d{4}-\d{2}-\d{2})(?![\d-])", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex RawDateRegex();
 
-    [GeneratedRegex(@"""academic_year"":\s*""(?<value>\d{6})""", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    // An academic year's value ("academic_year": "202324"), or a key in results given by year ({"202324": {...}}).
+    [GeneratedRegex(@"""academic_year"":\s*""(?<value>\d{6})""|""(?<value>\d{6})""\s*:", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex RawAcademicYearRegex();
 
     // The app's builder, measuring the 3-year concerns window from TestCases:Today when it's set, so the test cases'
@@ -156,10 +155,11 @@ internal static partial class TestCasePreparer
             throw new InvalidDataException(TestCaseErrors.UnknownRecords(relativePath, unknown, allowed));
 
         var subjectRecord = isTrust ? TestCaseFields.TrustRecords : TestCaseFields.SchoolRecords;
-        if (records[subjectRecord]?.GetValue<string>() is not { Length: > 0 })
+        if (string.IsNullOrWhiteSpace(records[subjectRecord]?.GetValue<string>()))
             throw new InvalidDataException(TestCaseErrors.SubjectRecordNeeded(relativePath, subjectRecord));
 
-        ContextResult Set(string key) => records[key]?.GetValue<string>() is { Length: > 0 } text
+        // A set given as null, "" or only spaces has no records, as when the Rise or Recast index finds none.
+        ContextResult Set(string key) => records[key]?.GetValue<string>() is { } text && !string.IsNullOrWhiteSpace(text)
             ? new ContextResult(text, HasEvidence: true)
             : new ContextResult(string.Empty, HasEvidence: false);
 

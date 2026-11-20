@@ -121,6 +121,26 @@ public sealed class BriefingEvidenceProviderTests
         await _contextRetriever.Received(1).GetContextAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NoRiseOrRecastConcerns_StillGivesTheSubjectsRecords_WithNoConcerns(bool isTrust)
+    {
+        IndexReturns(isTrust ? EvidenceCategory.Trust : EvidenceCategory.Establishment, "trust_name: EXAMPLE TRUST\nassociated_trust_name: EXAMPLE TRUST");
+        IndexReturns(EvidenceCategory.RiseConcerns, string.Empty, hasEvidence: false);
+        IndexReturns(EvidenceCategory.RecastConcerns, string.Empty, hasEvidence: false);
+        var steps = new List<string>();
+
+        var records = await _sut.GetRecordsAsync(isTrust ? TrustSubject : School, new SynchronousProgress(steps.Add), _cancellationToken);
+
+        Assert.NotNull(records);
+        Assert.True(records.Subject.HasEvidence);
+        Assert.False(records.RiseConcerns.HasEvidence);
+        Assert.False(records.RecastConcerns.HasEvidence);
+        Assert.Contains("No Rise concerns found", steps);
+        Assert.Contains("No Recast concerns found", steps);
+    }
+
     [Fact]
     public async Task Progress_SaysWhatsBeingCollected_ThenWhatEachSearchFound()
     {
@@ -158,9 +178,11 @@ public sealed class BriefingEvidenceProviderTests
     // Progress<T> reports on the thread pool, so a test can't rely on it; this reports as it's called.
     private sealed class SynchronousProgress(Action<string> report) : IProgress<string>
     {
+        private readonly Lock _gate = new();
+
         public void Report(string value)
         {
-            lock (this)
+            lock (_gate)
                 report(value);
         }
     }

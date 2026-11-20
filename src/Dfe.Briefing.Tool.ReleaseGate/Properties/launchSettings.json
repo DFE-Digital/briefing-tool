@@ -1,18 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
-    "Choose what to run": {
-      "commandName": "Project",
-      "workingDirectory": "$(ProjectDir)"
-    },
     "Release gate": {
       "commandName": "Project",
       "commandLineArgs": "gate",
-      "workingDirectory": "$(ProjectDir)"
-    },
-    "Export Copilot Studio test sets": {
-      "commandName": "Project",
-      "commandLineArgs": "export-copilot-studio copilot-studio",
       "workingDirectory": "$(ProjectDir)"
     }
   }

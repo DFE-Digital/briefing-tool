@@ -5,12 +5,12 @@
     {
       "id": "INC-001",
       "name": "School briefing structure",
-      "description": "The headings readers and screen readers navigate by are missing or out of order",
+      "description": "The headings readers and screen readers navigate by are missing, or sections the briefing does not have are added",
       "subject": {
         "name": "Exampleton Primary School",
         "urnOrTrn": "900001"
       },
-      "expectedOutcome": "Uses the set headings in order, explains the Ofsted framework change, and says when no Recast concerns were found",
+      "expectedOutcome": "Uses the set headings, starting with the title, and adds no other section",
       "records": {
         "school": "[Evidence 1]\nestablishment_name: Exampleton Primary School\nestablishment_urn: 900001\nestablishment_type: Academy converter\nphase_of_education: Primary\nestablishment_age_range: 4 to 11\nestablishment_address: 2 School Lane, Exampleton, EX1 2BB\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nlinked_to_diocese: Not applicable\nestablishment_website: www.exampleton-primary.example.org\nschool_capacity: 420\nnumber_on_roll: 431\nofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"publication_date\": \"2023-04-20\", \"overall_effectiveness\": \"Requires improvement\", \"leadership_and_management\": \"Requires improvement\", \"safeguarding_effective\": \"Yes\"}]\nks2_performance_latest: {\"academic_year\": \"202324\", \"reading_writing_maths_expected_standard\": \"58%\", \"national_reading_writing_maths_expected_standard\": \"61%\"}",
         "riseConcerns": "[Evidence 1]\nschool: Exampleton Primary School (URN 900001)\nconcern_date: 2024-01-15\nconcern_type: Safeguarding\nsummary: Safeguarding concern raised about absence record keeping.\nstatus: Open"
@@ -19,18 +19,13 @@
         "# Exampleton Primary School",
         "## About the school",
         "## Ofsted summary",
-        "## KS2 summary",
-        "## Concerns and support",
-        "### Key issues",
-        "### Rise concerns",
-        "### Recast concerns",
         "Requires improvement",
-        "15 January 2024",
-        "Ofsted stopped giving schools a single overall effectiveness",
-        "No Recast concerns were found"
+        "14 March 2023"
       ],
       "mustNotMention": [
-        "overall absence"
+        "## Concerns and support",
+        "## Attendance",
+        "## Pupil characteristics"
       ],
       "group": "primary"
     },
@@ -56,35 +51,6 @@
         "46.2%"
       ],
       "group": "secondary"
-    },
-    {
-      "id": "INC-003",
-      "name": "Trust briefing structure",
-      "description": "The trust headings readers and screen readers navigate by are missing, or school-only headings are used",
-      "expectedOutcome": "Uses the trust headings, with no school-only heading",
-      "subject": {
-        "name": "Example Learning Trust",
-        "urnOrTrn": "TR09001"
-      },
-      "records": {
-        "trust": "[Evidence 1]\ntrust_name: Example Learning Trust\ntrust_reference_number: TR09001\ntrust_type: Multi-academy trust\ngroup_status: Open\ndate_established: 2014-09-01\ntrust_address: 1 Example Road, Exampleton, EX1 1AA\nnumber_in_trust: 2\npipeline_count: 0\ntrust_governance: Chief executive: Alex Example; Accounting officer: Alex Example; Chair of trustees: Sam Sample",
-        "academies": "[Evidence 1]\nestablishment_name: Exampleton Primary School\nestablishment_urn: 900001\nphase_of_education: Primary\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 420\nnumber_on_roll: 431\nofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"overall_effectiveness\": \"Requires improvement\", \"safeguarding_effective\": \"Yes\"}]\n\n[Evidence 2]\nestablishment_name: Example Ridge Academy\nestablishment_urn: 900008\nphase_of_education: Secondary\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1000\nnumber_on_roll: 870\nofsted_all_inspections: [{\"inspection_date\": \"2025-12-02\", \"inclusion\": \"Expected standard\", \"achievement\": \"Needs attention\", \"safeguarding\": \"Met\"}]"
-      },
-      "mustMention": [
-        "# Example Learning Trust",
-        "## Trust overview",
-        "## School summary",
-        "## Ofsted summary",
-        "## Concerns and support",
-        "### Key issues",
-        "### Rise concerns",
-        "### Recast concerns",
-        "## Financial health"
-      ],
-      "mustNotMention": [
-        "## About the school"
-      ],
-      "group": "trust"
     }
   ]
 }

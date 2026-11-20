@@ -42,17 +42,17 @@ public sealed class BriefingBuilderTests
     }
 
     [Theory]
-    [InlineData(null, null)]
+    [InlineData(null, "Its town isn't known, so give priority to national sources.")]
     [InlineData("Coventry", "located in or near Coventry")]
-    public void BuildWebSearchInstruction_NamesTheSubject_WithALocationHintOnlyWhenThereIsACity(string? city, string? hint)
+    public void BuildWebSearchInstruction_NamesTheSubject_WithItsTown_OrNationalSourcesFirstWhenItsTownIsntKnown(string? city, string hint)
     {
         var instruction = _sut.BuildWebSearchInstruction(new BriefingParameters("123456", "Test Academy", IsTrust: false), city);
 
         Assert.Contains("\"Test Academy\" (URN/TRN: 123456)", instruction, StringComparison.Ordinal);
-        if (hint is null)
+        Assert.Contains(hint, instruction, StringComparison.Ordinal);
+        // With no town, the agent is never told where the school is: the search's own default location isn't its town.
+        if (city is null)
             Assert.DoesNotContain("located in or near", instruction, StringComparison.Ordinal);
-        else
-            Assert.Contains(hint, instruction, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -173,16 +173,57 @@ public sealed class BriefingBuilderTests
     }
 
     [Theory]
-    [InlineData("# Test Academy\n\n## About the school\n\nA fact. [Evidence 1]\n\n{{city: Exampleton}}", "Exampleton")]
-    [InlineData("# Test Academy\n\n## About the school\n\nA fact. [Evidence 1]\n\n{{city: none}}", null)]
-    [InlineData("# Test Academy\n\n## About the school\n\nA fact. [Evidence 1]", null)]
-    public void PresentBriefing_TakesOutTheLocationMarker_AndGivesItsCity(string output, string? city)
+    [InlineData("# Test Academy\n\n## About the school\n\nA fact. [Evidence 1]\n\n{{city: Exampleton}}")]
+    [InlineData("# Test Academy\n\n## About the school\n\nA fact. [Evidence 1]\n\n{{ City: none }}")]
+    [InlineData("# Test Academy\n\n## About the school\n\nA fact. [Evidence 1]")]
+    public void PresentBriefing_TakesOutAnyLocationMarkerTheAgentStillWrites(string output)
     {
-        var (briefing, found) = _sut.PresentBriefing(output);
+        var briefing = _sut.PresentBriefing(output);
 
-        Assert.Equal(city, found);
-        Assert.DoesNotContain("{{city", briefing, StringComparison.Ordinal);
-        Assert.Contains("A fact. [Evidence 1]", briefing, StringComparison.Ordinal);
+        Assert.Equal("# Test Academy\n\n## About the school\n\nA fact. [Evidence 1]", briefing);
+    }
+
+    [Fact]
+    public void PresentBriefing_PutsTheSpaceBackAfterAHeadingsHashes_SoEmptySectionsAreStillRemoved()
+    {
+        var briefing = _sut.PresentBriefing(
+            "#Test Academy\n\n##About the school\n\nA fact. [Evidence 1]\n\n##KS4 Summary\n\n###Detail\n\n- #1 in the list\n## Ofsted Summary\n");
+
+        Assert.Equal("# Test Academy\n\n## About the school\n\nA fact. [Evidence 1]\n\n## KS4 Summary\n\n### Detail\n\n- #1 in the list\n", briefing);
+    }
+
+    [Fact]
+    public void OrderAcademies_ForATrust_PutsItsAcademyBulletsInTheOrderItsRecordsGive()
+    {
+        var trust = new ContextResult("[Evidence 1]\ntrust_name: Test Trust", HasEvidence: true);
+        var academies = new ContextResult(
+            "[Evidence 1]\nestablishment_name: Academy A\nestablishment_urn: 900001\nks4_performance_latest: {\"attainment_8_score\": \"44.0\"}\n\n" +
+            "[Evidence 2]\nestablishment_name: Academy B\nestablishment_urn: 900002\nks4_performance_latest: {\"attainment_8_score\": \"52.5\"}", HasEvidence: true);
+        var none = new ContextResult(string.Empty, HasEvidence: false);
+        const string briefing = "## KS4 summary\n\n- Academy A: Attainment 8 score 44.0 [Evidence 2]\n- Academy B: Attainment 8 score 52.5 [Evidence 3]";
+
+        var ordered = _sut.OrderAcademies(briefing, new BriefingParameters("TR12345", "Test Trust", IsTrust: true), new BriefingRecords(trust, academies, none, none));
+
+        Assert.Equal("## KS4 summary\n\n- Academy B: Attainment 8 score 52.5 [Evidence 3]\n- Academy A: Attainment 8 score 44.0 [Evidence 2]", ordered);
+    }
+
+    [Fact]
+    public void OrderAcademies_ForASchool_ReturnsTheBriefingAsItIs()
+    {
+        var school = new ContextResult("[Evidence 1]\nestablishment_urn: 123456", HasEvidence: true);
+        var none = new ContextResult(string.Empty, HasEvidence: false);
+        const string briefing = "## Ofsted summary\n\n- Latest inspection: Good [Evidence 1]\n- Previous inspection: Outstanding [Evidence 1]";
+
+        Assert.Equal(briefing, _sut.OrderAcademies(briefing, Subject, new BriefingRecords(school, none, none, none)));
+    }
+
+    [Fact]
+    public void FindTown_TakesTheTownFromTheSubjectsOwnRecord()
+    {
+        var school = new ContextResult("[Evidence 1]\nestablishment_urn: 123456\nestablishment_address: 2 School Lane, Exampleton, EX1 2BB", HasEvidence: true);
+        var none = new ContextResult(string.Empty, HasEvidence: false);
+
+        Assert.Equal("Exampleton", _sut.FindTown(Subject, new BriefingRecords(school, none, none, none)));
     }
 
 
@@ -289,6 +330,80 @@ public sealed class BriefingBuilderTests
 
         Assert.Contains("establishment_website: https://www.example-valley.example.org\n", evidence.Text, StringComparison.Ordinal);
         Assert.Contains("trust_website: https://example-trust.example.org", evidence.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildBriefingEvidence_GivesTheAgentValuesReadyToCopy_ConcernsNewestFirstWithoutPersonalDetails_AndNoRepeats()
+    {
+        var school = new ContextResult(
+            "[Evidence 1]\nestablishment_urn: 123456\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\"}]\n" +
+            "ks4_performance_latest: {\"academic_year\": \"202324\", \"attainment_8_score\": \"47.3%\"}\n\n" +
+            "[Evidence 2]\nestablishment_urn: 123456\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\"}]", HasEvidence: true);
+        var rise = new ContextResult(
+            "[Evidence 1]\nconcern_date: 2024-01-15\nsummary: Older\n\n" +
+            "[Evidence 2]\nconcern_date: 2025-02-10\nsummary: Pupil UPN A900001250017 bullied\n\n" +
+            "[Evidence 3]\nconcern_date: 2024-01-15\nsummary: Older", HasEvidence: true);
+        var none = new ContextResult(string.Empty, HasEvidence: false);
+
+        var evidence = _sut.BuildBriefingEvidence(Subject, new BriefingRecords(school, none, rise, none));
+
+        Assert.Contains("\"inspection_date\": \"28 November 2022\"", evidence.Text, StringComparison.Ordinal);
+        Assert.Contains("\"academic_year\": \"2023/24\", \"attainment_8_score\": \"47.3\"", evidence.Text, StringComparison.Ordinal);
+        // The school's second record is a less complete copy of its first, so the concerns number on from 1.
+        Assert.DoesNotContain("[Evidence 2]\nestablishment_urn", evidence.Text, StringComparison.Ordinal);
+        Assert.Contains("=== Rise concerns ===\n\n[Evidence 3]\nconcern_date: 10 February 2025\nsummary: Pupil UPN (removed) bullied\n\n" +
+            "[Evidence 2]\nconcern_date: 15 January 2024\nsummary: Older\n\n=== Recast concerns ===", evidence.Text, StringComparison.Ordinal);
+    }
+
+    public static TheoryData<string, bool> EmptyConcerns => new()
+    {
+        { string.Empty, false },
+        { string.Empty, true },
+        { " \n\t ", true }
+    };
+
+    [Theory]
+    [MemberData(nameof(EmptyConcerns))]
+    public void BuildBriefingEvidence_ForASchoolWithNoRiseOrRecastConcerns_SaysNoRecordsWereFoundForEach(string text, bool hasEvidence)
+    {
+        var school = new ContextResult("[Evidence 1]\nestablishment_urn: 123456", HasEvidence: true) { Sources = [new EvidenceSource(1, "Test Academy")] };
+        var trust = new ContextResult("[Evidence 1]\ntrust_name: Test Trust", HasEvidence: true);
+        var concerns = new ContextResult(text, hasEvidence);
+
+        var evidence = _sut.BuildBriefingEvidence(Subject, new BriefingRecords(school, trust, concerns, concerns));
+
+        Assert.Contains($"=== Rise concerns ===\n\n{EvidenceLabels.NoRecords}\n\n=== Recast concerns ===\n\n{EvidenceLabels.NoRecords}\n\n", evidence.Text, StringComparison.Ordinal);
+        // The trust's record numbers straight on from the school's, as no concern took a number.
+        Assert.EndsWith("=== Its trust's record ===\n\n[Evidence 2]\ntrust_name: Test Trust", evidence.Text, StringComparison.Ordinal);
+        Assert.Equal([new EvidenceSource(1, "Test Academy")], evidence.Sources);
+    }
+
+    [Theory]
+    [MemberData(nameof(EmptyConcerns))]
+    public void BuildBriefingEvidence_ForATrustWithNoRiseOrRecastConcerns_SaysNoRecordsWereFoundForEach(string text, bool hasEvidence)
+    {
+        var trust = new ContextResult("[Evidence 1]\ntrust_name: Test Trust", HasEvidence: true);
+        var academies = new ContextResult("[Evidence 1]\nestablishment_urn: 900001\nphase_of_education: Primary", HasEvidence: true);
+        var concerns = new ContextResult(text, hasEvidence);
+
+        var evidence = _sut.BuildBriefingEvidence(new BriefingParameters("TR12345", "Test Trust", IsTrust: true), new BriefingRecords(trust, academies, concerns, concerns));
+
+        Assert.Contains($"=== Rise concerns ===\n\n{EvidenceLabels.NoRecords}\n\n=== Recast concerns ===\n\n{EvidenceLabels.NoRecords}\n\n", evidence.Text, StringComparison.Ordinal);
+        Assert.EndsWith("=== Its academies' records ===\n\n[Evidence 2]\nestablishment_urn: 900001\nphase_of_education: Primary", evidence.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildBriefingEvidence_WhenEveryConcernIsOlderThan3Years_SaysNoneRecentWereFound()
+    {
+        var school = new ContextResult("[Evidence 1]\nestablishment_urn: 123456", HasEvidence: true);
+        var rise = new ContextResult("[Evidence 1]\nconcern_date: 2019-05-01\nsummary: Old", HasEvidence: true) { Sources = [new EvidenceSource(1, "Old concern")] };
+        var none = new ContextResult(string.Empty, HasEvidence: false);
+
+        var evidence = _sut.BuildBriefingEvidence(Subject, new BriefingRecords(school, none, rise, none));
+
+        Assert.Contains($"=== Rise concerns ===\n\n{ConcernWindow.NoneRecent}\n\n=== Recast concerns ===\n\n{EvidenceLabels.NoRecords}", evidence.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Old", evidence.Text, StringComparison.Ordinal);
+        Assert.Empty(evidence.Sources);
     }
 
     [Fact]

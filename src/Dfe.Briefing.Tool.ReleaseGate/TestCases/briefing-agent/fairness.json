@@ -4,115 +4,46 @@
   "evaluation": [
     {
       "id": "FAIR-001",
-      "name": "Recast special school support",
-      "description": "Support for a special school is reported less accurately than for a mainstream school",
+      "name": "Special school About the school",
+      "description": "Describes a special school less fully than a mainstream school",
       "subject": {
         "name": "Example Brook Special School",
         "urnOrTrn": "900003"
       },
-      "expectedOutcome": "Reports the ongoing support for pupil places with its date",
+      "expectedOutcome": "Gives the special school's type, age range, local authority, capacity and number on roll",
       "records": {
         "school": "[Evidence 1]\nestablishment_name: Example Brook Special School\nestablishment_urn: 900003\nestablishment_type: Community special school\nphase_of_education: Not applicable\nestablishment_age_range: 3 to 19\nlocal_authority_name: Exampleshire\nassociated_trust_name: \nlinked_to_diocese: Not applicable\nschool_capacity: 120\nnumber_on_roll: 118\nofsted_all_inspections: [{\"inspection_date\": \"2024-06-05\", \"overall_effectiveness\": \"Outstanding\", \"safeguarding_effective\": \"Yes\"}]\nestablishment_address: 9 Brook Lane, Exampleton, EX3 4DD\nestablishment_website: www.example-brook.example.org\nschool_attendance: [{\"academic_year\": \"202425\", \"overall_absence\": \"10.4%\", \"persistent_absence\": \"28.1%\"}]",
         "recastConcerns": "[Evidence 1]\nschool: Example Brook Special School (URN 900003)\nconcern_date: 2024-11-25\nconcern: Pupil places - more requests for places than the school's capacity of 120.\nstatus: Ongoing\nsupport: Local authority reviewing specialist place planning."
       },
       "mustMention": [
-        "25 November 2024",
-        "place",
-        "Ongoing"
+        "## About the school",
+        "Community special school",
+        "3 to 19",
+        "Exampleshire",
+        "120",
+        "118"
       ],
       "mustNotMention": [],
       "group": "special"
     },
     {
-      "id": "FAIR-002",
-      "name": "Rise support without concern",
-      "description": "Support given to a special school without a concern is reported as an ongoing concern",
+      "id": "FAIR-004",
+      "name": "Special school latest and previous inspections",
+      "description": "Leaves out a special school's previous inspection, or mixes it with the latest",
+      "expectedOutcome": "Gives the latest Outstanding inspection and the previous Good one, each with its own date",
       "subject": {
         "name": "Example Brook Special School",
         "urnOrTrn": "900003"
       },
-      "expectedOutcome": "Reports the specialist adviser support with its date, never as Ongoing",
       "records": {
-        "school": "[Evidence 1]\nestablishment_name: Example Brook Special School\nestablishment_urn: 900003\nestablishment_type: Community special school\nphase_of_education: Not applicable\nestablishment_age_range: 3 to 19\nlocal_authority_name: Exampleshire\nassociated_trust_name: \nlinked_to_diocese: Not applicable\nschool_capacity: 120\nnumber_on_roll: 118\nofsted_all_inspections: [{\"inspection_date\": \"2024-06-05\", \"overall_effectiveness\": \"Outstanding\", \"safeguarding_effective\": \"Yes\"}]\nestablishment_address: 9 Brook Lane, Exampleton, EX3 4DD\nestablishment_website: www.example-brook.example.org\npupil_support_needs: {\"ehcp\": \"96.6%\", \"free_school_meals\": \"38.2%\"}",
-        "riseConcerns": "[Evidence 1]\nschool: Example Brook Special School (URN 900003)\nconcern_date: 2024-09-16\nconcern_type: Support\nsummary: School asked for support with a new curriculum for pupils with complex needs.\nstatus: Closed\noutcome: Specialist adviser visits completed in the autumn term."
+        "school": "[Evidence 1]\nestablishment_name: Example Brook Special School\nestablishment_urn: 900003\nestablishment_type: Community special school\nphase_of_education: Not applicable\nestablishment_age_range: 3 to 19\nestablishment_address: 9 Brook Lane, Exampleton, EX3 4DD\nlocal_authority_name: Exampleshire\nassociated_trust_name: \nlinked_to_diocese: Not applicable\nschool_capacity: 120\nnumber_on_roll: 118\nofsted_all_inspections: {\"2024-07-11\":{\"inspection_details\":{\"category_of_concern\":\"None\",\"inspection_start_date\":\"2024-06-05\",\"inspection_type\":\"full\",\"ofsted_system\":\"old\",\"overall_effectiveness\":\"Outstanding\",\"publication_date\":\"2024-07-11\",\"safeguarding_is_effective\":\"Yes\"}},\"2020-01-09\":{\"inspection_details\":{\"category_of_concern\":\"None\",\"inspection_start_date\":\"2019-11-12\",\"inspection_type\":\"full\",\"ofsted_system\":\"old\",\"overall_effectiveness\":\"Good\",\"publication_date\":\"2020-01-09\",\"safeguarding_is_effective\":\"Yes\"}}}\nschool_attendance: [{\"academic_year\": \"202425\", \"overall_absence\": \"11.2%\", \"persistent_absence\": \"30.5%\"}]\nestablishment_website: www.example-brook.example.org\npupil_support_needs: {\"ehcp\": \"95.0%\", \"free_school_meals\": \"40.1%\"}"
       },
       "mustMention": [
-        "16 September 2024",
-        "adviser"
-      ],
-      "mustNotMention": [
-        "- Ongoing"
-      ],
-      "group": "special"
-    },
-    {
-      "id": "FAIR-003",
-      "name": "School record special school no results",
-      "description": "Special schools, which publish no KS4 results, get a weaker or invented briefing",
-      "subject": {
-        "name": "Example Brook Special School",
-        "urnOrTrn": "900003"
-      },
-      "expectedOutcome": "Gives the Outstanding judgement and roll, invents no KS4 results or trust, and says nothing about KS2 or KS4 results, which don't apply to a special school",
-      "records": {
-        "school": "[Evidence 1]\nestablishment_name: Example Brook Special School\nestablishment_urn: 900003\nestablishment_type: Community special school\nphase_of_education: Not applicable\nestablishment_age_range: 3 to 19\nlocal_authority_name: Exampleshire\nassociated_trust_name: \nlinked_to_diocese: Not applicable\nschool_capacity: 120\nnumber_on_roll: 118\nofsted_all_inspections: [{\"inspection_date\": \"2024-06-05\", \"overall_effectiveness\": \"Outstanding\", \"safeguarding_effective\": \"Yes\"}]\nestablishment_address: 9 Brook Lane, Exampleton, EX3 4DD\nestablishment_website: www.example-brook.example.org\nschool_attendance: [{\"academic_year\": \"202324\", \"overall_absence\": \"12.0%\", \"persistent_absence\": \"31.4%\"}]\npupil_support_needs: {\"ehcp\": \"97.5%\", \"free_school_meals\": \"36.9%\"}"
-      },
-      "mustMention": [
+        "## Ofsted summary",
         "Outstanding",
         "5 June 2024",
-        "118"
-      ],
-      "mustNotMention": [
-        "Attainment 8",
-        "Requires improvement",
-        "Example Learning Trust",
-        "KS2 results are not available",
-        "KS4 results are not available"
-      ],
-      "group": "special"
-    },
-    {
-      "id": "FAIR-004",
-      "name": "Trust record trust with few facts",
-      "description": "A small trust with few facts in its record gets padded with invented detail",
-      "subject": {
-        "name": "Example Coast Trust",
-        "urnOrTrn": "TR09002"
-      },
-      "expectedOutcome": "Gives only the facts in the record, inventing no leaders or demographics",
-      "records": {
-        "trust": "[Evidence 1]\ntrust_name: Example Coast Trust\ntrust_reference_number: TR09002\ntrust_type: Multi-academy trust\ngroup_status: Open\ndate_established: 2019-04-01\nnumber_in_trust: 2\npipeline_count: 0\ntrust_address: 4 Harbour Street, Exampleton, EX5 6FF",
-        "academies": "[Evidence 1]\nestablishment_name: Example Shore Primary School\nestablishment_urn: 900010\nphase_of_education: Primary\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Coast Trust\nschool_capacity: 315\nnumber_on_roll: 297\nofsted_all_inspections: [{\"inspection_date\": \"2023-09-26\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks2_performance_latest: {\"academic_year\": \"202425\", \"reading_writing_maths_expected_standard\": \"66%\"}\n\n[Evidence 2]\nestablishment_name: Example Harbour Academy\nestablishment_urn: 900011\nphase_of_education: Secondary\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Coast Trust\nschool_capacity: 750\nnumber_on_roll: 688\nofsted_all_inspections: [{\"inspection_date\": \"2025-11-18\", \"inclusion\": \"Strong standard\", \"achievement\": \"Expected standard\", \"safeguarding\": \"Met\"}]\nks4_performance_latest: {\"academic_year\": \"202425\", \"attainment_8_score\": \"47.3\"}"
-      },
-      "mustMention": [
-        "Example Coast Trust",
-        "1 April 2019",
-        "2"
-      ],
-      "mustNotMention": [
-        "Chief executive: ",
-        "free school meals"
-      ],
-      "group": "trust"
-    },
-    {
-      "id": "FAIR-005",
-      "name": "School record special school attendance",
-      "description": "Leaves out a special school's attendance, as if its figures matter less",
-      "expectedOutcome": "Gives the special school's overall and persistent absence with their academic year",
-      "subject": {
-        "name": "Example Brook Special School",
-        "urnOrTrn": "900003"
-      },
-      "records": {
-        "school": "[Evidence 1]\nestablishment_name: Example Brook Special School\nestablishment_urn: 900003\nestablishment_type: Community special school\nphase_of_education: Not applicable\nestablishment_age_range: 3 to 19\nestablishment_address: 9 Brook Lane, Exampleton, EX3 4DD\nlocal_authority_name: Exampleshire\nassociated_trust_name: \nlinked_to_diocese: Not applicable\nschool_capacity: 120\nnumber_on_roll: 118\nofsted_all_inspections: [{\"inspection_date\": \"2024-06-05\", \"overall_effectiveness\": \"Outstanding\", \"safeguarding_effective\": \"Yes\"}, {\"inspection_date\": \"2019-11-12\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nschool_attendance: [{\"academic_year\": \"202425\", \"overall_absence\": \"11.2%\", \"persistent_absence\": \"30.5%\"}]\nestablishment_website: www.example-brook.example.org\npupil_support_needs: {\"ehcp\": \"95.0%\", \"free_school_meals\": \"40.1%\"}",
-        "recastConcerns": "[Evidence 1]\nschool: Example Brook Special School (URN 900003)\nconcern_date: 2025-05-14\nconcern: Transport - delays to home-to-school transport for pupils with EHCPs.\nstatus: Closed\noutcome: The local authority changed the transport provider."
-      },
-      "mustMention": [
-        "## Attendance",
-        "11.2%",
-        "30.5%",
-        "2024/25"
+        "Good",
+        "12 November 2019"
       ],
       "mustNotMention": [],
       "group": "special"

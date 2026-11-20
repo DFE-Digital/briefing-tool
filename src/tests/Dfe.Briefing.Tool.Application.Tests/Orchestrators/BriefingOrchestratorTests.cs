@@ -98,14 +98,41 @@ public sealed class BriefingOrchestratorTests
     }
 
     [Fact]
-    public async Task GetBriefing_TakesTheCityMarkerOut_AndReturnsTheCity_ForALaterWebSearch()
+    public async Task GetBriefing_ReturnsTheTownFromTheRecords_ForALaterWebSearch_NotOneTheAgentWrites()
     {
-        BriefingAgentReturns("# Test Academy\n\n## About the school\n\nRated Good.\n{{city: Coventry}}", 10);
+        var school = new ContextResult("[Evidence 1]\nestablishment_urn: 123456\nestablishment_address: 1 High Street, Coventry, CV1 1AA", HasEvidence: true);
+        _evidenceProvider.GetRecordsAsync(Arg.Any<BriefingParameters>(), Arg.Any<IProgress<string>?>(), Arg.Any<CancellationToken>())
+            .Returns(Records with { Subject = school });
+        BriefingAgentReturns("# Test Academy\n\n## About the school\n\nRated Good.\n{{city: Elsewhere}}", 10);
 
         var result = await _sut.GetBriefing(School, cancellationToken: cancellationToken);
 
         Assert.Equal("Coventry", result.City);
         Assert.DoesNotContain("city:", result.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetBriefing_ForATrust_ListsItsAcademiesInTheOrderWorkedOutFromTheRecords_NotTheAgents()
+    {
+        var academies = new ContextResult(
+            "[Evidence 1]\nestablishment_name: Academy A\nestablishment_urn: 900001\nofsted_all_inspections: [{\"inspection_date\": \"2023-01-01\", \"overall_effectiveness\": \"Good\"}]\n\n" +
+            "[Evidence 2]\nestablishment_name: Academy B\nestablishment_urn: 900002\nofsted_all_inspections: [{\"inspection_date\": \"2023-01-01\", \"overall_effectiveness\": \"Inadequate\"}]",
+            HasEvidence: true);
+        _evidenceProvider.GetRecordsAsync(Arg.Any<BriefingParameters>(), Arg.Any<IProgress<string>?>(), Arg.Any<CancellationToken>())
+            .Returns(Records with { Related = academies });
+        BriefingAgentReturns("# Test Trust\n\n## Ofsted summary\n\n- Academy A: Good [Evidence 2]\n- Academy B: Inadequate [Evidence 3]", 10);
+
+        var result = await _sut.GetBriefing(Trust, cancellationToken: cancellationToken);
+
+        Assert.Equal("# Test Trust\n\n## Ofsted summary\n\n- Academy B: Inadequate [Evidence 3]\n- Academy A: Good [Evidence 2]", result.Output);
+    }
+
+    [Fact]
+    public async Task GetBriefing_GivesNoTown_WhenTheRecordsGiveNoAddressOrLocalAuthority()
+    {
+        var result = await _sut.GetBriefing(School, cancellationToken: cancellationToken);
+
+        Assert.Null(result.City);
     }
 
     [Fact]

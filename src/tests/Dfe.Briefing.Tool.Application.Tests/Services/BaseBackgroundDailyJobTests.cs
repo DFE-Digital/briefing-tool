@@ -23,7 +23,7 @@ public sealed class BaseBackgroundDailyJobTests
     [Fact]
     public async Task Stopping_while_waiting_for_the_next_run_logs_no_failure()
     {
-        var job = new TestJob(new FixedClock(DateTimeOffset.UtcNow), RunAt(TimeSpan.FromHours(12)), _logger, _ => Task.CompletedTask);
+        var job = new TestJob(new FixedClock(DateTimeOffset.UtcNow), TimeFromNow(TimeSpan.FromHours(12)), _logger, _ => Task.CompletedTask);
 
         await job.StartAsync(cancellationToken);
         await job.StopAsync(cancellationToken);
@@ -73,7 +73,7 @@ public sealed class BaseBackgroundDailyJobTests
     // The clock always reads a millisecond before RunAtSoon, so each run is due a millisecond after the last.
     private static readonly TimeOnly RunAtSoon = new(2, 0);
     private static FixedClock SoonClock() => new(new DateTimeOffset(2026, 11, 4, 1, 59, 59, 999, TimeSpan.Zero));
-    private static TimeOnly RunAt(TimeSpan fromNow) => TimeOnly.FromDateTime(DateTime.UtcNow.Add(fromNow));
+    private static TimeOnly TimeFromNow(TimeSpan fromNow) => TimeOnly.FromDateTime(DateTime.UtcNow.Add(fromNow));
 
     private sealed class TestJob(TimeProvider clock, TimeOnly runAt, ILogger logger, Func<CancellationToken, Task> run)
         : BaseBackgroundDailyJob(clock, logger)

@@ -33,8 +33,9 @@ public class BriefingOrchestrator(IBriefingEvidenceProvider evidenceProvider, IA
         var result = await agentService.RunAsync(BriefingAgents.Briefing, briefingBuilder.BuildBriefingPrompt(parameters),
             briefingBuilder.BuildBriefingEvidence(parameters, records), cancellationToken);
 
-        var (briefing, city) = briefingBuilder.PresentBriefing(result.Output);
-        return new AIResult(briefing, result.TotalTokens, city);
+        // The academies' order and the town for a later web search come from the records, not the agent's answer.
+        var briefing = briefingBuilder.OrderAcademies(briefingBuilder.PresentBriefing(result.Output), parameters, records);
+        return new AIResult(briefing, result.TotalTokens, briefingBuilder.FindTown(parameters, records));
     }
 
     public bool CanAddWebSearchFindings(string? briefing)

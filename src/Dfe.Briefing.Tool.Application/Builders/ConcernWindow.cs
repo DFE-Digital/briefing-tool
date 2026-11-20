@@ -5,7 +5,8 @@ using GovUK.Dfe.AI.Agents.ValueObjects;
 namespace Dfe.Briefing.Tool.Application.Builders;
 
 /// <summary>
-/// Keeps only the Rise and Recast concerns from the last <see cref="Years"/> years, so the agent never sees an older one.
+/// Keeps only the Rise and Recast concerns from the last <see cref="Years"/> years, so the agent never sees an older one,
+/// and puts them most recent first, the order the briefing lists them in.
 /// </summary>
 /// <remarks>
 /// The briefing reports concerns from the 3 years up to today. Told only in its prompt, the agent still listed older
@@ -30,56 +31,33 @@ internal static partial class ConcernWindow
         if (!concerns.HasEvidence)
             return concerns;
 
-        var starts = RecordStartRegex().Matches(concerns.Text);
-        if (starts.Count == 0)
-            return concerns;
-
+        var (preamble, records) = EvidenceRecords.Split(concerns.Text);
         var from = today.AddYears(-Years);
-        var kept = new List<string>();
-        var dropped = new HashSet<int>();
-        for (var i = 0; i < starts.Count; i++)
-        {
-            var end = i + 1 < starts.Count ? starts[i + 1].Index : concerns.Text.Length;
-            var record = concerns.Text[starts[i].Index..end].Trim();
-            if (ConcernDate(record) is { } date && (date < from || date > today))
-                dropped.Add(int.Parse(starts[i].Groups["number"].Value, CultureInfo.InvariantCulture));
-            else
-                kept.Add(record);
-        }
+        var kept = records.Where(record => ConcernDate(record.Text) is not { } date || (date >= from && date <= today)).ToList();
 
-        if (dropped.Count == 0)
+        if (kept.Count == records.Count)
             return concerns;
 
-        if (kept.Count == 0)
-            return new ContextResult(NoneRecent, HasEvidence: false);
-
-        // Anything before the first record, e.g. a note from the search, stays.
-        var preamble = concerns.Text[..starts[0].Index].Trim();
-        var text = string.Join("\n\n", preamble.Length > 0 ? [preamble, .. kept] : kept);
-        return concerns with { Text = text, Sources = [.. concerns.Sources.Where(source => !dropped.Contains(source.Number))] };
+        return kept.Count == 0
+            ? new ContextResult(NoneRecent, HasEvidence: false)
+            : EvidenceRecords.Rebuild(concerns, preamble, records, kept);
     }
 
     /// <summary>
-    /// <paramref name="concerns"/>, with each concern_date written as the briefing gives it, e.g. "11 February 2025".
+    /// <paramref name="concerns"/> most recent first, each with its own record number, so every citation still points at
+    /// its record. A concern whose date can't be read goes last.
     /// </summary>
-    /// <remarks>
-    /// Converting each date itself, the agent once gave a concern the date of another concern about the same academy.
-    /// Written out here, each date is copied as it stands. A date that can't be read is left as it is.
-    /// </remarks>
-    public static ContextResult WithDatesInWords(ContextResult concerns)
+    /// <remarks>Told only in its prompt to list them most recent first, the agent didn't always.</remarks>
+    public static ContextResult NewestFirst(ContextResult concerns)
     {
         ArgumentNullException.ThrowIfNull(concerns);
         if (!concerns.HasEvidence)
             return concerns;
 
-        var text = ConcernDateValueRegex().Replace(concerns.Text, match =>
-            DateOnly.TryParseExact(match.Groups["date"].Value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
-                ? match.Groups["field"].Value + date.ToString("d MMMM yyyy", EnglishCulture)
-                : match.Value);
-        return text == concerns.Text ? concerns : concerns with { Text = text };
+        var (preamble, records) = EvidenceRecords.Split(concerns.Text);
+        var ordered = records.OrderByDescending(record => ConcernDate(record.Text)).ToList();
+        return ordered.SequenceEqual(records) ? concerns : EvidenceRecords.Rebuild(concerns, preamble, records, ordered);
     }
-
-    private static readonly CultureInfo EnglishCulture = CultureInfo.GetCultureInfo("en-GB");
 
     private static DateOnly? ConcernDate(string record)
         => ConcernDateRegex().Match(record) is { Success: true } match
@@ -87,14 +65,6 @@ internal static partial class ConcernWindow
             ? date
             : null;
 
-    // A record starts with a line giving its number: "--- rise_concerns_index Evidence 2 ---", or "[Evidence 2]".
-    [GeneratedRegex(@"^(?:---[^\r\n]*\bEvidence (?<number>\d+) ---|\[Evidence (?<number>\d+)\])\r?$", RegexOptions.Multiline, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex RecordStartRegex();
-
     [GeneratedRegex(@"^concern_date:[ \t]*(?<date>\d{4}-\d{2}-\d{2})", RegexOptions.Multiline, matchTimeoutMilliseconds: 1000)]
     private static partial Regex ConcernDateRegex();
-
-    // The whole value: the date, and any time after it ("2025-02-11T09:00:00Z"), which the briefing doesn't give.
-    [GeneratedRegex(@"^(?<field>concern_date:[ \t]*)(?<date>\d{4}-\d{2}-\d{2})(?:T[^\s]*)?(?=[ \t]*\r?$)", RegexOptions.Multiline, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex ConcernDateValueRegex();
 }

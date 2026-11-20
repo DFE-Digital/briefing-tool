@@ -73,45 +73,30 @@ public sealed class ConcernWindowTests
     }
 
     [Fact]
-    public void WithDatesInWords_WritesEachConcernsOwnDate_AndKeepsTheSources()
+    public void NewestFirst_PutsTheMostRecentConcernFirst_KeepingEachOnesNumber_WithUndatedOnesLast()
     {
-        var concerns = new ContextResult($"{Concern(1, "2025-02-11", "Governance")}\n\n{Concern(2, "2025-03-03", "Falling roll")}", HasEvidence: true)
+        var concerns = new ContextResult(
+            $"A note.\n\n{Concern(1, "2024-01-15", "Oldest")}\n\n[Evidence 2]\nconcern_date: not recorded\nsummary: Undated\n\n{Concern(3, "2025-06-10", "Newest")}",
+            HasEvidence: true)
         {
-            Sources = [new EvidenceSource(1, "Governance"), new EvidenceSource(2, "Falling roll")]
+            Sources = [new EvidenceSource(1, "Oldest"), new EvidenceSource(2, "Undated"), new EvidenceSource(3, "Newest")]
         };
 
-        var dated = ConcernWindow.WithDatesInWords(concerns);
+        var ordered = ConcernWindow.NewestFirst(concerns);
 
-        Assert.Equal($"{Concern(1, "11 February 2025", "Governance")}\n\n{Concern(2, "3 March 2025", "Falling roll")}", dated.Text);
-        Assert.Equal(concerns.Sources, dated.Sources);
-    }
-
-    [Theory]
-    [InlineData("concern_date: 2024-06-03T00:00:00Z", "concern_date: 3 June 2024")]
-    [InlineData("concern_date: 2024-06-03 \r", "concern_date: 3 June 2024 \r")]
-    public void WithDatesInWords_LeavesOutATime_AndKeepsTheLineEnding(string line, string expected)
-    {
-        var dated = ConcernWindow.WithDatesInWords(new ContextResult($"[Evidence 1]\n{line}\nsummary: A", HasEvidence: true));
-
-        Assert.Equal($"[Evidence 1]\n{expected}\nsummary: A", dated.Text);
-    }
-
-    [Theory]
-    [InlineData("concern_date: not recorded")]
-    [InlineData("concern_date: 2024-13-45")]
-    [InlineData("summary: Raised on 2024-06-03.")]
-    public void WithDatesInWords_LeavesADateItCannotReadAsItIs(string line)
-    {
-        var concerns = new ContextResult($"[Evidence 1]\n{line}", HasEvidence: true);
-
-        Assert.Same(concerns, ConcernWindow.WithDatesInWords(concerns));
+        Assert.Equal(
+            $"A note.\n\n{Concern(3, "2025-06-10", "Newest")}\n\n{Concern(1, "2024-01-15", "Oldest")}\n\n[Evidence 2]\nconcern_date: not recorded\nsummary: Undated",
+            ordered.Text);
+        Assert.Equal(concerns.Sources, ordered.Sources);
     }
 
     [Fact]
-    public void WithDatesInWords_LeavesASetWithNoEvidenceAsItIs()
+    public void NewestFirst_LeavesConcernsAlreadyInOrder_OrASetWithNoEvidence_AsTheyAre()
     {
-        var concerns = new ContextResult(ConcernWindow.NoneRecent, HasEvidence: false);
+        var inOrder = new ContextResult($"{Concern(1, "2025-06-10", "Newest")}\n\n{Concern(2, "2024-01-15", "Oldest")}", HasEvidence: true);
+        var none = new ContextResult(ConcernWindow.NoneRecent, HasEvidence: false);
 
-        Assert.Same(concerns, ConcernWindow.WithDatesInWords(concerns));
+        Assert.Same(inOrder, ConcernWindow.NewestFirst(inOrder));
+        Assert.Same(none, ConcernWindow.NewestFirst(none));
     }
 }

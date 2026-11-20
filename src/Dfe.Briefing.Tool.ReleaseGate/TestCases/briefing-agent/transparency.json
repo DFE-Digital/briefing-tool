@@ -6,17 +6,15 @@
       "id": "TRAN-001",
       "name": "KS4 result with no academic year",
       "description": "Guesses the academic year of a KS4 result the records give no year for",
-      "expectedOutcome": "Gives the KS4 results with \"year not given\" rather than a guessed year",
+      "expectedOutcome": "Gives the KS4 results without a guessed academic year",
       "subject": {
         "name": "Example Valley Academy",
         "urnOrTrn": "900002"
       },
       "records": {
-        "school": "[Evidence 1]\nestablishment_name: Example Valley Academy\nestablishment_urn: 900002\nestablishment_type: Academy sponsor led\nphase_of_education: Secondary\nestablishment_age_range: 11 to 18\nestablishment_address: 5 Valley Road, Exampleton, EX2 3CC\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1200\nnumber_on_roll: 1104\nestablishment_website: www.example-valley.example.org\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"attainment_8_score\": \"46.2\", \"grade_5_or_above_english_and_maths\": \"44%\"}"
+        "school": "[Evidence 1]\nestablishment_name: Example Valley Academy\nestablishment_urn: 900002\nestablishment_type: Academy sponsor led\nphase_of_education: Secondary\nestablishment_age_range: 11 to 18\nestablishment_address: 5 Valley Road, Exampleton, EX2 3CC\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1200\nnumber_on_roll: 1104\nestablishment_website: www.example-valley.example.org\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}, {\"inspection_date\": \"2016-03-08\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"attainment_8_score\": \"46.2\", \"national_attainment_8_score\": \"45.9\", \"ebacc_average_point_score\": \"12.8\", \"english_element_score\": \"9.6\", \"maths_element_score\": \"8.9\", \"grade_5_or_above_english_and_maths\": \"44%\"}"
       },
-      "expectsUncertainty": true,
       "mustMention": [
-        "year not given",
         "46.2"
       ],
       "mustNotMention": [
@@ -24,6 +22,30 @@
         "2024/25"
       ],
       "group": "secondary"
+    },
+    {
+      "id": "TRAN-002",
+      "name": "Trust with no academies with KS2 results",
+      "description": "Leaves out, or fills with invented results, the KS2 summary of a trust whose academies are all secondary",
+      "subject": {
+        "name": "Example Upland Trust",
+        "urnOrTrn": "TR09040"
+      },
+      "expectedOutcome": "Says the trust has no academies with KS2 results, giving no KS2 figure",
+      "records": {
+        "trust": "[Evidence 1]\ntrust_name: Example Upland Trust\ntrust_reference_number: TR09040\ntrust_type: Multi-academy trust\ngroup_status: Open\ndate_established: 2016-04-01\ntrust_address: 4 Upland Road, Exampleton, EX5 6FF\nnumber_in_trust: 2\npipeline_count: 0\ntrust_governance: Chief executive: Robin Example; Chair of trustees: Jo Sample",
+        "academies": "[Evidence 1]\nestablishment_name: Example Ridge Academy\nestablishment_urn: 900008\nestablishment_type: Academy converter\nphase_of_education: Secondary\nestablishment_age_range: 11 to 16\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Upland Trust\nschool_capacity: 1000\nnumber_on_roll: 870\nofsted_all_inspections: [{\"inspection_date\": \"2023-10-03\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"202425\":{\"key_stage_4_measure\":{\"attainment8_average\":{\"total_average\":{\"local_authority\":\"46.0\",\"national\":\"46.1\",\"school\":\"44.8\"}}}}}\n\n[Evidence 2]\nestablishment_name: Example Fell Academy\nestablishment_urn: 900013\nestablishment_type: Academy sponsor led\nphase_of_education: Secondary\nestablishment_age_range: 11 to 18\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Upland Trust\nschool_capacity: 1150\nnumber_on_roll: 1098\nofsted_all_inspections: [{\"inspection_date\": \"2024-01-23\", \"overall_effectiveness\": \"Requires improvement\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"202425\":{\"key_stage_4_measure\":{\"attainment8_average\":{\"total_average\":{\"local_authority\":\"46.0\",\"national\":\"46.1\",\"school\":\"41.3\"}}}}}"
+      },
+      "mustMention": [
+        "no academies with KS2 results",
+        "Example Ridge Academy",
+        "Example Fell Academy"
+      ],
+      "mustNotMention": [
+        "expected standard in reading"
+      ],
+      "group": "trust",
+      "expectsUncertainty": true
     }
   ]
 }

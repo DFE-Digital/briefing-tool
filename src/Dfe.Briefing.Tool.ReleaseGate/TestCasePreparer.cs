@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Dfe.Briefing.Tool.Application.Builders.Interfaces;
@@ -7,7 +6,6 @@ using Dfe.Briefing.Tool.Domain.ValueObjects;
 using Dfe.Briefing.Tool.Domain.ValueObjects.Requests;
 using Dfe.Briefing.Tool.ReleaseGate.Constants;
 using GovUK.Dfe.AI.Agents.ValueObjects;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfe.Briefing.Tool.ReleaseGate;
@@ -34,7 +32,7 @@ internal static partial class TestCasePreparer
         string? sourceDirectory = null)
     {
         await using var scope = services.CreateAsyncScope();
-        var briefingBuilder = BuilderFor(scope.ServiceProvider);
+        var briefingBuilder = scope.ServiceProvider.GetRequiredService<IBriefingBuilder>();
         var source = sourceDirectory ?? Path.Combine(AppContext.BaseDirectory, TestCaseFields.SourceDirectory);
 
         foreach (var file in Directory.Exists(source) ? Directory.GetFiles(source, TestCaseFields.FilePattern, SearchOption.AllDirectories) : [])
@@ -112,31 +110,31 @@ internal static partial class TestCasePreparer
     [GeneratedRegex(@"(?<![\d-])(?<value>\d{4}-\d{2}-\d{2})(?![\d-])", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex RawDateRegex();
 
+    // The index each set of records comes from in the app (AiAgents:AISearch:Indexes in appsettings.shared.json).
+    private static readonly Dictionary<string, string> IndexBySet = new(StringComparer.Ordinal)
+    {
+        [TestCaseFields.SchoolRecords] = "establishment_index",
+        [TestCaseFields.AcademyRecords] = "establishment_index",
+        [TestCaseFields.TrustRecords] = "trust_index",
+        [TestCaseFields.RiseConcerns] = "rise_concerns_index",
+        [TestCaseFields.RecastConcerns] = "recast_concerns_index",
+    };
+
+    /// <summary>
+    /// Converts the case's record numbering to the search's evidence format.
+    /// </summary>
+    /// <param name="records">The case's record numbering, e.g., "[Evidence 2]".</param>
+    /// <param name="set">The set of records, used to look up the corresponding index in the search format.</param>
+    /// <returns>The record numbering converted to the search's evidence format.</returns>
+    private static string AsSearchFinds(string records, string set)
+        => CaseRecordStartRegex().Replace(records, start => $"--- {IndexBySet[set]} Evidence {start.Groups["number"].Value} ---");
+
+    [GeneratedRegex(@"^\[Evidence (?<number>\d+)\](?=\r?$)", RegexOptions.Multiline, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex CaseRecordStartRegex();
+
     // An academic year's value ("academic_year": "202324"), or a key in results given by year ({"202324": {...}}).
     [GeneratedRegex(@"""academic_year"":\s*""(?<value>\d{6})""|""(?<value>\d{6})""\s*:", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex RawAcademicYearRegex();
-
-    // The app's builder, measuring the 3-year concerns window from TestCases:Today when it's set, so the test cases'
-    // concerns never age out of it. Only the builder's date is fixed: the gate's own clock, which decides when a risk
-    // acceptance expires, stays real.
-    private static IBriefingBuilder BuilderFor(IServiceProvider services)
-    {
-        var builder = services.GetRequiredService<IBriefingBuilder>();
-        var setting = services.GetService<IConfiguration>()?[Settings.TestCasesTodayKey];
-        if (string.IsNullOrWhiteSpace(setting))
-            return builder;
-
-        if (!DateOnly.TryParseExact(setting.Trim(), Settings.TestCasesTodayFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var today))
-            throw new InvalidDataException($"{Settings.TestCasesTodayKey} must be a date written {Settings.TestCasesTodayFormat}, not \"{setting}\".");
-
-        return (IBriefingBuilder)ActivatorUtilities.CreateInstance(services, builder.GetType(), new FixedDateTimeProvider(today));
-    }
-
-    /// <summary>A clock that always gives midday (UTC) on one day.</summary>
-    private sealed class FixedDateTimeProvider(DateOnly today) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => new(today.ToDateTime(new TimeOnly(12, 0)), TimeSpan.Zero);
-    }
 
     private static bool IsQuestionAttack(JsonObject testCase)
         => testCase[TestCaseFields.Prompt]?.GetValue<string>() is { Length: > 0 }
@@ -160,7 +158,7 @@ internal static partial class TestCasePreparer
 
         // A set given as null, "" or only spaces has no records, as when the Rise or Recast index finds none.
         ContextResult Set(string key) => records[key]?.GetValue<string>() is { } text && !string.IsNullOrWhiteSpace(text)
-            ? new ContextResult(text, HasEvidence: true)
+            ? new ContextResult(AsSearchFinds(text, key), HasEvidence: true)
             : new ContextResult(string.Empty, HasEvidence: false);
 
         return isTrust

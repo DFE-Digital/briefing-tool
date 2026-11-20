@@ -50,6 +50,19 @@ public sealed class RecordFormatterTests
     public void Format_TakesThePercentSignOffScores_ButNotOffPercentages(string line, string expected)
         => Assert.Equal(expected, Format(line));
 
+    [Theory]
+    [InlineData(
+        """ks4_performance_latest: {"202425":{"key_stage_4_measure":{"engmath_95_percent":{"engmath_95_percent":{"local_authority":"48%","national":"45.4%","school":"64.7%"}}}}}""",
+        """ks4_performance_latest: {"2024/25":{"key_stage_4_measure":{"percentage_achieving_grade_5_or_above_in_english_and_maths":{"percentage_achieving_grade_5_or_above_in_english_and_maths":{"local_authority":"48%","national":"45.4%","school":"64.7%"}}}}}""")]
+    [InlineData(
+        """ks4_performance_historic: {"202324":{"key_stage_4_measure":{"engmath_95_percent" : {"engmath_95_percent": {"school":"62.9%"}}}}}""",
+        """ks4_performance_historic: {"2023/24":{"key_stage_4_measure":{"percentage_achieving_grade_5_or_above_in_english_and_maths" : {"percentage_achieving_grade_5_or_above_in_english_and_maths": {"school":"62.9%"}}}}}""")]
+    // Only the key: the same text as a value, or inside another key, is left alone.
+    [InlineData("""{"note": "engmath_95_percent"}""", """{"note": "engmath_95_percent"}""")]
+    [InlineData("""{"old_engmath_95_percent": "50%"}""", """{"old_engmath_95_percent": "50%"}""")]
+    public void Format_NamesTheGrade5OrAboveInEnglishAndMathsResult_AsTheBriefingDoes_KeepingItsPercentages(string line, string expected)
+        => Assert.Equal(expected, Format(line));
+
     [Fact]
     public void Format_KeepsTheSources_AndLeavesASetWithNoEvidenceAsItIs()
     {

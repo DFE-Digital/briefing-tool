@@ -8,5 +8,6 @@ public static class SystemPromptKey
 
 public static class UserPromptType
 {
-    public const string Briefing = "Briefing";
+    public const string SchoolBriefing = "SchoolBriefing";
+    public const string TrustBriefing = "TrustBriefing";
 }

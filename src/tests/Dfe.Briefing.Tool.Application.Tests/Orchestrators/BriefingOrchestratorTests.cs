@@ -36,9 +36,9 @@ public sealed class BriefingOrchestratorTests
 
     public BriefingOrchestratorTests()
     {
-        _briefingBuilder = new BriefingBuilder(_promptProvider, _promptBuilder, TimeProvider.System);
+        _briefingBuilder = new BriefingBuilder(_promptProvider, _promptBuilder);
         _evidenceProvider.GetRecordsAsync(Arg.Any<BriefingParameters>(), Arg.Any<IProgress<string>?>(), Arg.Any<CancellationToken>()).Returns(Records);
-        _promptBuilder.Build(UserPromptType.Briefing, Arg.Any<IReadOnlyDictionary<string, string>>()).Returns("briefing-prompt");
+        _promptBuilder.Build(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, string>>()).Returns("briefing-prompt");
         _promptProvider.GetSystemPrompt(SystemPromptKey.WebSearch).Returns("web-search-system-prompt");
         BriefingAgentReturns("# Test Academy\n\n## About the school\n\nRated Good. [Evidence 1]", 10);
 
@@ -72,7 +72,7 @@ public sealed class BriefingOrchestratorTests
     }
 
     [Fact]
-    public async Task GetBriefing_RunsTheBriefingAgentOnce_WithItsPrompt_AndAllTheRecordsAsEvidence()
+    public async Task GetBriefing_RunsTheBriefingAgentOnce_WithItsPrompt_AndItsRecordsAsEvidence_ButNoConcerns()
     {
         await _sut.GetBriefing(School, cancellationToken: cancellationToken);
 
@@ -81,7 +81,7 @@ public sealed class BriefingOrchestratorTests
                 && evidence.Text.Contains("=== School record ===", StringComparison.Ordinal)
                 && evidence.Text.Contains("establishment_name: Test Academy", StringComparison.Ordinal)
                 && evidence.Text.Contains("This school is not part of a trust.", StringComparison.Ordinal)
-                && evidence.Text.Contains("[Evidence 2]\nsummary: Rise concern", StringComparison.Ordinal)),
+                && !evidence.Text.Contains("Rise concern", StringComparison.Ordinal)),
             Arg.Any<CancellationToken>());
     }
 

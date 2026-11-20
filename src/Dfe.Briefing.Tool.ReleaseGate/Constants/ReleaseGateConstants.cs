@@ -19,13 +19,6 @@ internal static class Settings
     public const string GlobalConcurrencyRunsKey = "AiAgents:GlobalConcurrency:MaxRunsAcrossInstances";
     public const string GlobalConcurrencyContainerKey = "AiAgents:GlobalConcurrency:BlobContainerUri";
     public const string PreparedCasesFolder = "briefing-release-gate";
-
-    /// <summary>
-    /// The date every prepared case's prompt gives as today's, written yyyy-MM-dd, so a case's dates stay where they are
-    /// against the agent's 3-year window for concerns however long ago the case was written. Unset: the real date.
-    /// </summary>
-    public const string TestCasesTodayKey = "TestCases:Today";
-    public const string TestCasesTodayFormat = "yyyy-MM-dd";
 }
 
 /// <summary>

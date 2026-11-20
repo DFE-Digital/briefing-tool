@@ -6,8 +6,9 @@ namespace Dfe.Briefing.Tool.Application.Builders;
 
 /// <summary>
 /// Writes the records' values as the briefing gives them, so the agent copies them rather than converting them:
-/// dates as "28 November 2022", academic years as "2023/24", and scores without a "%".
-/// </summary> 
+/// dates as "28 November 2022", academic years as "2023/24", and scores without a "%". A result whose key names it
+/// only in code is given the name the briefing templates use for it.
+/// </summary>
 internal static partial class RecordFormatter
 {
     private static readonly CultureInfo EnglishCulture = CultureInfo.GetCultureInfo("en-GB");
@@ -22,6 +23,7 @@ internal static partial class RecordFormatter
         var text = DateRegex().Replace(records.Text, DateInWords);
         text = AcademicYearRegex().Replace(text, AcademicYear);
         text = AcademicYearKeyRegex().Replace(text, AcademicYear);
+        text = EngMath95KeyRegex().Replace(text, EngMath95Name);
         text = PercentScoreRegex().Replace(text, "${field}${score}");
         return text == records.Text ? records : records with { Text = text };
     }
@@ -53,6 +55,14 @@ internal static partial class RecordFormatter
     // A JSON key that is an academic year, as results by year give them: {"202425": {...}}.
     [GeneratedRegex(@"(?<field>"")(?<start>\d{4})(?<end>\d{2})(?=""[ \t]*:)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex AcademicYearKeyRegex();
+
+    // The KS4 results' "engmath_95_percent" (twice: {"engmath_95_percent": {"engmath_95_percent": {...}}}) is the
+    // percentage achieving grade 5 or above in English and maths, as the trust template calls it: given its own name,
+    // the agent mistook it for the grade 5 to 9 percentages or left it out. Only the JSON key is renamed.
+    private const string EngMath95Name = "\"percentage_achieving_grade_5_or_above_in_english_and_maths\"";
+
+    [GeneratedRegex(@"""engmath_95_percent""(?=[ \t]*:)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex EngMath95KeyRegex();
 
     // Attainment 8, Progress 8, the EBacc average point score and the Attainment 8 English and maths elements are
     // scores, not percentages, whatever the records label them.

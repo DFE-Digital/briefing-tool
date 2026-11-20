@@ -15,7 +15,7 @@ namespace Dfe.Briefing.Tool.Application.Builders;
 /// The one place the agents' prompts and evidence are built - the app and the release gate both use it, so the gate
 /// tests what the app sends.
 /// </summary>
-internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTemplateBuilder promptBuilder, TimeProvider timeProvider)
+internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTemplateBuilder promptBuilder)
     : IBriefingBuilder
 {
     private const string EstablishmentUrnField = "establishment_urn";
@@ -41,20 +41,18 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
     }
 
     public string BuildBriefingPrompt(BriefingParameters parameters)
-        => promptBuilder.Build(UserPromptType.Briefing, new Dictionary<string, string>
+        => promptBuilder.Build(parameters.IsTrust ? UserPromptType.TrustBriefing : UserPromptType.SchoolBriefing, new Dictionary<string, string>
         {
             ["SchoolOrTrustName"] = parameters.SchoolOrTrustName,
             ["SchoolUrnOrTrustTrn"] = parameters.SchoolUrnOrTrustTrn, 
             ["SubjectType"] = parameters.IsTrust ? "trust" : "school"
         });
 
-    private DateOnly Today() => DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
-
     /// <summary>
-    /// Builds briefing evidence text and source mappings from subject, concerns, and related records.
+    /// Builds briefing evidence text and source mappings from the subject's and related records.
     /// </summary>
     /// <param name="parameters">Defines briefing context, including subject type and identifiers used to label and shape evidence sections.</param>
-    /// <param name="records">Provides subject, concern, and related record sets used to compose evidence content and sources.</param>
+    /// <param name="records">Provides the subject and related record sets used to compose evidence content and sources.</param>
     /// <returns>An AgentEvidence instance containing merged, labeled evidence text and renumbered sources with consistent
     /// offsets.</returns>
     public AgentEvidence BuildBriefingEvidence(BriefingParameters parameters, BriefingRecords records)
@@ -70,8 +68,6 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
                 Records(records.Subject, parameters.IsTrust ? TrustReferenceNumberField : EstablishmentUrnField)),
             .. academyCounts is null ? [] : new[] { (EvidenceLabels.AcademyCounts, new ContextResult(academyCounts, HasEvidence: true)) },
             .. keyStageResults is null ? [] : new[] { (EvidenceLabels.KeyStageResults, new ContextResult(keyStageResults, HasEvidence: true)) },
-            (EvidenceLabels.RiseConcerns, Concerns(records.RiseConcerns)),
-            (EvidenceLabels.RecastConcerns, Concerns(records.RecastConcerns)),
             (parameters.IsTrust ? EvidenceLabels.AcademyRecords : EvidenceLabels.SchoolsTrustRecord,
                 Records(records.Related, parameters.IsTrust ? EstablishmentUrnField : TrustReferenceNumberField))
         ];
@@ -109,16 +105,6 @@ internal partial class BriefingBuilder(IPromptProvider promptProvider, IPromptTe
     /// <returns>A processed result with duplicates removed, records formatted, and website addresses normalized with a scheme.</returns>
     private static ContextResult Records(ContextResult records, string keyField)
         => WebsiteAddress.WithScheme(RecordFormatter.Format(EvidenceRecords.WithoutDuplicates(records, keyField)));
-
-    /// <summary>
-    /// Builds a formatted concerns result from recent entries by applying redaction, duplicate removal, and
-    /// newest-first ordering.
-    /// </summary>
-    /// <param name="concerns">Source concerns context used to select recent entries.</param>
-    /// <returns>A formatted concerns result containing redacted, deduplicated, and newest-first recent entries.</returns>
-    private ContextResult Concerns(ContextResult concerns)
-        => RecordFormatter.Format(ConcernWindow.NewestFirst(EvidenceRecords.WithoutDuplicates(
-            ConcernRedactor.Redact(ConcernWindow.Recent(concerns, Today())), keyField: null)));
 
     private static int Number(string digits) => int.Parse(digits, CultureInfo.InvariantCulture);
 

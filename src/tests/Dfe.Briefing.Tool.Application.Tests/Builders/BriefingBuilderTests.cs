@@ -184,6 +184,15 @@ public sealed class BriefingBuilderTests
     }
 
     [Fact]
+    public void PresentBriefing_PutsTheSpaceBackAfterAHeadingsHashes_SoEmptySectionsAreStillRemoved()
+    {
+        var briefing = _sut.PresentBriefing(
+            "#Test Academy\n\n##About the school\n\nA fact. [Evidence 1]\n\n##KS4 Summary\n\n###Detail\n\n- #1 in the list\n## Ofsted Summary\n");
+
+        Assert.Equal("# Test Academy\n\n## About the school\n\nA fact. [Evidence 1]\n\n## KS4 Summary\n\n### Detail\n\n- #1 in the list\n", briefing);
+    }
+
+    [Fact]
     public void OrderAcademies_ForATrust_PutsItsAcademyBulletsInTheOrderItsRecordsGive()
     {
         var trust = new ContextResult("[Evidence 1]\ntrust_name: Test Trust", HasEvidence: true);

@@ -23,7 +23,7 @@ internal static partial class RecordFormatter
         var text = DateRegex().Replace(records.Text, DateInWords);
         text = AcademicYearRegex().Replace(text, AcademicYear);
         text = AcademicYearKeyRegex().Replace(text, AcademicYear);
-        text = EngMath95KeyRegex().Replace(text, EngMath95Name);
+        text = UnclearKeyRegex().Replace(text, key => ClearKeyNames[key.Groups["name"].Value]);
         text = PercentScoreRegex().Replace(text, "${field}${score}");
         return text == records.Text ? records : records with { Text = text };
     }
@@ -56,13 +56,18 @@ internal static partial class RecordFormatter
     [GeneratedRegex(@"(?<field>"")(?<start>\d{4})(?<end>\d{2})(?=""[ \t]*:)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex AcademicYearKeyRegex();
 
-    // The KS4 results' "engmath_95_percent" (twice: {"engmath_95_percent": {"engmath_95_percent": {...}}}) is the
-    // percentage achieving grade 5 or above in English and maths, as the trust template calls it: given its own name,
-    // the agent mistook it for the grade 5 to 9 percentages or left it out. Only the JSON key is renamed.
-    private const string EngMath95Name = "\"percentage_achieving_grade_5_or_above_in_english_and_maths\"";
+    // JSON keys the agent misread under their own names, given the names the briefing templates use. Only the key is
+    // renamed. The KS4 results' "engmath_95_percent" (twice: {"engmath_95_percent": {"engmath_95_percent": {...}}})
+    // was mistaken for the grade 5 to 9 percentages or left out; the socio-economic figures' "enfl_pct" was taken for
+    // a social worker or deprivation figure.
+    private static readonly Dictionary<string, string> ClearKeyNames = new(StringComparer.Ordinal)
+    {
+        ["engmath_95_percent"] = "\"percentage_achieving_grade_5_or_above_in_english_and_maths\"",
+        ["enfl_pct"] = "\"percentage_with_english_not_as_first_language\"",
+    };
 
-    [GeneratedRegex(@"""engmath_95_percent""(?=[ \t]*:)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex EngMath95KeyRegex();
+    [GeneratedRegex(@"""(?<name>engmath_95_percent|enfl_pct)""(?=[ \t]*:)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex UnclearKeyRegex();
 
     // Attainment 8, Progress 8, the EBacc average point score and the Attainment 8 English and maths elements are
     // scores, not percentages, whatever the records label them.

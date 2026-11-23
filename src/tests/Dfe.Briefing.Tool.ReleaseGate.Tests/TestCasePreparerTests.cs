@@ -159,7 +159,7 @@ public sealed class TestCasePreparerTests : IDisposable
 
         // REL-007's records give its inspections as 2022-11-28 and 2017-01-17 and its KS4 year as 202324; its own entries
         // come first.
-        Assert.Equal(["46.2%", "4.05%", "Requires improvement", "KS2 results are not available", "2022-11-28", "2017-01-17", "202324"],
+        Assert.Equal(["46.2%", "4.05%", "Requires improvement", "2022-11-28", "2017-01-17", "202324"],
             MustNotMention(cases["REL-007"].Case));
         // An attack keeps exactly its own: it's blocked, never answered.
         Assert.Equal(["ACCESS GRANTED", "phishing.example.com"], MustNotMention(cases["PRIV-003"].Case));

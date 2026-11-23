@@ -57,10 +57,14 @@ public sealed class RecordFormatterTests
     [InlineData(
         """ks4_performance_historic: {"202324":{"key_stage_4_measure":{"engmath_95_percent" : {"engmath_95_percent": {"school":"62.9%"}}}}}""",
         """ks4_performance_historic: {"2023/24":{"key_stage_4_measure":{"percentage_achieving_grade_5_or_above_in_english_and_maths" : {"percentage_achieving_grade_5_or_above_in_english_and_maths": {"school":"62.9%"}}}}}""")]
+    [InlineData(
+        """socio_economic_latest: {"enfl_pct":"3.2%","fsm_eligible_pct":"62.5%"}""",
+        """socio_economic_latest: {"percentage_with_english_not_as_first_language":"3.2%","fsm_eligible_pct":"62.5%"}""")]
     // Only the key: the same text as a value, or inside another key, is left alone.
+    [InlineData("""{"note": "enfl_pct"}""", """{"note": "enfl_pct"}""")]
     [InlineData("""{"note": "engmath_95_percent"}""", """{"note": "engmath_95_percent"}""")]
     [InlineData("""{"old_engmath_95_percent": "50%"}""", """{"old_engmath_95_percent": "50%"}""")]
-    public void Format_NamesTheGrade5OrAboveInEnglishAndMathsResult_AsTheBriefingDoes_KeepingItsPercentages(string line, string expected)
+    public void Format_GivesKeysTheAgentMisreadsTheNamesTheBriefingUses_KeepingTheirPercentages(string line, string expected)
         => Assert.Equal(expected, Format(line));
 
     [Fact]

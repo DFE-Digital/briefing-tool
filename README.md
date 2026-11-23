@@ -7,7 +7,7 @@ Generates school and trust briefings for ministers from DfE records, using AI ag
 | `Dfe.Briefing.Tool.Web` | The web app |
 | `Dfe.Briefing.Tool.Application` | Briefing logic: evidence, prompts, agents |
 | `Dfe.Briefing.Tool.Infrastructure` | Registers the agents, shared by the web app and the console tool |
-| `Dfe.Briefing.Tool.ReleaseGate` | Console tool: release gate, Copilot Studio export, agent clean-up |
+| `Dfe.Briefing.Tool.ReleaseGate` | Console tool: release gate, agent clean-up |
 
 ## How a briefing is made
 
@@ -66,15 +66,12 @@ signs everyone out.
 
 ## Console tool
 
-In `src/Dfe.Briefing.Tool.ReleaseGate`, run `dotnet run` and pick from the menu, or give the command. In Visual Studio,
-set it as the startup project and pick a profile beside the Start button.
+In `src/Dfe.Briefing.Tool.ReleaseGate`, run `dotnet run` (or `dotnet run -- gate`). In Visual Studio, set it as the
+startup project and use the **Release gate** profile.
 
 | Command | Does |
 | --- | --- |
 | `dotnet run -- gate` | Runs the AI quality gate: checks the guardrail, runs every test case, then decides the release by the Responsible AI policy (exit 1 if release is blocked, 2 if it couldn't run) |
-| `dotnet run -- export-copilot-studio copilot-studio` | Exports the test cases as Copilot Studio test sets |
-
-With no console to ask in (e.g. in a pipeline), `dotnet run` runs the gate.
 
 ## Cleaning up agents
 
@@ -272,22 +269,6 @@ and can be called by a deployment workflow (`uses: ./.github/workflows/ai-qualit
 never deploys. It needs the `ai-evaluation` environment's secrets, uploads the reports as an artifact kept for 400
 days, and requires the commit in the manifest.
 
-## Copilot Studio
-
-`export-copilot-studio` writes the evaluation test cases as `copilot-studio/test-set.csv`, the question and expected
-response file Copilot Studio's **Evaluation** section imports. Import it into the Copilot Studio agent, which produces
-the whole briefing, and test with **Compare meaning** and **General quality**.
-
-| Column | From |
-| --- | --- |
-| `Question` | "Give me a briefing on {name} ({URN or TRN})", one per school or trust, from every evaluation case about it |
-| `Expected response` | "A briefing on {name} that includes: …", the facts those cases must mention |
-
-> **Note*:*
->
-> - Guardrail cases aren't exported.
-> - A case's own `copilotStudio.question` or `copilotStudio.expectedResponse` is used instead, if it has one.
->
 ## Telemetry
 
 Logs, traces and metrics go to Application Insights when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set. Every

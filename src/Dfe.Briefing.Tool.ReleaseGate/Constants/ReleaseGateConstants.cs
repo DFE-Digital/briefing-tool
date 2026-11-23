@@ -3,12 +3,10 @@ using GovUK.Dfe.AI.Agents.Evaluation.ResponsibleAI.Enums;
 
 namespace Dfe.Briefing.Tool.ReleaseGate.Constants;
 
-/// <summary>The release gate's commands and their options.</summary>
+/// <summary>The release gate's commands.</summary>
 internal static class CommandNames
 {
     public const string Gate = "gate";
-    public const string ExportCopilotStudio = "export-copilot-studio";
-    public const string DefaultExportFolder = "copilot-studio";
 }
 
 /// <summary>Configuration keys and the files the gate reads.</summary>
@@ -21,13 +19,6 @@ internal static class Settings
     public const string GlobalConcurrencyRunsKey = "AiAgents:GlobalConcurrency:MaxRunsAcrossInstances";
     public const string GlobalConcurrencyContainerKey = "AiAgents:GlobalConcurrency:BlobContainerUri";
     public const string PreparedCasesFolder = "briefing-release-gate";
-
-    /// <summary>
-    /// The date every prepared case's prompt gives as today's, written yyyy-MM-dd, so a case's dates stay where they are
-    /// against the agent's 3-year window for concerns however long ago the case was written. Unset: the real date.
-    /// </summary>
-    public const string TestCasesTodayKey = "TestCases:Today";
-    public const string TestCasesTodayFormat = "yyyy-MM-dd";
 }
 
 /// <summary>
@@ -60,27 +51,6 @@ internal static class TestCaseFields
     public const string RecastConcerns = "recastConcerns";
     public const string MustMention = "mustMention";
     public const string MustNotMention = "mustNotMention";
-
-    public const string CopilotStudio = "copilotStudio";
-    public const string CopilotStudioQuestion = "question";
-    public const string CopilotStudioExpectedResponse = "expectedResponse";
-}
-
-/// <summary>The Copilot Studio test set file, in the format its evaluation imports.</summary>
-internal static class CopilotStudioTestSet
-{
-    // Copilot Studio's limits for an imported single-response test set.
-    public const int MaxQuestions = 100;
-    public const int MaxQuestionLength = 1000;
-
-    public const string TestSetFile = "test-set.csv";
-
-    // The import takes exactly these two headings, in this order.
-    public const string QuestionHeading = "Question";
-    public const string ExpectedResponseHeading = "Expected response";
-
-    public const string ListSeparator = "; ";
-    public const string MarkdownHeadingPrefix = "#";
 }
 
 /// <summary>

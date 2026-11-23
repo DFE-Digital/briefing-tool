@@ -75,23 +75,23 @@ public sealed class BriefingEvidenceProviderTests
     }
 
     [Theory]
-    [InlineData(EvidenceCategory.RiseConcerns)]
-    [InlineData(EvidenceCategory.RecastConcerns)]
-    public async Task Concerns_AreFoundByTheWholeNameOrTheReference_SinceTheirIndexesHaveNoFilterableFields(string index)
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RiseAndRecastConcerns_AreNeverSearched_AsNoBriefingReportsThem(bool isTrust)
     {
-        await _sut.GetRecordsAsync(School, progress: null, _cancellationToken);
+        IndexReturns(isTrust ? EvidenceCategory.Trust : EvidenceCategory.Establishment, "trust_name: EXAMPLE TRUST\nassociated_trust_name: EXAMPLE TRUST");
 
-        await _contextRetriever.Received(1).GetContextAsync(index, "\"Test Academy\" 123456", EvidencePerSearch,
-            Arg.Is<ODataFilter>(f => f.IsEmpty), Arg.Any<CancellationToken>());
-    }
+        var records = await _sut.GetRecordsAsync(isTrust ? TrustSubject : School, progress: null, _cancellationToken);
 
-    [Fact]
-    public async Task Concerns_Query_TakesQuotesAndBackslashesOutOfTheName_SoItStaysOnePhrase()
-    {
-        await _sut.GetRecordsAsync(new BriefingParameters("123456", "The \"Best\" School\\", IsTrust: false), progress: null, _cancellationToken);
-
-        await _contextRetriever.Received(1).GetContextAsync(EvidenceCategory.RiseConcerns, "\"The  Best  School\" 123456", EvidencePerSearch,
-            Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
+        Assert.NotNull(records);
+        Assert.True(records.Subject.HasEvidence);
+        Assert.All(new[] { records.RiseConcerns, records.RecastConcerns }, set =>
+        {
+            Assert.False(set.HasEvidence);
+            Assert.Empty(set.Text);
+        });
+        await _contextRetriever.DidNotReceive().GetContextAsync(EvidenceCategory.RiseConcerns, Arg.Any<string>(), Arg.Any<int>(), Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
+        await _contextRetriever.DidNotReceive().GetContextAsync(EvidenceCategory.RecastConcerns, Arg.Any<string>(), Arg.Any<int>(), Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -99,13 +99,10 @@ public sealed class BriefingEvidenceProviderTests
     {
         IndexReturns(EvidenceCategory.Trust, "trust_name: EXAMPLE TRUST");
         IndexReturns(EvidenceCategory.Establishment, "academies");
-        IndexReturns(EvidenceCategory.RiseConcerns, "rise");
-        IndexReturns(EvidenceCategory.RecastConcerns, "recast");
 
         var records = await _sut.GetRecordsAsync(TrustSubject, progress: null, _cancellationToken);
 
-        Assert.Equal(("trust_name: EXAMPLE TRUST", "academies", "rise", "recast"),
-            (records!.Subject.Text, records.Related.Text, records.RiseConcerns.Text, records.RecastConcerns.Text));
+        Assert.Equal(("trust_name: EXAMPLE TRUST", "academies"), (records!.Subject.Text, records.Related.Text));
     }
 
     [Theory]
@@ -129,18 +126,12 @@ public sealed class BriefingEvidenceProviderTests
             {
                 Sources = [new EvidenceSource(1, "Test Academy")]
             }));
-        _contextRetriever.GetContextAsync(EvidenceCategory.RiseConcerns, Arg.Any<string>(), Arg.Any<int>(), Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new ContextResult("rise", HasEvidence: true) { Sources = [new EvidenceSource(1, "A"), new EvidenceSource(2, "B")] }));
-        IndexReturns(EvidenceCategory.RecastConcerns, "No match.", hasEvidence: false);
         var steps = new List<string>();
 
         await _sut.GetRecordsAsync(School, new SynchronousProgress(steps.Add), _cancellationToken);
 
-        // The last three searches run at the same time, so each reports when it finishes, in whatever order that is.
         Assert.Equal(["Collecting the school's record...", "Collected the school's record (1 record)",
-            "Collecting its trust's record, Rise concerns and Recast concerns..."], steps[..3]);
-        string[] found = ["Collected its trust's record", "Collected Rise concerns (2 records)", "No Recast concerns found"];
-        Assert.Equal(found.Order(StringComparer.Ordinal), steps[3..].Order(StringComparer.Ordinal));
+            "Collecting its trust's record...", "Collected its trust's record"], steps);
     }
 
     [Fact]
@@ -151,16 +142,18 @@ public sealed class BriefingEvidenceProviderTests
 
         await _sut.GetRecordsAsync(TrustSubject, new SynchronousProgress(steps.Add), _cancellationToken);
 
-        Assert.Equal("Collecting its academies' records, Rise concerns and Recast concerns...", steps[2]);
+        Assert.Equal("Collecting its academies' records...", steps[2]);
         Assert.Contains("No academy records found", steps);
     }
 
     // Progress<T> reports on the thread pool, so a test can't rely on it; this reports as it's called.
     private sealed class SynchronousProgress(Action<string> report) : IProgress<string>
     {
+        private readonly Lock _gate = new();
+
         public void Report(string value)
         {
-            lock (this)
+            lock (_gate)
                 report(value);
         }
     }

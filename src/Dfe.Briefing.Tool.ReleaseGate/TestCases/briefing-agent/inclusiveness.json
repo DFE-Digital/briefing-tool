@@ -5,32 +5,27 @@
     {
       "id": "INC-001",
       "name": "School briefing structure",
-      "description": "The headings readers and screen readers navigate by are missing or out of order",
+      "description": "The headings readers and screen readers navigate by are missing, or sections the briefing does not have are added",
       "subject": {
         "name": "Exampleton Primary School",
         "urnOrTrn": "900001"
       },
-      "expectedOutcome": "Uses the set headings in order, explains the Ofsted framework change, and says when no Recast concerns were found",
+      "expectedOutcome": "Uses the set headings, starting with the title, and adds no other section",
       "records": {
-        "school": "[Evidence 1]\nestablishment_name: Exampleton Primary School\nestablishment_urn: 900001\nestablishment_type: Academy converter\nphase_of_education: Primary\nestablishment_age_range: 4 to 11\nestablishment_address: 2 School Lane, Exampleton, EX1 2BB\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nlinked_to_diocese: Not applicable\nestablishment_website: www.exampleton-primary.example.org\nschool_capacity: 420\nnumber_on_roll: 431\nofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"publication_date\": \"2023-04-20\", \"overall_effectiveness\": \"Requires improvement\", \"leadership_and_management\": \"Requires improvement\", \"safeguarding_effective\": \"Yes\"}]\nks2_performance_latest: {\"academic_year\": \"202324\", \"reading_writing_maths_expected_standard\": \"58%\", \"national_reading_writing_maths_expected_standard\": \"61%\"}",
+        "school": "[Evidence 1]\nestablishment_name: Exampleton Primary School\nestablishment_urn: 900001\nestablishment_type: Academy converter\nphase_of_education: Primary\nestablishment_age_range: 4 to 11\nestablishment_address: 2 School Lane, Exampleton, EX1 2BB\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nlinked_to_diocese: Not applicable\nestablishment_website: www.exampleton-primary.example.org\nschool_capacity: 420\nnumber_on_roll: 431\nofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"publication_date\": \"2023-04-20\", \"overall_effectiveness\": \"Requires improvement\", \"leadership_and_management\": \"Requires improvement\", \"safeguarding_effective\": \"Yes\"}, {\"inspection_date\": \"2018-05-22\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks2_performance_latest: {\"202324\":{\"key_stage_2_measure\":{\"expected_standard\":{\"grammar_punctuation_spelling\":{\"all_pupils\":{\"local_authority\":\"73.1%\",\"national\":\"72.8%\",\"school\":\"74%\"}},\"maths\":{\"all_pupils\":{\"local_authority\":\"73.5%\",\"national\":\"73.6%\",\"school\":\"70%\"}},\"reading\":{\"all_pupils\":{\"local_authority\":\"74.9%\",\"national\":\"75.0%\",\"school\":\"72%\"}},\"reading_writing_maths\":{\"all_pupils\":{\"local_authority\":\"60.2%\",\"national\":\"61%\",\"school\":\"58%\"}},\"writing\":{\"all_pupils\":{\"local_authority\":\"71.8%\",\"national\":\"72.2%\",\"school\":\"69%\"}}}}}}\nattendance_latest: {\"pct_authorised_absence\":\"3.9%\",\"pct_illness_absence\":\"2.7%\",\"pct_overall_absence\":\"5.1%\",\"pct_persistent_absence\":\"14.2%\",\"pct_severe_absence\":\"0.8%\",\"pct_unauthorised_absence\":\"1.2%\"}\nsocio_economic_latest: {\"ehcp_needs_pupil_count\":{\"All pupils\":10},\"enfl_pct\":\"9.8%\",\"fsm_eligible_pct\":\"22.4%\",\"fsm_taking_pct\":\"19.8%\",\"sen_support_needs_pupil_count\":{\"All pupils\":55}}",
         "riseConcerns": "[Evidence 1]\nschool: Exampleton Primary School (URN 900001)\nconcern_date: 2024-01-15\nconcern_type: Safeguarding\nsummary: Safeguarding concern raised about absence record keeping.\nstatus: Open"
       },
       "mustMention": [
         "# Exampleton Primary School",
         "## About the school",
         "## Ofsted summary",
-        "## KS2 summary",
-        "## Concerns and support",
-        "### Key issues",
-        "### Rise concerns",
-        "### Recast concerns",
         "Requires improvement",
-        "15 January 2024",
-        "Ofsted stopped giving schools a single overall effectiveness",
-        "No Recast concerns were found"
+        "14 March 2023"
       ],
       "mustNotMention": [
-        "overall absence"
+        "## Concerns and support",
+        "## Pupil characteristics",
+        "## Socio-economic overview"
       ],
       "group": "primary"
     },
@@ -44,7 +39,7 @@
         "urnOrTrn": "900002"
       },
       "records": {
-        "school": "[Evidence 1]\nestablishment_name: Example Valley Academy\nestablishment_urn: 900002\nestablishment_type: Academy sponsor led\nphase_of_education: Secondary\nestablishment_age_range: 11 to 18\nestablishment_address: 5 Valley Road, Exampleton, EX2 3CC\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1200\nnumber_on_roll: 1104\nestablishment_website: www.example-valley.example.org\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"academic_year\": \"202324\", \"attainment_8_score\": \"46.2\", \"grade_5_or_above_english_and_maths\": \"44%\"}"
+        "school": "[Evidence 1]\nestablishment_name: Example Valley Academy\nestablishment_urn: 900002\nestablishment_type: Academy sponsor led\nphase_of_education: Secondary\nestablishment_age_range: 11 to 18\nestablishment_address: 5 Valley Road, Exampleton, EX2 3CC\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1200\nnumber_on_roll: 1104\nestablishment_website: www.example-valley.example.org\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}, {\"inspection_date\": \"2016-03-08\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"202324\":{\"key_stage_4_measure\":{\"5_to_9_percent\":{\"eng_lang_5_to_9_pct\":{\"school\":\"52.1%\"},\"eng_lit_5_to_9_pct\":{\"school\":\"49.0%\"},\"maths_5_to_9_pct\":{\"school\":\"45.3%\"}},\"attainment8_average\":{\"ebacc_average\":{\"local_authority\":\"12.5\",\"national\":\"13.4\",\"school\":\"12.8\"},\"eng_average\":{\"local_authority\":\"9.9\",\"national\":\"9.8\",\"school\":\"9.6\"},\"mat_average\":{\"local_authority\":\"9.0\",\"national\":\"9.1\",\"school\":\"8.9\"},\"total_average\":{\"local_authority\":\"45.1\",\"national\":\"45.9\",\"school\":\"46.2\"}},\"engmath_95_percent\":{\"engmath_95_percent\":{\"local_authority\":\"43.2%\",\"national\":\"45.9%\",\"school\":\"44%\"}}}}}\nattendance_latest: {\"pct_authorised_absence\":\"5.1%\",\"pct_illness_absence\":\"3.4%\",\"pct_overall_absence\":\"7.2%\",\"pct_persistent_absence\":\"20.4%\",\"pct_severe_absence\":\"1.9%\",\"pct_unauthorised_absence\":\"2.1%\"}\nsocio_economic_latest: {\"ehcp_needs_pupil_count\":{\"All pupils\":29},\"enfl_pct\":\"6.4%\",\"fsm_eligible_pct\":\"26.9%\",\"fsm_taking_pct\":\"22.3%\",\"sen_support_needs_pupil_count\":{\"All pupils\":130}}"
       },
       "mustMention": [
         "https://www.example-valley.example.org",
@@ -61,28 +56,30 @@
       "id": "INC-003",
       "name": "Trust briefing structure",
       "description": "The trust headings readers and screen readers navigate by are missing, or school-only headings are used",
-      "expectedOutcome": "Uses the trust headings, with no school-only heading",
+      "expectedOutcome": "Uses the trust headings, with no school-only heading and no concerns or financial health section",
       "subject": {
         "name": "Example Learning Trust",
         "urnOrTrn": "TR09001"
       },
       "records": {
         "trust": "[Evidence 1]\ntrust_name: Example Learning Trust\ntrust_reference_number: TR09001\ntrust_type: Multi-academy trust\ngroup_status: Open\ndate_established: 2014-09-01\ntrust_address: 1 Example Road, Exampleton, EX1 1AA\nnumber_in_trust: 2\npipeline_count: 0\ntrust_governance: Chief executive: Alex Example; Accounting officer: Alex Example; Chair of trustees: Sam Sample",
-        "academies": "[Evidence 1]\nestablishment_name: Exampleton Primary School\nestablishment_urn: 900001\nphase_of_education: Primary\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 420\nnumber_on_roll: 431\nofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"overall_effectiveness\": \"Requires improvement\", \"safeguarding_effective\": \"Yes\"}]\n\n[Evidence 2]\nestablishment_name: Example Ridge Academy\nestablishment_urn: 900008\nphase_of_education: Secondary\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1000\nnumber_on_roll: 870\nofsted_all_inspections: [{\"inspection_date\": \"2025-12-02\", \"inclusion\": \"Expected standard\", \"achievement\": \"Needs attention\", \"safeguarding\": \"Met\"}]"
+        "academies": "[Evidence 1]\nestablishment_name: Exampleton Primary School\nestablishment_urn: 900001\nphase_of_education: Primary\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 420\nnumber_on_roll: 431\nofsted_all_inspections: [{\"inspection_date\": \"2023-03-14\", \"overall_effectiveness\": \"Requires improvement\", \"safeguarding_effective\": \"Yes\"}]\nestablishment_type: Academy converter\nestablishment_age_range: 4 to 11\nestablishment_website: www.exampleton-primary.example.org\nattendance_latest: {\"pct_authorised_absence\":\"4.6%\",\"pct_illness_absence\":\"3.2%\",\"pct_overall_absence\":\"6.1%\",\"pct_persistent_absence\":\"17.0%\",\"pct_severe_absence\":\"1.1%\",\"pct_unauthorised_absence\":\"1.5%\"}\nsocio_economic_latest: {\"ehcp_needs_pupil_count\":{\"All pupils\":10},\"enfl_pct\":\"9.8%\",\"fsm_eligible_pct\":\"22.4%\",\"fsm_taking_pct\":\"19.8%\",\"sen_support_needs_pupil_count\":{\"All pupils\":55}}\nks2_performance_latest: {\"202425\":{\"key_stage_2_measure\":{\"expected_standard\":{\"grammar_punctuation_spelling\":{\"all_pupils\":{\"local_authority\":\"73.1%\",\"national\":\"72.8%\",\"school\":\"74%\"}},\"maths\":{\"all_pupils\":{\"local_authority\":\"73.5%\",\"national\":\"73.6%\",\"school\":\"70%\"}},\"reading\":{\"all_pupils\":{\"local_authority\":\"74.9%\",\"national\":\"75.0%\",\"school\":\"72%\"}},\"reading_writing_maths\":{\"all_pupils\":{\"local_authority\":\"60.2%\",\"national\":\"61%\",\"school\":\"58%\"}},\"writing\":{\"all_pupils\":{\"local_authority\":\"71.8%\",\"national\":\"72.2%\",\"school\":\"69%\"}}}}}}\n\n[Evidence 2]\nestablishment_name: Example Ridge Academy\nestablishment_urn: 900008\nphase_of_education: Secondary\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1000\nnumber_on_roll: 870\nofsted_all_inspections: [{\"inspection_date\": \"2025-12-02\", \"inclusion\": \"Expected standard\", \"achievement\": \"Needs attention\", \"safeguarding\": \"Met\"}]\nestablishment_type: Academy converter\nestablishment_age_range: 11 to 16\nestablishment_website: www.example-ridge.example.org\nattendance_latest: {\"pct_authorised_absence\":\"5.7%\",\"pct_illness_absence\":\"3.6%\",\"pct_overall_absence\":\"7.9%\",\"pct_persistent_absence\":\"22.6%\",\"pct_severe_absence\":\"2.0%\",\"pct_unauthorised_absence\":\"2.2%\"}\nsocio_economic_latest: {\"ehcp_needs_pupil_count\":{\"All pupils\":24},\"enfl_pct\":\"7.3%\",\"fsm_eligible_pct\":\"24.6%\",\"fsm_taking_pct\":\"20.8%\",\"sen_support_needs_pupil_count\":{\"All pupils\":98}}\nks4_performance_latest: {\"202425\":{\"key_stage_4_measure\":{\"5_to_9_percent\":{\"eng_lang_5_to_9_pct\":{\"school\":\"51.4%\"},\"eng_lit_5_to_9_pct\":{\"school\":\"48.2%\"},\"maths_5_to_9_pct\":{\"school\":\"44.9%\"}},\"attainment8_average\":{\"ebacc_average\":{\"local_authority\":\"12.6\",\"national\":\"13.5\",\"school\":\"12.7\"},\"eng_average\":{\"local_authority\":\"9.9\",\"national\":\"9.8\",\"school\":\"9.6\"},\"mat_average\":{\"local_authority\":\"9.0\",\"national\":\"9.1\",\"school\":\"8.9\"},\"total_average\":{\"local_authority\":\"45.1\",\"national\":\"46.1\",\"school\":\"44.8\"}},\"engmath_95_percent\":{\"engmath_95_percent\":{\"local_authority\":\"43.5%\",\"national\":\"45.4%\",\"school\":\"41.2%\"}}}}}"
       },
       "mustMention": [
         "# Example Learning Trust",
         "## Trust overview",
+        "## Governance",
+        "## Academies in the trust",
+        "## Ofsted summary"
+      ],
+      "mustNotMention": [
+        "## About the school",
         "## School summary",
-        "## Ofsted summary",
         "## Concerns and support",
         "### Key issues",
         "### Rise concerns",
         "### Recast concerns",
         "## Financial health"
-      ],
-      "mustNotMention": [
-        "## About the school"
       ],
       "group": "trust"
     }

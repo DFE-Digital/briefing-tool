@@ -87,10 +87,29 @@ public interface IBriefingBuilder
     string? RemoveEmptySections(string? briefing);
 
     /// <summary>
-    /// Presents briefing content and its associated city from the provided output text.
+    /// Presents the briefing a user sees from the briefing agent's answer.
     /// </summary>
-    /// <param name="output">Output text containing the briefing information to present.</param>
-    /// <returns>A tuple where <c>Briefing</c> is the briefing text and <c>City</c> is the associated city; each value is <see
-    /// langword="null" /> when not available.</returns>
-    (string? Briefing, string? City) PresentBriefing(string? output);
+    /// <param name="output">The briefing agent's answer.</param>
+    /// <returns>The briefing as shown, or <see langword="null" /> when <paramref name="output"/> is <see langword="null" />.</returns>
+    string? PresentBriefing(string? output);
+
+    /// <summary>
+    /// Finds the town a later web search is focused on, from the subject's own records: the town in its address, else its
+    /// local authority (for a trust, the one its academies all share).
+    /// </summary>
+    /// <param name="parameters">The school or trust the briefing is about.</param>
+    /// <param name="records">The records the briefing was written from.</param>
+    /// <returns>The town, or <see langword="null" /> when the records give neither, so the web search uses its default location.</returns>
+    string? FindTown(BriefingParameters parameters, BriefingRecords records);
+
+    /// <summary>
+    /// For a trust, puts the academy bullets in the Ofsted summary, KS2 summary, KS4 summary and Attendance sections in
+    /// the order worked out from the records: most serious Ofsted outcome first, then highest result, and highest overall
+    /// absence first. A school's briefing is returned as it is.
+    /// </summary>
+    /// <param name="briefing">The briefing as shown.</param>
+    /// <param name="parameters">The school or trust the briefing is about.</param>
+    /// <param name="records">The records the briefing was written from.</param>
+    /// <returns>The briefing with its academy bullets in order.</returns>
+    string? OrderAcademies(string? briefing, BriefingParameters parameters, BriefingRecords records);
 }

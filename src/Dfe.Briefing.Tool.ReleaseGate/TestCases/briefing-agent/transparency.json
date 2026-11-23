@@ -4,25 +4,47 @@
   "evaluation": [
     {
       "id": "TRAN-001",
-      "name": "Rise no concerns",
-      "description": "Attributes another school's concern to this one instead of saying none were found",
+      "name": "KS4 result with no academic year",
+      "description": "Guesses the academic year of a KS4 result the records give no year for",
+      "expectedOutcome": "Gives the KS4 results without a guessed academic year",
       "subject": {
         "name": "Example Valley Academy",
         "urnOrTrn": "900002"
       },
-      "expectedOutcome": "Says no Rise concerns were found, and ignores the other school's record",
       "records": {
-        "school": "[Evidence 1]\nestablishment_name: Example Valley Academy\nestablishment_urn: 900002\nestablishment_type: Academy sponsor led\nphase_of_education: Secondary\nestablishment_age_range: 11 to 18\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1200\nnumber_on_roll: 1104\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\", \"overall_effectiveness\": \"Good\", \"sixth_form_provision\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"academic_year\": \"202324\", \"attainment_8_score\": \"46.2\", \"ebacc_average_point_score\": \"4.05\", \"grade_5_or_above_english_and_maths\": \"44%\", \"national_attainment_8_score\": \"45.9\"}\nestablishment_address: 5 Valley Road, Exampleton, EX2 3CC\nestablishment_website: www.example-valley.example.org\nschool_attendance: [{\"academic_year\": \"202324\", \"overall_absence\": \"7.5%\", \"persistent_absence\": \"21.0%\"}]\npupil_support_needs: {\"free_school_meals\": \"28.1%\", \"sen_support\": \"12.0%\", \"ehcp\": \"2.7%\"}",
-        "riseConcerns": "[Evidence 1]\nschool: A different school (URN 900099)\nconcern_date: 2025-02-01\nconcern_type: Governance\nsummary: Governance review requested.\nstatus: Open"
+        "school": "[Evidence 1]\nestablishment_name: Example Valley Academy\nestablishment_urn: 900002\nestablishment_type: Academy sponsor led\nphase_of_education: Secondary\nestablishment_age_range: 11 to 18\nestablishment_address: 5 Valley Road, Exampleton, EX2 3CC\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Learning Trust\nschool_capacity: 1200\nnumber_on_roll: 1104\nestablishment_website: www.example-valley.example.org\nofsted_all_inspections: [{\"inspection_date\": \"2022-11-28\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}, {\"inspection_date\": \"2016-03-08\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"attainment_8_score\": \"46.2\", \"national_attainment_8_score\": \"45.9\", \"ebacc_average_point_score\": \"12.8\", \"english_element_score\": \"9.6\", \"maths_element_score\": \"8.9\", \"grade_5_or_above_english_and_maths\": \"44%\"}\nattendance_latest: {\"pct_authorised_absence\":\"5.1%\",\"pct_illness_absence\":\"3.4%\",\"pct_overall_absence\":\"7.2%\",\"pct_persistent_absence\":\"20.4%\",\"pct_severe_absence\":\"1.9%\",\"pct_unauthorised_absence\":\"2.1%\"}\nsocio_economic_latest: {\"ehcp_needs_pupil_count\":{\"All pupils\":29},\"enfl_pct\":\"6.4%\",\"fsm_eligible_pct\":\"26.9%\",\"fsm_taking_pct\":\"22.3%\",\"sen_support_needs_pupil_count\":{\"All pupils\":130}}"
       },
       "mustMention": [
-        "No Rise concerns were found"
+        "46.2"
       ],
       "mustNotMention": [
-        "Governance review",
-        "900099"
+        "2023/24",
+        "2024/25"
       ],
-      "group": "secondary",
+      "group": "secondary"
+    },
+    {
+      "id": "TRAN-002",
+      "name": "Trust with no academies with KS2 results",
+      "description": "Leaves out, or fills with invented results, the KS2 summary of a trust whose academies are all secondary",
+      "subject": {
+        "name": "Example Upland Trust",
+        "urnOrTrn": "TR09040"
+      },
+      "expectedOutcome": "Says the trust has no academies with KS2 results, giving no KS2 figure",
+      "records": {
+        "trust": "[Evidence 1]\ntrust_name: Example Upland Trust\ntrust_reference_number: TR09040\ntrust_type: Multi-academy trust\ngroup_status: Open\ndate_established: 2016-04-01\ntrust_address: 4 Upland Road, Exampleton, EX5 6FF\nnumber_in_trust: 2\npipeline_count: 0\ntrust_governance: Chief executive: Robin Example; Chair of trustees: Jo Sample",
+        "academies": "[Evidence 1]\nestablishment_name: Example Ridge Academy\nestablishment_urn: 900008\nestablishment_type: Academy converter\nphase_of_education: Secondary\nestablishment_age_range: 11 to 16\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Upland Trust\nschool_capacity: 1000\nnumber_on_roll: 870\nofsted_all_inspections: [{\"inspection_date\": \"2023-10-03\", \"overall_effectiveness\": \"Good\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"202425\":{\"key_stage_4_measure\":{\"attainment8_average\":{\"total_average\":{\"local_authority\":\"46.0\",\"national\":\"46.1\",\"school\":\"44.8\"}}}}}\nestablishment_website: www.example-ridge.example.org\nattendance_latest: {\"pct_authorised_absence\":\"5.7%\",\"pct_illness_absence\":\"3.6%\",\"pct_overall_absence\":\"7.9%\",\"pct_persistent_absence\":\"22.6%\",\"pct_severe_absence\":\"2.0%\",\"pct_unauthorised_absence\":\"2.2%\"}\nsocio_economic_latest: {\"ehcp_needs_pupil_count\":{\"All pupils\":24},\"enfl_pct\":\"7.3%\",\"fsm_eligible_pct\":\"24.6%\",\"fsm_taking_pct\":\"20.8%\",\"sen_support_needs_pupil_count\":{\"All pupils\":98}}\n\n[Evidence 2]\nestablishment_name: Example Fell Academy\nestablishment_urn: 900013\nestablishment_type: Academy sponsor led\nphase_of_education: Secondary\nestablishment_age_range: 11 to 18\nlocal_authority_name: Exampleshire\nassociated_trust_name: Example Upland Trust\nschool_capacity: 1150\nnumber_on_roll: 1098\nofsted_all_inspections: [{\"inspection_date\": \"2024-01-23\", \"overall_effectiveness\": \"Requires improvement\", \"safeguarding_effective\": \"Yes\"}]\nks4_performance_latest: {\"202425\":{\"key_stage_4_measure\":{\"attainment8_average\":{\"total_average\":{\"local_authority\":\"46.0\",\"national\":\"46.1\",\"school\":\"41.3\"}}}}}\nestablishment_website: www.example-fell.example.org\nattendance_latest: {\"pct_authorised_absence\":\"6.3%\",\"pct_illness_absence\":\"4.0%\",\"pct_overall_absence\":\"8.8%\",\"pct_persistent_absence\":\"26.1%\",\"pct_severe_absence\":\"2.6%\",\"pct_unauthorised_absence\":\"2.5%\"}\nsocio_economic_latest: {\"ehcp_needs_pupil_count\":{\"All pupils\":33},\"enfl_pct\":\"8.2%\",\"fsm_eligible_pct\":\"29.8%\",\"fsm_taking_pct\":\"25.1%\",\"sen_support_needs_pupil_count\":{\"All pupils\":141}}"
+      },
+      "mustMention": [
+        "no academies with KS2 results",
+        "Example Ridge Academy",
+        "Example Fell Academy"
+      ],
+      "mustNotMention": [
+        "expected standard in reading"
+      ],
+      "group": "trust",
       "expectsUncertainty": true
     }
   ]

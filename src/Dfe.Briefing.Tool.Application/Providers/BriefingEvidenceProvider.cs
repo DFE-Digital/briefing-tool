@@ -23,8 +23,7 @@ internal partial class BriefingEvidenceProvider(IContextRetriever contextRetriev
     private const string TrustRecordName = "the trust's record";
     private const string SchoolsTrustRecordName = "its trust's record";
     private const string AcademyRecordsName = "its academies' records";
-    private const string RiseConcernsName = "Rise concerns";
-    private const string RecastConcernsName = "Recast concerns";
+    private static readonly ContextResult NoConcerns = new(string.Empty, HasEvidence: false);
 
     public async Task<BriefingRecords?> GetRecordsAsync(BriefingParameters parameters, IProgress<string>? progress, CancellationToken cancellationToken)
     {
@@ -41,31 +40,15 @@ internal partial class BriefingEvidenceProvider(IContextRetriever contextRetriev
         progress?.Report(Collected(subjectRecord, subject));
 
         var relatedRecords = parameters.IsTrust ? AcademyRecordsName : SchoolsTrustRecordName;
-        progress?.Report($"Collecting {relatedRecords}, {RiseConcernsName} and {RecastConcernsName}...");
-        var concernsQuery = ConcernsQuery(parameters.SchoolOrTrustName, reference);
+        progress?.Report($"Collecting {relatedRecords}...");
         var related = parameters.IsTrust
-            ? ReportedAsync(relatedRecords, "No academy records found", SearchAcademiesOfTrustAsync(subject, cancellationToken), progress)
-            : ReportedAsync(relatedRecords, "No trust record found", SearchTrustOfSchoolAsync(subject, cancellationToken), progress);
-        var riseConcerns = ReportedAsync(RiseConcernsName, $"No {RiseConcernsName} found",
-            SearchAsync(EvidenceCategory.RiseConcerns, concernsQuery, default, cancellationToken), progress);
-        var recastConcerns = ReportedAsync(RecastConcernsName, $"No {RecastConcernsName} found",
-            SearchAsync(EvidenceCategory.RecastConcerns, concernsQuery, default, cancellationToken), progress);
-        await Task.WhenAll(related, riseConcerns, recastConcerns);
+            ? await ReportedAsync(relatedRecords, "No academy records found", SearchAcademiesOfTrustAsync(subject, cancellationToken), progress)
+            : await ReportedAsync(relatedRecords, "No trust record found", SearchTrustOfSchoolAsync(subject, cancellationToken), progress);
 
-        return new BriefingRecords(subject, await related, await riseConcerns, await recastConcerns);
+        // Rise and Recast concerns aren't searched: no briefing reports them (see BriefingBuilder.BuildBriefingEvidence).
+        return new BriefingRecords(subject, related, NoConcerns, NoConcerns);
     }
 
-    /// <summary>
-    /// Builds a query string from a normalized name and a reference token.
-    /// </summary>
-    /// <param name="name">Name text to normalize by replacing phrase breaks with spaces and trimming surrounding whitespace.</param>
-    /// <param name="reference">Reference text appended after the quoted name.</param>
-    /// <returns>A string containing the normalized name in double quotes followed by a space and the reference text.</returns>
-    private static string ConcernsQuery(string name, string reference)
-        => $"\"{PhraseBreakingRegex().Replace(name, " ").Trim()}\" {reference}";
-
-    [GeneratedRegex(@"[""\\]", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex PhraseBreakingRegex(); 
     private static async Task<ContextResult> ReportedAsync(string name, string noneFound, Task<ContextResult> search, IProgress<string>? progress)
     {
         var result = await search;

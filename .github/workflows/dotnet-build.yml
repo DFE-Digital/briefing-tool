@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
   packages: read
+  pull-requests: read
 
 env:
   JAVA_VERSION: '21'
@@ -26,6 +27,7 @@ jobs:
       # Sonar analysis runs only when the token is set, so the build and tests still run (and gate PRs) without it.
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || 'DFE-Digital_briefing-tool' }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       with:

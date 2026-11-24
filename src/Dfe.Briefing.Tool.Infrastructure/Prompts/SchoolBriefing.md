@@ -26,7 +26,7 @@ Present a link  to the school’s page on the Ofsted website (https://reports.of
 
 One line for the previous judgment to the last inspection, saying when that took place and whether it was before or after it joined its current trust. Then:
 •	If the previous inspection was a graded inspection: Give the overall effectiveness grade 
-•	If the latest inspection was a Report Card inspection: a bullet point for the name of each area and the grade it was given
+•	If the previous inspection was a Report Card inspection: a bullet point for the name of each area and the grade it was given
 
 
 ##KS2 Summary
@@ -35,28 +35,27 @@ One line explaining what year the results are for, and then:
 
 A table, with 5 columns. The columns are: (the measure, for example ‘reading, writing and maths combined’), the school result, the local average, the national average, and the results for disadvantaged pupils at the school.
 
-One row for each of the areas: ‘reading, writing and maths combined’, ‘grammar, punctuation and spelling’, ‘maths’, ‘reading’, ‘writing’ and ‘science’.
+One row for each of the areas: ‘reading, writing and maths combined’, ‘grammar, punctuation and spelling’, ‘maths’, ‘reading’, ‘writing’ and ‘science’. (do not give a reference for the table).
 
 
 ##KS4 Summary
 
 One line explaining what year the results are for, and then:
 
-Generate a table showing the ‘Attainment 8’ and ‘Progress 8’ percentages for the school, the local average and the national average.
-
-Below the table, as bulleted items, list the school’s percentages in that same year for:
-
+Generate a table showing the:
+- Attainment 8  
 -	EBacc
 -	English
 -	Maths
 -	Grade 5 to 9
+percentages for the school, the local average and the national average.
+
 
 ##Pupil Population
 
 A sentence about the latest (name academic year) free school meal data associated with this school, mentioning most recent local and national averages if available.
-A sentence about the latest (name academic year) SEND data associated with this school, mentioning most recent local and national averages if available.
-A sentence about the latest (name academic year) EAL data associated with this school, mentioning most recent local and national averages if available.
-A sentence about the latest (name academic year) deprivation indicator data associated with this school, mentioning most recent local and national averages if available.
+A sentence about the latest (name academic year) SEND and EAL data associated with this school.
+
 
 ##Attendance
 

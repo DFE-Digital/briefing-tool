@@ -445,7 +445,7 @@ export function initBriefingProgress() {
          updateCurrentStep(statusList, e.data);
       });
 
-      // Arrives just before "complete": the briefing to send back if the person asks for a web search.
+      // Arrives just before "complete": the token for the briefing, to send back if the person asks for a web search.
       source.addEventListener('web-search-offer', function (e) {
          offer = JSON.parse(e.data);
       });

@@ -85,7 +85,7 @@ public sealed class BriefingEvidenceProviderTests
 
         Assert.NotNull(records);
         Assert.True(records.Subject.HasEvidence);
-        Assert.All(new[] { records.RiseConcerns, records.RecastConcerns }, set =>
+        Assert.All([records.RiseConcerns, records.RecastConcerns], set =>
         {
             Assert.False(set.HasEvidence);
             Assert.Empty(set.Text);

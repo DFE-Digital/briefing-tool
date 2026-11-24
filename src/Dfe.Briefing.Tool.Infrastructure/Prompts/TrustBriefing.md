@@ -1,3 +1,11 @@
+Write the briefing about this Trust, using only its records, supplied as evidence.
+
+Name: {{TrustName}}
+
+Trust TRN: {{TrustTrn}}
+
+Trust template - return the briefing in this layout:
+
 #Trust Name
 
 ##Trust overview

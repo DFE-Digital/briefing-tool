@@ -244,7 +244,7 @@ namespace Dfe.Briefing.Tool.Web.Pages.Briefing
             }
             catch (Exception ex) when (ex is CryptographicException or FormatException)
             {
-                logger.LogWarning("A web search token couldn't be read: {Reason}", ex.Message);
+                logger.LogWarning(ex, "A web search token couldn't be read");
                 return null;
             }
         }

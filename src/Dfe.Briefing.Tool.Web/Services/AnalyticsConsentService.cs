@@ -63,39 +63,51 @@
         private void SetConsent(bool consent)
         {
             Consent = consent;
+            var httpContext = _httpContextAccessor.HttpContext!;
             var cookieOptions = new CookieOptions { Expires = DateTime.Today.AddYears(1), Secure = true, HttpOnly = true };
-            _httpContextAccessor.HttpContext!.Response.Cookies.Append(ConsentCookieName, consent.ToString().ToLower(), cookieOptions);
-            var request = _httpContextAccessor.HttpContext.Request;
+            httpContext.Response.Cookies.Append(ConsentCookieName, consent.ToString().ToLower(), cookieOptions);
 
             if (!consent)
             {
-                foreach (var cookie in request.Cookies.Keys)
+                ExpireAnalyticsCookies(httpContext);
+            }
+        }
+
+        private void ExpireAnalyticsCookies(HttpContext httpContext)
+        {
+            foreach (var cookie in httpContext.Request.Cookies.Keys)
+            {
+                if (cookie.StartsWith("_ga") || cookie.Equals("_gid"))
                 {
-                    if (cookie.StartsWith("_ga") || cookie.Equals("_gid"))
-                    {
-                        if (_logger.IsEnabled(LogLevel.Information))
-                        {
-                            _logger.LogInformation("Expiring Google analytics cookie: {Cookie}", cookie);
-                        }
+                    ExpireGoogleAnalyticsCookie(httpContext.Response, cookie);
+                }
 
-                        //Delete if domain is the same
-                        _httpContextAccessor.HttpContext.Response.Cookies.Delete(cookie);
-                        //Delete if domain matches - need both as we wont be sent the cookie if the domain doesnt match
-                        _httpContextAccessor.HttpContext.Response.Cookies.Delete(cookie, new CookieOptions() { Domain = _analyticsDomain, Secure = true, HttpOnly = true });
-                    }
-
-                    // App Insights
-                    if (cookie.StartsWith("ai_"))
-                    {
-                        if (_logger.IsEnabled(LogLevel.Information))
-                        {
-                            _logger.LogInformation("Expiring App insights cookie: {Cookie}", cookie);
-                        }
-
-                        _httpContextAccessor.HttpContext.Response.Cookies.Append(cookie, string.Empty, new CookieOptions { Expires = DateTime.Now.AddYears(-1), Secure = true, SameSite = SameSiteMode.Lax, HttpOnly = true });
-                    }
+                if (cookie.StartsWith("ai_"))
+                {
+                    ExpireAppInsightsCookie(httpContext.Response, cookie);
                 }
             }
+        }
+
+        private void ExpireGoogleAnalyticsCookie(HttpResponse response, string cookie)
+        {
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Expiring Google analytics cookie: {Cookie}", cookie);
+            }
+
+            response.Cookies.Delete(cookie);
+            response.Cookies.Delete(cookie, new CookieOptions() { Domain = _analyticsDomain, Secure = true, HttpOnly = true });
+        }
+
+        private void ExpireAppInsightsCookie(HttpResponse response, string cookie)
+        {
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Expiring App insights cookie: {Cookie}", cookie);
+            }
+
+            response.Cookies.Append(cookie, string.Empty, new CookieOptions { Expires = DateTime.Now.AddYears(-1), Secure = true, SameSite = SameSiteMode.Lax, HttpOnly = true });
         }
     }
 

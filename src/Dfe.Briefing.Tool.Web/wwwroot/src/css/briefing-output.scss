@@ -297,7 +297,7 @@ $app-timeline-marker: 18px;
 }
 
 // The light blue panels on the generate and summary pages: the AI disclaimer, the summary and its further context.
-$app-panel-colour: govuk-tint(govuk-colour("blue"), 80%);
+$app-panel-colour: govuk-colour("blue", $variant: "tint-80");
 
 .app-disclaimer {
   padding: govuk-spacing(4);

@@ -83,8 +83,7 @@
     <form method="post" asp-page-handler="MoreInformation" novalidate id="web-search-offer" class="govuk-!-margin-top-6" hidden="@(!Model.CanSearchWeb)">
         <input type="hidden" name="Type" value="@Model.Type" />
         <input type="hidden" name="UrnOrTrn" value="@subject.UrnOrTrn" />
-        <input type="hidden" name="Briefing" value="@Model.Briefing" />
-        <input type="hidden" name="City" value="@Model.City" />
+        <input type="hidden" name="WebSearchToken" value="@Model.WebSearchToken" />
 
         <h2 class="govuk-heading-s" id="web-search-offer-title" tabindex="-1">Would you like to see more information?</h2>
         <p class="govuk-body">

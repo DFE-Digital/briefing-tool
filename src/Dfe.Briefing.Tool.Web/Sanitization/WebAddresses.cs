@@ -3,12 +3,10 @@ using System.Text.RegularExpressions;
 namespace Dfe.Briefing.Tool.Web.Sanitization;
 
 /// <summary>
-/// Agents often write web addresses without "https://" (e.g. "chorustrust.org/feeds/news.asp?nid=1"), or wrap
-/// them in backticks - neither of which becomes a link. This finds every web address in a briefing and gives it
-/// its scheme, so each one becomes a link that shows the complete address the reader will be taken to. Only
-/// addresses ending in a known web domain are matched, so figures such as "56.7" or abbreviations such as "e.g."
-/// are left alone.
+/// Provides utilities for recognizing and normalizing web addresses.
 /// </summary>
+/// <remarks>Recognizes addresses with supported UK and generic domains. Bare addresses can be normalized by
+/// adding "https://"; backticks around addresses can be removed.</remarks>
 internal static partial class WebAddresses
 {
     private const string Address =

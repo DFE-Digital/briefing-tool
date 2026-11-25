@@ -51,49 +51,60 @@ Willow Academy was judged Outstanding on 3 March 2015, before it joined the
 trust on 1 April 2019."
 
 ## KS2 summary
-Only include this section if at least one academy has KS2 results. Use only 
+Only include this section if at least one academy has KS2 results. Use only 
 academies with KS2 results; do not mention academies without them.
 
-Use each academy's most recent academic year of results. If academies' latest 
-years differ, give the year for each figure. Never compare figures from different 
-years as if they were the same year.
+Use the most recent academic year in the records as the current year, and the 
+year before it as the previous year.
 
-Paragraph 1 – reading, writing and maths (RWM) at the expected standard.
-- First sentence: the most recent year, and the range of results across 
-  academies, naming the highest and lowest.
-- Then group academies with similar results in one sentence, naming them, with 
-  each figure in brackets.
-- If the records give a national or LA figure for the same year, say which 
-  academies are above it and which are below, naming them. Only compare to 
-  figures the records give.
-- If the records give an academy's previous year, mention it only where the 
-  result rose or fell, giving both figures and years. Do not describe the change.
+### Reading, writing and maths
+One short paragraph (one or two sentences) giving the broad picture only: 
+the range from lowest to highest, naming those academies, and any academy whose 
+result is clearly apart from the rest. Do not repeat every figure; the table 
+shows them.
 
-Paragraph 2 – all other KS2 measures (for example the higher standard, 
-average scaled scores and individual subjects).
-- First sentence: the measure where academies are most alike, naming them.
-- Then the measures where academies differ most, naming the highest and lowest 
-  academy with figures.
-- Group by measure, not by academy. Never go through academies one at a time.
+Then this table, with:
+
+One row for each academy, ordered alphabetically
+One row for local average
+One row for national average
+
+One column titled for 'results' which the row titles will sit under
+One column for latest year
+One column for previous year
+ 
+### Other KS2 measures
+One short paragraph (one or two sentences) giving the broad picture only, for 
+example a measure where results are spread widely, naming the lowest and 
+highest academy.
+
+Then this table for the current year, with one column per measure the records 
+give (for example GPS, reading, writing, maths, science, higher standard):
+
+One row for each academy order alphabetically
+One row for local average
+One row for national average
+
+One column per measure (no local or national averages)
+Measures to include are GPS, reading, writing, maths, science
+
+Table rules:
+- Copy each figure exactly as the records give it.
+- Write "Not available" where a figure isn't given.
+- Put the Local authority and National rows last; leave them out if the 
+  records don't give them.
+- Put the year in the column headings, as "2024/25".
+- Cite the records once, in the sentence before each table, not inside the table.
 
 Never:
-- calculate a trust average, total or difference between figures
-- describe results as strong, weak, improving, concerning or similar
-- write text from a field label
+- say whether a figure is above, below or near another
+- use words such as rose, fell, improved or declined
+- calculate an average, total or difference
+- describe results as strong, weak, concerning or similar
 
-Example of the style (made-up data):
-"In 2024/25, the percentage of pupils meeting the expected standard in reading, 
-writing and maths ranged from 48% at Birch Primary to 82% at Willow Academy. 
-Oak Primary (61%), Ash Primary (63%) and Elm Academy (64%) had similar results. 
-Willow Academy and Elm Academy were above the national figure of 62%, and Birch 
-Primary, Oak Primary and Ash Primary were below it. Birch Primary's result fell 
-from 57% in 2023/24.
-
-In the other KS2 measures, academies were most alike in the reading average 
-scaled score, which was 104 or 105 at all five academies. They differed most at 
-the higher standard in reading, writing and maths, from 3% at Birch Primary to 
-21% at Willow Academy."
-
+Example paragraph (made-up data):
+"In 2024/25, results ranged from 61% at Oak Primary to 82% at Willow Academy, 
+with Birch Primary apart from the rest at 48%."
 ## KS4 summary
 One paragraph talking about KS4 performance at the trust for Attainment 8. Cover overall performance, including commonalities and outliers where appropriate
 Another paragraph for all other KS4 measures - overall performance, including commonalities and outliers where appropriate.

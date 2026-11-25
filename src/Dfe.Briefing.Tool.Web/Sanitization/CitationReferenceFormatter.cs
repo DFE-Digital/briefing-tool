@@ -20,12 +20,26 @@ public static partial class CitationReferenceFormatter
     public static string CollectReferences(string markdown, string referenceIdPrefix = DefaultReferenceIdPrefix)
     {
         var references = new List<string>();
+        var withMarkers = NumberSources(JoinNamesToAddresses(markdown), references);
+
+        if (references.Count == 0)
+            return WebAddresses.WithSchemes(markdown);
+
+        var items = references.Select((reference, index) => $"""<li id="{referenceIdPrefix}-{index + 1}">{reference}</li>""");
+        return $"{WebAddresses.WithSchemes(GroupCitations(withMarkers, referenceIdPrefix))}\n\n## References\n\n<ol>\n{string.Join('\n', items)}\n</ol>\n";
+    }
+
+    /// <summary>
+    /// Replaces each cited source with a marker holding its reference number, adding each distinct source to
+    /// <paramref name="references"/> the first time it's cited.
+    /// </summary>
+    private static string NumberSources(string markdown, List<string> references)
+    {
         var numberByKey = new Dictionary<string, int>(StringComparer.Ordinal);
 
-        var withMarkers = SourceRegex().Replace(JoinNamesToAddresses(markdown), match =>
+        return SourceRegex().Replace(markdown, match =>
         {
             var (name, url, isSearchCitation) = ReadSource(match);
-            // A search citation is one record, whatever website the library attached; a link is one page.
             var key = isSearchCitation ? name : url ?? name;
 
             if (!numberByKey.TryGetValue(key, out var number))
@@ -37,14 +51,6 @@ public static partial class CitationReferenceFormatter
 
             return $"{MarkerStart}{number}{MarkerEnd}";
         });
-
-        // Web addresses in the briefing's own text become full links; the References list is built separately, so a
-        // source's name (e.g. "Education.gov.uk news") is never mistaken for an address.
-        if (references.Count == 0)
-            return WebAddresses.WithSchemes(markdown);
-
-        var items = references.Select((reference, index) => $"""<li id="{referenceIdPrefix}-{index + 1}">{reference}</li>""");
-        return $"{WebAddresses.WithSchemes(GroupCitations(withMarkers, referenceIdPrefix))}\n\n## References\n\n<ol>\n{string.Join('\n', items)}\n</ol>\n";
     }
 
     // Placeholders for a citation's reference number, so citations side by side can be found and grouped.

@@ -20,12 +20,29 @@ If the records give none of these people, leave the whole section out, heading i
 •	Academy name: then nested bullet points for: URN; type of school; phase; age range; local authority; capacity and number on roll; website.
 •	One bullet for every academy in the academies' records, each only once, in alphabetical order. Write "Not available" for a fact the records don't give for that academy. Give no Ofsted judgements, results, pupil figures or attendance here - each has its own section below.
 
-##Ofsted Findings
-One paragraph summarising overall Ofsted performance in graded reviews. Cover commonalities (if a Trust’s academies have very similar overall results, say so) and outliers (for example, Outstanding and Inadequate are the extremes). 
+## Ofsted findings
+Use only each academy's latest inspection, and only if it took place after the 
+academy joined the trust. Academies with no such inspection: name them in one 
+closing sentence.
 
-Then one paragraph summarising overall Ofsted performance in report card reviews. Compare results Only mention the safeguarding result if ‘Not met’.
+Paragraph 1 – graded inspections. Open with the shared pattern: the overall 
+effectiveness grade most of these academies share, naming them. Then name any 
+academy with a different grade, giving its grade and date. Mention an Outstanding 
+or Inadequate grade first if there is one.
 
-For both paragraphs, only mention the latest Ofsted review for that school whether it is graded or report card. Only mention it if is a report (either type) AFTER the school has joined the trust.
+Paragraph 2 – report cards. Open with the area grades the academies share (for 
+example, all Expected standard for achievement). Then name academies with a grade 
+above or below that in any area, giving the area and the grade. Mention 
+safeguarding only if 'Not met'.
+
+Write each as flowing prose, without bullets. Never describe academies one after 
+another in turn.
+
+Example of the style (made-up data):
+"Five of the trust's seven academies have had a graded inspection since joining. 
+Oak Primary, Ash Primary and Elm Academy were judged Good, and Willow Academy was 
+judged Outstanding on 3 March 2023. Birch Academy was judged Inadequate on 
+14 June 2024, with leadership and management also judged Inadequate."
 
 ##KS2 summary
 One paragraph talking about KS2 performance at the trust for RWM Expected. Cover overall performance, including commonalities and outliers where appropriate

@@ -73,7 +73,11 @@
                 {
                     if (cookie.StartsWith("_ga") || cookie.Equals("_gid"))
                     {
-                        _logger.LogInformation("Expiring Google analytics cookie: {Cookie}", cookie);
+                        if (_logger.IsEnabled(LogLevel.Information))
+                        {
+                            _logger.LogInformation("Expiring Google analytics cookie: {Cookie}", cookie);
+                        }
+
                         //Delete if domain is the same
                         _httpContextAccessor.HttpContext.Response.Cookies.Delete(cookie);
                         //Delete if domain matches - need both as we wont be sent the cookie if the domain doesnt match
@@ -83,7 +87,11 @@
                     // App Insights
                     if (cookie.StartsWith("ai_"))
                     {
-                        _logger.LogInformation("Expiring App insights cookie: {Cookie}", cookie);
+                        if (_logger.IsEnabled(LogLevel.Information))
+                        {
+                            _logger.LogInformation("Expiring App insights cookie: {Cookie}", cookie);
+                        }
+
                         _httpContextAccessor.HttpContext.Response.Cookies.Append(cookie, string.Empty, new CookieOptions { Expires = DateTime.Now.AddYears(-1), Secure = true, SameSite = SameSiteMode.Lax, HttpOnly = true });
                     }
                 }

@@ -33,7 +33,7 @@ public sealed class BriefingEvidenceProviderTests
         => _contextRetriever.GetContextAsync(index, Arg.Any<string>(), Arg.Any<int>(), Arg.Any<ODataFilter>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new ContextResult(text, hasEvidence)));
 
-    private Task ReceivedFilteredSearch(string index, string filter, int size = EvidencePerSearch)
+    private Task<ContextResult> ReceivedFilteredSearch(string index, string filter, int size = EvidencePerSearch)
         => _contextRetriever.Received(1).GetContextAsync(index, "*", size,
             Arg.Is<ODataFilter>(f => f.ToString() == filter), Arg.Any<CancellationToken>());
 

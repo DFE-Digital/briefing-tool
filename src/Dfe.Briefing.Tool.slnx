@@ -2,6 +2,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Dfe.Briefing.Tool.Application.Tests/Dfe.Briefing.Tool.Application.Tests.csproj" />
     <Project Path="tests/Dfe.Briefing.Tool.ReleaseGate.Tests/Dfe.Briefing.Tool.ReleaseGate.Tests.csproj" />
+    <Project Path="tests/Dfe.Briefing.Tool.Web.Tests/Dfe.Briefing.Tool.Web.Tests.csproj" Id="1d59b432-f4d2-49a7-a4f7-9b8c17309514" />
   </Folder>
   <Project Path="Dfe.Briefing.Tool.Application/Dfe.Briefing.Tool.Application.csproj" Id="908556e9-a87b-4534-b54f-722d597f5134" />
   <Project Path="Dfe.Briefing.Tool.Data/Dfe.Briefing.Tool.Data.csproj" Id="4747e735-8a76-4b44-9e84-1c91879692d6" />

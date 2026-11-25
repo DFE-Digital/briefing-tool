@@ -5,27 +5,27 @@ using Markdig.Extensions.AutoLinks;
 namespace Dfe.Briefing.Tool.Web.Sanitization;
 
 /// <summary>
-/// Agents return Markdown built from their own evidence (including content pulled from external Azure
-/// Search documents and, for the web search agent, arbitrary web pages), so it's untrusted for rendering
-/// purposes even though it isn't user-submitted - a compromised or adversarial source document could
-/// otherwise inject a script into a civil servant's browser. This collects repeated citations into a
-/// References list (see CitationReferenceFormatter), renders the result to HTML, then restricts it to the
-/// tags the agents' formatting requirements actually use (headings, paragraphs, lists, tables, citation
-/// links) before it's ever rendered with Html.Raw.
+/// Converts Markdown into sanitized HTML for briefing content.
 /// </summary>
+/// <remarks>Supports pipe tables and automatic links for web addresses. The output permits a restricted set of
+/// HTML elements and attributes, and only HTTP and HTTPS links.</remarks>
 public static class BriefingHtmlSanitizer
 {
-    // Pipe tables: agents use tables to present comparable facts (e.g. Ofsted judgements across
-    // inspections), which plain CommonMark can't parse. Auto-links: agents write web addresses as plain text
-    // (a Markdown link would become a numbered reference), so bare https:// and www. addresses become links here.
+    /// <summary>
+    /// The Markdown pipeline used to parse pipe tables and automatically detect links, using HTTPS for www links.
+    /// </summary>
     private static readonly MarkdownPipeline MarkdownPipeline = new MarkdownPipelineBuilder()
         .UsePipeTables()
         .UseAutoLinks(new AutoLinkOptions { UseHttpsForWWWLinks = true })
         .Build();
     private static readonly HtmlSanitizer Sanitizer = CreateSanitizer();
 
-    /// <param name="markdown">The agent's Markdown.</param>
-    /// <param name="referenceIdPrefix">The prefix of its reference anchors' ids - see <see cref="CitationReferenceFormatter.CollectReferences"/>.</param>
+    /// <summary>
+    /// Converts Markdown to sanitized HTML.
+    /// </summary>
+    /// <param name="markdown">The Markdown content to convert.</param>
+    /// <param name="referenceIdPrefix">The prefix used for citation reference IDs.</param>
+    /// <returns>The sanitized HTML, or <see langword="null"/> if <paramref name="markdown"/> is <see langword="null"/>.</returns>
     public static string? Sanitize(string? markdown, string referenceIdPrefix = CitationReferenceFormatter.DefaultReferenceIdPrefix)
         => markdown is null
             ? null

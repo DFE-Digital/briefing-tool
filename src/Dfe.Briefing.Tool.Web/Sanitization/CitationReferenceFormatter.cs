@@ -11,11 +11,12 @@ public static partial class CitationReferenceFormatter
     /// <summary>The id prefix of the briefing's reference anchors, e.g. "reference-1".</summary>
     public const string DefaultReferenceIdPrefix = "reference";
 
-    /// <param name="markdown">The agent's Markdown.</param>
-    /// <param name="referenceIdPrefix">
-    /// The prefix of the reference anchors' ids. Two documents on one page, such as the briefing and the web search
-    /// findings under it, each need their own, so a citation never jumps to the other's reference with the same number.
-    /// </param>
+    /// <summary>
+    /// Collects source citations from Markdown and appends a numbered References section.
+    /// </summary>
+    /// <param name="markdown">The Markdown content containing source citations and web addresses.</param>
+    /// <param name="referenceIdPrefix">The prefix used for generated reference element identifiers.</param>
+    /// <returns>The Markdown content with citations replaced by reference links and a References section appended.</returns>
     public static string CollectReferences(string markdown, string referenceIdPrefix = DefaultReferenceIdPrefix)
     {
         var references = new List<string>();
@@ -50,9 +51,12 @@ public static partial class CitationReferenceFormatter
     private const char MarkerStart = '';
     private const char MarkerEnd = '';
 
-    // Citations written next to each other - "[A] [B]", "[A], [B]" or "[A] ([B])" - become one bracketed group,
-    // "(11, 12)", rather than "11 12" or "11 (12)"; a single citation becomes "(11)", and a repeat within a group is
-    // shown once.
+    /// <summary>
+    /// Groups citation markers and replaces them with linked references.
+    /// </summary>
+    /// <param name="text">The text containing citation markers.</param>
+    /// <param name="referenceIdPrefix">The prefix used to construct citation reference IDs.</param>
+    /// <returns>The text with grouped citations replaced by linked references.</returns>
     private static string GroupCitations(string text, string referenceIdPrefix)
         => CitationGroupRegex().Replace(text, group =>
         {
@@ -67,10 +71,11 @@ public static partial class CitationReferenceFormatter
     [GeneratedRegex(@"(?<n>\d+)")]
     private static partial Regex MarkerRegex();
 
-    // Agents sometimes cite one source as a name followed by its address - "[Chorus Trust] [chorustrust.org/x]",
-    // "[Chorus Trust][...]", "[Chorus Trust] (...)" or "[Chorus Trust]: ..." - which would otherwise become two
-    // references: the name with no link, and the bare address. This joins them into one link, [name](address).
-    // Two citations side by side, e.g. "[Evidence 1] [Evidence 2]", are left alone, as the second isn't an address.
+    /// <summary>
+    /// Converts names followed by web addresses into Markdown links.
+    /// </summary>
+    /// <param name="markdown">The Markdown text to process.</param>
+    /// <returns>The processed Markdown text.</returns>
     private static string JoinNamesToAddresses(string markdown)
         => NameThenAddressRegex().Replace(UnnestLinks(markdown), match =>
         {
@@ -83,9 +88,11 @@ public static partial class CitationReferenceFormatter
     [GeneratedRegex(@"\[(?<name>[^\[\]]+)\](?:\s*\[(?<address>[^\[\]]+)\]|\s+\((?<address>[^()]+)\)|:\s*(?<address>\S+))")]
     private static partial Regex NameThenAddressRegex();
 
-    // The web search agent sometimes wraps its link inside another, "[The Star]([thestar.co.uk](https://...))", and
-    // occasionally mistypes the bracket, "[The Star)(...)" - either would show as two reference numbers and stray
-    // brackets. This collapses them into the one link they mean, "[The Star](https://...)".
+    /// <summary>
+    /// Converts nested Markdown links to standard link syntax.
+    /// </summary>
+    /// <param name="markdown">The Markdown text to process.</param>
+    /// <returns>The Markdown text with nested links converted to standard link syntax.</returns>
     private static string UnnestLinks(string markdown) => NestedLinkRegex().Replace(markdown, "[${name}](${url})");
 
     [GeneratedRegex(@"\[(?<name>[^\[\]()]+)[\])]\(\[[^\[\]]+\]\((?<url>[^()\s]+)\)\)")]
@@ -131,11 +138,11 @@ public static partial class CitationReferenceFormatter
     private static string Link(string url, string text)
         => $"""<a href="{WebAddresses.WithScheme(url)}">{text}</a>""";
 
-    // The page's own name, from the last part of its address - news sites name each article there:
-    // "https://www.gazette-news.co.uk/news/24681357.stanway-school-colchester-welcome-new-headteacher/?utm_source=openai" is
-    // "stanway-school-colchester-welcome-new-headteacher". A last part that names nothing, a number ("/news/12345") or
-    // "index.html", takes the part before it too, and a site's home page is its site name. Tracking parameters
-    // ("utm_...") are left out of the text, though not the link; any other query stays, as it can pick out the page.
+    /// <summary>
+    /// Gets a display name from a URL.
+    /// </summary>
+    /// <param name="url">The URL to derive the page name from.</param>
+    /// <returns>The HTML-encoded page name.</returns>
     private static string PageName(string url)
     {
         if (!Uri.TryCreate(WebAddresses.WithScheme(url), UriKind.Absolute, out var address) || address.Host.Length == 0)
@@ -174,9 +181,11 @@ public static partial class CitationReferenceFormatter
     [GeneratedRegex(@"^(?:index|default|home)$", RegexOptions.IgnoreCase)]
     private static partial Regex IndexPageRegex();
 
-    // A record's citation text is its first field values, e.g. "Eckington School 149825 Academy converter…" or
-    // "CHORUS EDUCATION TRUST TR01920 Multi-academy trust…" (see ContentFields in appsettings.json: the name comes
-    // first, then the identifier). Older ordering, "149825 Eckington School…", is read too, without the name.
+    /// <summary>
+    /// Creates a description for a recognized trust or school record.
+    /// </summary>
+    /// <param name="text">The text to inspect for a trust or school record.</param>
+    /// <returns>A description of the recognized record, or null if no record is recognized.</returns>
     private static string? DescribeRecord(string text)
     {
         var trust = TrustRecordRegex().Match(text);

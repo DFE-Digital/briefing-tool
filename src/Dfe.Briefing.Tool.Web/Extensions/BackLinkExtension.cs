@@ -5,14 +5,12 @@ namespace Dfe.Briefing.Tool.Web.Extensions;
 public static class BackLinkExtension
 {
     /// <summary>
-    /// Where a Back link goes: the page the person came from, as the browser's back button would, so a page linked to
-    /// from several places (the AI summaries page, say) goes back to whichever it was. It's the page's own
-    /// <paramref name="fallback"/> when the browser doesn't say, when it was another site, or when it was this same
-    /// page - after a form on it shows an error, going back would only show it again before it was sent.
+    /// Gets a link to the previous page when the referrer is on the current host and has a different path; otherwise,
+    /// uses the fallback or the home page.
     /// </summary>
-    /// <param name="url">The page's URL helper.</param>
-    /// <param name="fallback">The page before this one in the journey.</param>
-    /// <returns>A path within this site, never another site's address.</returns>
+    /// <param name="url">The URL helper for the current request.</param>
+    /// <param name="fallback">The URL to use when the referrer is missing, is on another host, or has the current path.</param>
+    /// <returns>The previous page's path and query, or the fallback URL or home page.</returns>
     public static string BackLink(this IUrlHelper url, string? fallback)
     {
         var request = url.ActionContext.HttpContext.Request;

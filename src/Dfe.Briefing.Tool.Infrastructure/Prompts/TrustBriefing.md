@@ -1,8 +1,8 @@
 Write the briefing about this Trust, using only its records, supplied as evidence.
 
-Name: {{TrustName}}
+Name: {{SchoolorTrustName}}
 
-Trust TRN: {{TrustTrn}}
+Trust TRN: {{SchoolorTrustTrn}}
 
 Trust template - return the briefing in this layout:
 
@@ -105,9 +105,74 @@ Never:
 Example paragraph (made-up data):
 "In 2024/25, results ranged from 61% at Oak Primary to 82% at Willow Academy, 
 with Birch Primary apart from the rest at 48%."
+
 ## KS4 summary
-One paragraph talking about KS4 performance at the trust for Attainment 8. Cover overall performance, including commonalities and outliers where appropriate
-Another paragraph for all other KS4 measures - overall performance, including commonalities and outliers where appropriate.
+Only include this section if at least one academy has KS4 results. Use only 
+academies with KS4 results; do not mention academies without them.
+
+Use the most recent academic year in the records as the current year, and the 
+year before it as the previous year.
+
+### Attainment 8
+One short paragraph (one or two sentences) giving the broad picture only: 
+the range from lowest to highest, naming those academies, and any academy whose 
+score is clearly apart from the rest. Do not repeat every figure; the table 
+shows them.
+
+Then this table, with rows ordered from highest to lowest current-year score:
+
+One row for each academy, ordered alphabetically
+One row for local average
+One row for national average
+
+One column titled for 'results' which the row titles will sit under
+One column for latest year
+One column for previous year
+
+### Other KS4 measures
+One short paragraph (one or two sentences) giving the broad picture only, for 
+example a measure where results are spread widely, naming the lowest and 
+highest academy.
+
+Then this table for the current year, with one column per measure the records 
+give (for example Progress 8, English and maths grade 5 or above, English and 
+maths grade 4 or above, EBacc entry, EBacc average point score):
+
+One row for each academy order alphabetically
+One row for local average
+One row for national average
+
+One column per measure (no local or national averages)
+Measures to include are % English and maths at 5 and above, % maths 5 to 9, % english language 5 to 9, % english lit 5 to 9
+
+If no academy has a figure for a measure in the current year, leave that 
+column out.
+
+Units:
+- Attainment 8, Progress 8, the EBacc average point score and the Attainment 8 
+  English and maths element figures are scores. Write them as plain numbers 
+  (for example 46.2 or -0.15), never with "%", even if the records use "%".
+- Use "%" only for measures that are percentages of pupils, such as grade 5 or 
+  above in English and maths, or EBacc entry.
+- Keep the sign on Progress 8 figures exactly as the records give it.
+
+Table rules:
+- Copy each figure exactly as the records give it.
+- Write "Not available" where a figure isn't given.
+- Put the Local authority and National rows last; leave them out if the 
+  records don't give them.
+- Put the year in the column headings, as "2024/25".
+- Cite the records once, in the sentence before each table, not inside the table.
+
+Never:
+- say whether a figure is above, below or near another
+- use words such as rose, fell, improved or declined
+- calculate an average, total or difference
+- describe results as strong, weak, concerning or similar
+
+Example paragraph (made-up data):
+"In 2024/25, Attainment 8 scores ranged from 38.4 at Birch Academy to 52.1 at 
+Willow School, with the other three academies between 44 and 46."
 
 
 ## Pupil Population

@@ -111,6 +111,7 @@ Another paragraph for all other KS4 measures - overall performance, including co
 
 
 ## Pupil Population
+
 A written introduction for a view of the pupil population for the whole trust, giving the year the data is relevant for.
 
  Then, bullet points for the trust totals for:

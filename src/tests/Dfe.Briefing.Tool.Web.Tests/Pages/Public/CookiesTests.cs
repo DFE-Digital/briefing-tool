@@ -89,8 +89,7 @@ public sealed class CookiesTests
         var httpContext = new DefaultHttpContext();
         var tempDataProvider = Substitute.For<ITempDataProvider>();
         var urlHelper = Substitute.For<IUrlHelper>();
-        urlHelper.IsLocalUrl(Arg.Any<string?>()).Returns(call =>
-            call.Arg<string?>()?.StartsWith("/", StringComparison.Ordinal) == true);
+        urlHelper.IsLocalUrl(Arg.Any<string?>()).Returns(call => call.Arg<string?>()?.StartsWith('/') == true);
         return new Cookies(consentService)
         {
             PageContext = new PageContext { HttpContext = httpContext },

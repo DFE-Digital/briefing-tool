@@ -102,6 +102,20 @@ public sealed class SummaryModelTests
         Assert.Equal("Type", Assert.IsType<RedirectToPageResult>(result).PageName);
     }
 
+    [Fact]
+    public async Task OnGetStream_WhenTheSubjectIsNotFound_SendsTheNotFoundMessage()
+    {
+        var page = CreatePage("999999");
+        var body = new MemoryStream();
+        page.HttpContext.Response.Body = body;
+
+        await page.OnGetStreamAsync(cancellationToken);
+
+        var stream = Encoding.UTF8.GetString(body.ToArray());
+        Assert.Contains("event: error-message", stream);
+        Assert.Contains(ErrorMessages.SubjectNotFound(page.SubjectNoun), stream);
+    }
+
     [Theory]
     [InlineData("school", "This school can't be found. Go back and search for it again.")]
     [InlineData("trust", "This trust can't be found. Go back and search for it again.")]
@@ -186,9 +200,12 @@ public sealed class SummaryModelTests
     [InlineData(420, "7")]
     [InlineData(540, "9")]
     [InlineData(61, "2")]
+    [InlineData(60, "1")]
+    [InlineData(0, "6")]
     public void BriefingTimedOut_UsesConfiguredWholeMinutes(int timeoutSeconds, string expectedMinutes)
     {
-        Assert.Equal($"The summary could not be generated within {expectedMinutes} minutes. Please try again.",
+        var minuteLabel = expectedMinutes == "1" ? "minute" : "minutes";
+        Assert.Equal($"The summary could not be generated within {expectedMinutes} {minuteLabel}. Please try again.",
             ErrorMessages.BriefingTimedOut(timeoutSeconds));
     }
 

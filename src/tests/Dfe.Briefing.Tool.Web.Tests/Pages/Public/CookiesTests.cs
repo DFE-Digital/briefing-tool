@@ -24,6 +24,7 @@ public sealed class CookiesTests
         Assert.IsType<RedirectResult>(result);
         Assert.True(page.TempData.ContainsKey(Cookies.PreferencesSetTempDataKey));
         Assert.True((bool?)page.TempData[Cookies.PreferencesSetTempDataKey]);
+        consentService.Received(1).AllowConsent();
     }
 
     [Fact]
@@ -38,6 +39,49 @@ public sealed class CookiesTests
         var redirect = Assert.IsType<RedirectResult>(result);
         Assert.Equal("/cookies?consent=True&returnUrl=/", redirect.Url);
         Assert.False((bool?)page.TempData[Cookies.IsRubyRequestTempDataKey]);
+    }
+
+    [Fact]
+    public void OnGet_WithNoConsentAndNoReturnUrl_ShowsThePage()
+    {
+        var consentService = Substitute.For<IAnalyticsConsentService>();
+        consentService.ConsentValue().Returns((bool?)null);
+        var page = CreatePage(consentService);
+
+        var result = page.OnGet(null, "/");
+
+        Assert.IsType<PageResult>(result);
+        Assert.False(page.PreferencesSet);
+        consentService.DidNotReceive().AllowConsent();
+        consentService.DidNotReceive().DenyConsent();
+    }
+
+    [Fact]
+    public void OnGet_WhenConsentIsRejected_CallsDenyConsent()
+    {
+        var consentService = Substitute.For<IAnalyticsConsentService>();
+        var page = CreatePage(consentService);
+
+        page.OnGet(false, "/");
+
+        consentService.Received(1).DenyConsent();
+        consentService.DidNotReceive().AllowConsent();
+    }
+
+    [Fact]
+    public void OnPost_WithExistingPreferences_ClearsThem()
+    {
+        var consentService = Substitute.For<IAnalyticsConsentService>();
+        consentService.ConsentValue().Returns((bool?)null);
+        var page = CreatePage(consentService);
+        page.TempData[Cookies.PreferencesSetTempDataKey] = true;
+        page.TempData[Cookies.IsRubyRequestTempDataKey] = false;
+
+        var result = page.OnPost(true, "/", null);
+
+        Assert.IsType<PageResult>(result);
+        Assert.Null(page.TempData[Cookies.PreferencesSetTempDataKey]);
+        Assert.Null(page.TempData[Cookies.IsRubyRequestTempDataKey]);
     }
 
     private static Cookies CreatePage(IAnalyticsConsentService consentService)

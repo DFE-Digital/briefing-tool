@@ -176,10 +176,20 @@ Willow School, with the other three academies between 44 and 46."
 
 
 ## Pupil Population
-A written introduction for a view of the pubip population for the whole trust, giving the year the data is relevant for  - then bullet points for the trust totals for,example, pupils with an EHCP, on SEN support, eligible for free school meals, taking free school meals, and with English not as their first language.
 
-One paragraph mentioning commonality and outliers at the Trust’s schools in the individual measures – comparing to national averages for FSM Eligible, FSM Taking
-And EAL when appropriate.
+A written introduction for a view of the pupil population for the whole trust, giving the year the data is relevant for.
+
+ Then, bullet points for the trust totals for:
+
+ - pupils with an EHCP
+ - SEN support
+ - eligible for free school meals
+ - taking free school meals
+ - English not as their first language
+
+A short, narrative summary covering any commonality and outliers at the Trust’s schools. 
+
+As part of the summary, include a comparison to the national averages for 'FSM Eligible', 'FSM Taking' and 'EAL' (when appropriate).
 
 ## Attendance
 One paragraph giving the overall absence and persistent absence, with the academic year, where the records give a trust-wide figure. Compare to national and local figures when available.

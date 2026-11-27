@@ -470,16 +470,30 @@ is busy" shows its cause here. To follow one briefing from start to end, filter 
 let app = "briefing-tool";
 union
     (union traces, exceptions
-    | where timestamp > ago(30d) and cloud_RoleName == app and severityLevel >= 3
-    | extend error = coalesce(message, outerMessage), exception = innermostMessage),
+    | where timestamp > ago(24h)
+        and cloud_RoleName == app
+        and severityLevel >= 3
+    | extend error = coalesce(message, outerMessage),
+             exception = innermostMessage),
     (dependencies
-    | where timestamp > ago(30d) and cloud_RoleName == app and resultCode == "429"
-    | extend error = strcat("HTTP 429 from ", target), exception = "")
+    | where timestamp > ago(24h)
+        and cloud_RoleName == app
+        and resultCode == "429"
+    | extend error = strcat("HTTP 429 from ", target),
+             exception = "")
 | extend text = strcat(error, " ", exception)
-| extend kind = case(text has "did not finish within", "Timeout",
+| extend errorType = case(
+    text has "did not finish within", "Timeout",
     text has "HTTP 429" or text has "rate limit", "Rate limit",
-    "Error")
-| project timestamp, kind, error, exception, operation = operation_Id, instance = cloud_RoleInstance
+    "Error"
+)
+| project
+    timestamp,
+    errorType,
+    error,
+    exception,
+    operation = operation_Id,
+    instance = cloud_RoleInstance
 | order by timestamp desc
 ```
 

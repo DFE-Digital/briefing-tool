@@ -1,10 +1,11 @@
 @using Dfe.Briefing.Tool.Web.Models
 @using Dfe.Briefing.Tool.Web.Services
+@using Dfe.Briefing.Tool.Web.Pages.Public
 @{
     // Set by the cookies page when the banner's accept or reject sends the person back here: shown once.
-    var hasCookiesSet = TempData["PreferencesSet"];
-    TempData["PreferencesSet"] = null;
-    TempData["IsRubyRequest"] = null;
+    var hasCookiesSet = TempData[Cookies.PreferencesSetTempDataKey];
+    TempData[Cookies.PreferencesSetTempDataKey] = null;
+    TempData[Cookies.IsRubyRequestTempDataKey] = null;
 }
 
 @if (hasCookiesSet != null)

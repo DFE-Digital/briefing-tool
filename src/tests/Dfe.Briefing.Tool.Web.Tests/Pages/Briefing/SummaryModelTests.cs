@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -23,7 +24,6 @@ public sealed class SummaryModelTests
     // Free text of the kind Front Door's firewall scores as an attack: quotes, SQL words and markup.
     private const string Briefing = "# Test Academy\n\nRated Good. It's in the 'select' union of schools <b>[Evidence 1]</b>";
     private const string City = "Exampleton";
-    private const string NotSearchable = "This summary can't be searched for more information. Generate it again and try once more.";
 
     private static readonly BriefingSubject School = new(Urn, "Test Academy", IsTrust: false, Region: "North", Website: "https://test.example");
 
@@ -63,8 +63,13 @@ public sealed class SummaryModelTests
         => _orchestrator.DidNotReceive().GetWebSearchFindings(Arg.Any<BriefingParameters>(), Arg.Any<string>(), Arg.Any<string?>(),
             Arg.Any<string?>(), Arg.Any<CancellationToken>());
 
-    private SummaryModel CreatePage(string urnOrTrn = Urn, IDataProtectionProvider? dataProtection = null)
-        => new(_orchestrator, _subjectFinder, dataProtection ?? _dataProtection, NullLogger<SummaryModel>.Instance)
+    private SummaryModel CreatePage(string urnOrTrn = Urn, IDataProtectionProvider? dataProtection = null,
+        int runTimeoutSeconds = 360)
+        => new(_orchestrator, _subjectFinder, dataProtection ?? _dataProtection,
+            new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AiAgents:RunTimeout"] = runTimeoutSeconds.ToString()
+            }).Build(), NullLogger<SummaryModel>.Instance)
         {
             PageContext = new PageContext { HttpContext = new DefaultHttpContext() },
             Type = SubjectTypes.Establishment,
@@ -87,7 +92,7 @@ public sealed class SummaryModelTests
     }
 
     private static void AssertNotSearchable(SummaryModel page)
-        => Assert.Equal(NotSearchable, Assert.Single(page.ModelState[string.Empty]!.Errors).ErrorMessage);
+        => Assert.Equal(ErrorMessages.BriefingNotSearchable, Assert.Single(page.ModelState[string.Empty]!.Errors).ErrorMessage);
 
     [Fact]
     public async Task OnGet_WhenTheSchoolIsnotFound_SendsThePersonBackToTheStart()
@@ -95,6 +100,14 @@ public sealed class SummaryModelTests
         var result = await CreatePage("999999").OnGetAsync(cancellationToken);
 
         Assert.Equal("Type", Assert.IsType<RedirectToPageResult>(result).PageName);
+    }
+
+    [Theory]
+    [InlineData("school", "This school can't be found. Go back and search for it again.")]
+    [InlineData("trust", "This trust can't be found. Go back and search for it again.")]
+    public void SubjectNotFound_UsesTheSubjectNoun(string subjectNoun, string expected)
+    {
+        Assert.Equal(expected, ErrorMessages.SubjectNotFound(subjectNoun));
     }
 
     [Fact]
@@ -152,6 +165,31 @@ public sealed class SummaryModelTests
         Assert.Null(page.BriefingOutput);
         Assert.Single(page.ModelState[string.Empty]!.Errors);
         Assert.False(page.CanSearchWeb);
+    }
+
+    [Fact]
+    public async Task OnPost_WhenTheBriefingTimesOut_ShowsConfiguredMinutes()
+    {
+        _orchestrator.GetBriefing(Arg.Any<BriefingParameters>(), Arg.Any<IProgress<string>?>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new TimeoutException("Agent 'briefing-agent' did not finish within 540 seconds."));
+        var page = CreatePage(runTimeoutSeconds: 540);
+        page.AcceptDisclaimer = true;
+
+        await page.OnPostAsync(cancellationToken);
+
+        Assert.Equal("The summary could not be generated within 9 minutes. Please try again.",
+            Assert.Single(page.ModelState[string.Empty]!.Errors).ErrorMessage);
+    }
+
+    [Theory]
+    [InlineData(360, "6")]
+    [InlineData(420, "7")]
+    [InlineData(540, "9")]
+    [InlineData(61, "2")]
+    public void BriefingTimedOut_UsesConfiguredWholeMinutes(int timeoutSeconds, string expectedMinutes)
+    {
+        Assert.Equal($"The summary could not be generated within {expectedMinutes} minutes. Please try again.",
+            ErrorMessages.BriefingTimedOut(timeoutSeconds));
     }
 
     [Fact]

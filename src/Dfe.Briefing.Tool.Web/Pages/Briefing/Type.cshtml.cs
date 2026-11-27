@@ -2,30 +2,24 @@ using Dfe.Briefing.Tool.Web.Constants;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace Dfe.Briefing.Tool.Web.Pages.Briefing
+namespace Dfe.Briefing.Tool.Web.Pages.Briefing;
+
+/// <summary>The first step: whether the summary is of a school or other establishment, or of a trust.</summary>
+public class TypeModel : PageModel
 {
-    /// <summary>The first step: whether the summary is of a school or other establishment, or of a trust.</summary>
-    public class TypeModel : PageModel
+    public const string NoTypeChosen = "Select the type of establishment to summarise";
+
+    [BindProperty(SupportsGet = true)]
+    public string? Type { get; set; }
+
+    public IActionResult OnPost()
     {
-        public const string NoTypeChosen = "Select the type of establishment to summarise";
-
-        [BindProperty(SupportsGet = true)]
-        public string? Type { get; set; }
-
-        public void OnGet()
+        if (!SubjectTypes.IsValid(Type))
         {
-            // Type, if given, is the choice made before: the person came back to change it.
+            ModelState.AddModelError(nameof(Type), NoTypeChosen);
+            return Page();
         }
 
-        public IActionResult OnPost()
-        {
-            if (!SubjectTypes.IsValid(Type))
-            {
-                ModelState.AddModelError(nameof(Type), NoTypeChosen);
-                return Page();
-            }
-
-            return RedirectToPage("Find", new { type = Type });
-        }
+        return RedirectToPage("Find", new { type = Type });
     }
 }

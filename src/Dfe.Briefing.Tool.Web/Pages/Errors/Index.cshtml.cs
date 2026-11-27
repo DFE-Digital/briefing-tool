@@ -38,7 +38,7 @@ public class IndexModel(ILogger<IndexModel> logger) : PageModel
                 501 => ErrorMessages.NotImplemented,
                 _ => $"Error {statusCode}"
             };
-            logger.LogError("ErrorPage::Something went wrong - {RequestId}, {ErrorMessage}", RequestId, ErrorMessage);
+            logger.LogError(ErrorMessages.ErrorPageLogTemplate, RequestId, ErrorMessage);
         }
 
         IsPageNotFound = statusCode == StatusCodes.Status404NotFound || ErrorMessage == ErrorMessages.PageNotFound;
@@ -47,7 +47,7 @@ public class IndexModel(ILogger<IndexModel> logger) : PageModel
     private void ManageUnhandledErrors()
     {
         var unhandledError = HttpContext.Features.Get<IExceptionHandlerPathFeature>()?.Error;
-        logger.LogError("ErrorPage::Something went wrong - {RequestId}, {Message}", RequestId, unhandledError?.Message);
+        logger.LogError(ErrorMessages.ErrorPageUnhandledLogTemplate, RequestId, unhandledError?.Message);
          
         if (unhandledError is InvalidOperationException && unhandledError.Message.Contains("no page named", StringComparison.CurrentCultureIgnoreCase))
         {

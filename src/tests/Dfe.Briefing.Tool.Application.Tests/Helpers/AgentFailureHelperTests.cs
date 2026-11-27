@@ -26,6 +26,16 @@ public sealed class AgentFailureHelperTests
         Assert.False(AgentFailureHelper.IsRateLimited(null));
     }
 
+    [Fact]
+    public void IsTimedOut_FindsTimeoutExceptionOrLibraryMessage()
+    {
+        Assert.True(AgentFailureHelper.IsTimedOut(new TimeoutException()));
+        Assert.True(AgentFailureHelper.IsTimedOut(
+            new InvalidOperationException("outer", new InvalidOperationException("Agent 'briefing-agent' did not finish within 360 seconds."))));
+        Assert.False(AgentFailureHelper.IsTimedOut(new InvalidOperationException("boom")));
+        Assert.False(AgentFailureHelper.IsTimedOut(null));
+    }
+
     private sealed class FakeResponse(int status) : PipelineResponse
     {
         public override int Status => status;
